@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.env
+venv/
+*.egg-info/
+.installed.cfg
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Alembic
+backend/alembic/*.log
+
+# Docker
+*.log
+*.pid
+
+# Build artifacts
+frontend/node_modules/
+backend/.venv/
+
+# Coverage
+htmlcov/
+.coverage
+
+# Others
+.env.local
