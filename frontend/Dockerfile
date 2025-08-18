@@ -4,4 +4,4 @@ COPY package.json tsconfig.json tsconfig.node.json vite.config.ts vitest.config.
 COPY src ./src
 COPY index.html ./
 RUN npm install && npm run build
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
