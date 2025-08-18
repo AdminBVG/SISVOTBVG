@@ -1,4 +1,5 @@
 from datetime import date
+import hashlib
 from .database import SessionLocal, Base, engine
 from . import models
 
@@ -6,6 +7,14 @@ Base.metadata.create_all(bind=engine)
 
 def run():
     db = SessionLocal()
+    if db.query(models.User).filter_by(username="AdminBVG").first() is None:
+        admin = models.User(
+            username="AdminBVG",
+            hashed_password=hashlib.sha256("BVG2025".encode()).hexdigest(),
+            role="REGISTRADOR_BVG",
+        )
+        db.add(admin)
+        db.commit()
     if db.query(models.Shareholder).count() == 0:
         shareholders = [
             models.Shareholder(code='S1', name='Ana', document='DOC1', email='ana@example.com', actions=100),

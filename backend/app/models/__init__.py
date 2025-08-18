@@ -97,3 +97,11 @@ class ProxyAssignment(Base):
     valid_from = Column(Date)
     valid_until = Column(Date)
     proxy = relationship("Proxy", back_populates="assignments")
+
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="REGISTRADOR_BVG")

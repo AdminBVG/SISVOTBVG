@@ -23,7 +23,12 @@ def mark_attendance(election_id: int, code: str, payload: Dict, db: Session = De
         raise HTTPException(status_code=404, detail="shareholder not found")
     attendance = db.query(models.Attendance).filter_by(election_id=election_id, shareholder_id=shareholder.id).first()
     if not attendance:
-        attendance = models.Attendance(election_id=election_id, shareholder_id=shareholder.id)
+        attendance = models.Attendance(
+            election_id=election_id,
+            shareholder_id=shareholder.id,
+            mode=AttendanceMode.AUSENTE,
+            present=False,
+        )
         db.add(attendance)
     history = models.AttendanceHistory(
         attendance=attendance,
