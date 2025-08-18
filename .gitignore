@@ -24,6 +24,7 @@ backend/alembic/*.log
 # Build artifacts
 frontend/node_modules/
 backend/.venv/
+backend/app.db
 
 # Coverage
 htmlcov/
