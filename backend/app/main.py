@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .routers import shareholders, attendance, proxies
+from .routers import shareholders, attendance, proxies, auth
 from .database import Base, engine
 
 Base.metadata.create_all(bind=engine)
@@ -9,6 +9,7 @@ app = FastAPI(title="BVG Attendance API")
 app.include_router(shareholders.router)
 app.include_router(attendance.router)
 app.include_router(proxies.router)
+app.include_router(auth.router)
 
 @app.get("/")
 def read_root():

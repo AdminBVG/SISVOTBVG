@@ -172,6 +172,11 @@ El frontend estará en <http://localhost:5173> y la API en <http://localhost:800
 ## 8. Usuarios y roles
 Este prototipo no implementa autenticación completa. Se esperan roles `REGISTRADOR_BVG` y `OBSERVADOR_BVG` para controlar permisos.
 
+Credenciales por defecto:
+
+- Usuario: `AdminBVG`
+- Contraseña: `BVG2025`
+
 ## 9. Pruebas
 Backend:
 ```bash
