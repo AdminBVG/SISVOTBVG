@@ -32,11 +32,12 @@ Copia `.env.example` a `.env` y ajusta valores:
 - `VITE_WS_URL`
 
 ## 4. Base de datos
+Las migraciones se gestionan con `backend/migrate.py`, que usa `DATABASE_URL` de las variables de entorno.
 Levanta PostgreSQL vía Docker Compose y ejecuta migraciones:
 ```bash
 docker compose up -d db
 cd backend
-alembic upgrade head
+python migrate.py
 ```
 
 ## 5. Seeds
@@ -56,7 +57,7 @@ python -m app.seed
    ```bash
    docker compose up -d db
    cd backend
-   alembic upgrade head
+   python migrate.py
    cd ..
    ```
 3. (Opcional) Carga datos de ejemplo:
@@ -80,6 +81,39 @@ python -m app.seed
    docker compose down
    ```
 
+## 6.1 Windows (Docker Desktop)
+Pasos rápidos usando PowerShell:
+
+1. Instala [Docker Desktop para Windows](https://docs.docker.com/desktop/install/windows/) con soporte WSL2.
+2. Clona el repositorio y entra en la carpeta del proyecto.
+3. Copia las variables de entorno:
+   ```powershell
+   copy .env.example .env
+   # edita .env con tus valores
+   ```
+4. Levanta PostgreSQL y ejecuta migraciones dentro del contenedor backend:
+   ```powershell
+   docker compose up -d db
+   docker compose run --rm backend python migrate.py
+   ```
+5. (Opcional) Carga datos de ejemplo:
+   ```powershell
+   docker compose run --rm backend python -m app.seed
+   ```
+6. Levanta todos los servicios:
+   ```powershell
+   docker compose up --build
+   ```
+7. Abre en el navegador:
+   - API: <http://localhost:8000>
+   - Frontend: <http://localhost:5173>
+   - Nginx: <http://localhost:8084>
+8. Para detener la pila:
+   ```powershell
+   Ctrl+C
+   docker compose down
+   ```
+
 ## 7. Despliegue en producción (paso a paso)
 1. En un servidor Ubuntu 22.04 limpio instala Docker, Docker Compose, Node LTS, Python 3.11+ y OpenSSL.
 2. Clona el repositorio y entra en la carpeta del proyecto.
@@ -92,7 +126,7 @@ python -m app.seed
    ```
 6. Ejecuta migraciones de base de datos:
    ```bash
-   docker compose exec backend alembic upgrade head
+   docker compose exec backend python migrate.py
    ```
 7. (Opcional) Carga datos seed:
    ```bash
@@ -127,7 +161,7 @@ npm test
 ## 10. Troubleshooting
 - **Conexión DB**: verifica credenciales y que el contenedor `db` esté activo.
 - **CORS**: ajusta `CORS_ORIGINS` en `.env`.
-- **Migraciones**: usa `alembic upgrade head` y revisa `backend/alembic`.
+- **Migraciones**: usa `python migrate.py` y revisa `backend/alembic`.
 - **WebSocket**: asegúrate de que `WS_URL` apunte al backend correcto.
 - Logs: `docker compose logs -f <servicio>`.
 
