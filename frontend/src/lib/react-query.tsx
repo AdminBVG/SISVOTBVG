@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
 export class QueryClient {}
 
@@ -30,5 +30,39 @@ export const useMutation = <TData = any, TVariables = any>(config: MutationConfi
   };
 
   return { mutate, isLoading };
+};
+
+interface QueryConfig<TData> {
+  queryKey: any[];
+  queryFn: () => Promise<TData>;
+  enabled?: boolean;
+}
+
+export const useQuery = <TData = any>({ queryKey, queryFn, enabled = true }: QueryConfig<TData>) => {
+  const [data, setData] = useState<TData | undefined>();
+  const [error, setError] = useState<any>(null);
+  const [isLoading, setLoading] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await queryFn();
+      setData(res);
+      setError(null);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (enabled) {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...queryKey, enabled]);
+
+  return { data, error, isLoading, refetch: fetchData };
 };
 

@@ -9,33 +9,47 @@ import RegisterAttendance from './pages/RegisterAttendance';
 import Proxies from './pages/Proxies';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Votaciones from './pages/Votaciones';
+import Asistencia from './pages/Asistencia';
+import { ToastProvider } from './components/ui/toast';
 
 const queryClient = new QueryClient();
 
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<ProtectedRoute roles={["REGISTRADOR_BVG"]} />}> 
-              <Route element={<Layout />}> 
-                <Route path="/upload" element={<UploadShareholders />} />
-                <Route path="/attendance" element={<RegisterAttendance />} />
-                <Route path="/proxies" element={<Proxies />} />
+      <ToastProvider>
+        <AuthProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route element={<ProtectedRoute roles={["REGISTRADOR_BVG"]} />}>
+                <Route element={<Layout />}>
+                  <Route path="/upload" element={<UploadShareholders />} />
+                  <Route path="/attendance" element={<RegisterAttendance />} />
+                  <Route path="/proxies" element={<Proxies />} />
+                </Route>
               </Route>
-            </Route>
-            <Route element={<ProtectedRoute roles={["OBSERVADOR_BVG"]} />}> 
-              <Route element={<Layout />}> 
-                <Route path="/dashboard" element={<Dashboard />} />
+              <Route element={<ProtectedRoute roles={["OBSERVADOR_BVG"]} />}>
+                <Route element={<Layout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </AuthProvider>
+              <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}>
+                <Route element={<Layout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/votaciones" element={<Votaciones />} />
+                  <Route path="/votaciones/:id/asistencia" element={<Asistencia />} />
+                  <Route path="/attendance" element={<RegisterAttendance />} />
+                  <Route path="/proxies" element={<Proxies />} />
+                </Route>
+              </Route>
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 };

@@ -7,15 +7,23 @@ const Layout: React.FC = () => {
   const { role, username, logout } = useAuth();
   const navigate = useNavigate();
 
-  const links = role === 'REGISTRADOR_BVG'
-    ? [
-        { to: '/upload', label: 'Carga de padrón' },
-        { to: '/attendance', label: 'Registro' },
-        { to: '/proxies', label: 'Apoderados' },
-      ]
-    : [
-        { to: '/dashboard', label: 'Dashboard' },
-      ];
+  let links: { to: string; label: string }[] = [];
+  if (role === 'REGISTRADOR_BVG') {
+    links = [
+      { to: '/upload', label: 'Carga de padrón' },
+      { to: '/attendance', label: 'Registro' },
+      { to: '/proxies', label: 'Apoderados' },
+    ];
+  } else if (role === 'ADMIN_BVG') {
+    links = [
+      { to: '/dashboard', label: 'Dashboard' },
+      { to: '/votaciones', label: 'Votaciones' },
+      { to: '/attendance', label: 'Registro de asistencia' },
+      { to: '/proxies', label: 'Apoderados' },
+    ];
+  } else {
+    links = [{ to: '/dashboard', label: 'Dashboard' }];
+  }
 
   const handleLogout = () => {
     logout();
@@ -35,11 +43,19 @@ const Layout: React.FC = () => {
         </nav>
       </aside>
       <div className="flex-1 flex flex-col">
-        <header className="bg-gray-100 p-4 flex justify-end items-center space-x-4">
-          {username && <span className="text-sm text-gray-700">{username}</span>}
-          <button onClick={handleLogout} className="flex items-center text-sm text-gray-700 hover:underline">
-            <LogOut className="w-4 h-4 mr-1" /> Salir
-          </button>
+        <header className="bg-gray-100 p-4 flex justify-between items-center">
+          <h1 className="font-semibold">Sistema de Asistentes BVG</h1>
+          <div className="flex items-center space-x-4">
+            {username && role && (
+              <span className="text-sm text-gray-700">{role} - {username}</span>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center text-sm text-gray-700 hover:underline"
+            >
+              <LogOut className="w-4 h-4 mr-1" /> Cerrar sesión
+            </button>
+          </div>
         </header>
         <main className="flex-1 p-4">
           <Outlet />
