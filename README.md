@@ -72,7 +72,7 @@ python -m app.seed
 5. Abre en el navegador:
    - API: <http://localhost:8000>
    - Frontend: <http://localhost:5173>
-   - Nginx (proxy): <http://localhost>
+   - Nginx (proxy): <http://localhost:8084>
 6. Detén la pila cuando termines:
    ```bash
    # en la terminal donde corre compose
