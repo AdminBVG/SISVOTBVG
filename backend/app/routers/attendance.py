@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import Dict
+from typing import Dict, List
 from .. import schemas, models, database
 from ..models import AttendanceMode
 from datetime import datetime
@@ -44,6 +44,23 @@ def mark_attendance(election_id: int, code: str, payload: Dict, db: Session = De
     db.commit()
     db.refresh(attendance)
     return attendance
+
+@router.get("/history", response_model=List[schemas.AttendanceHistory])
+def attendance_history(election_id: int, code: str, db: Session = Depends(get_db)):
+    shareholder = db.query(models.Shareholder).filter_by(code=code).first()
+    if not shareholder:
+        raise HTTPException(status_code=404, detail="shareholder not found")
+    attendance = db.query(models.Attendance).filter_by(
+        election_id=election_id, shareholder_id=shareholder.id
+    ).first()
+    if not attendance:
+        return []
+    return (
+        db.query(models.AttendanceHistory)
+        .filter_by(attendance_id=attendance.id)
+        .order_by(models.AttendanceHistory.id)
+        .all()
+    )
 
 @router.get("/summary")
 def summary_attendance(election_id: int, db: Session = Depends(get_db)):
