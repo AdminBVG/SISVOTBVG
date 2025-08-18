@@ -1,38 +1,39 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation } from '../lib/react-query';
+import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
+  const mutation = useMutation({
+    mutationFn: async (vars: { username: string; password: string }) => {
       const res = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(vars),
       });
       if (!res.ok) throw new Error('Credenciales inválidas');
-      const data = await res.json();
-      localStorage.setItem('token', data.access_token);
-      if (data.role) {
-        localStorage.setItem('role', data.role);
-        if (data.role === 'REGISTRADOR_BVG') navigate('/upload');
-        else navigate('/dashboard');
-      } else {
-        navigate('/');
-      }
-    } catch (err: any) {
+      return res.json();
+    },
+    onSuccess: (data) => {
+      login(data.access_token, data.role, data.username);
+      if (data.role === 'REGISTRADOR_BVG') navigate('/upload');
+      else navigate('/dashboard');
+    },
+    onError: (err: any) => {
       setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    mutation.mutate({ username, password });
   };
 
   return (
@@ -63,9 +64,9 @@ const Login: React.FC = () => {
         <button
           type="submit"
           className="w-full bg-indigo-600 text-white py-2 rounded disabled:opacity-50"
-          disabled={loading}
+          disabled={mutation.isLoading}
         >
-          {loading ? 'Ingresando…' : 'Ingresar'}
+          {mutation.isLoading ? 'Ingresando…' : 'Ingresar'}
         </button>
       </form>
     </div>

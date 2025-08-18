@@ -114,6 +114,32 @@ Pasos rápidos usando PowerShell:
    docker compose down
    ```
 
+## 6.2 Windows sin Docker
+Si prefieres ejecutar los servicios sin contenedores:
+
+1. Instala [Python 3.11+](https://www.python.org) y [Node LTS](https://nodejs.org) para Windows.
+2. Backend:
+   ```powershell
+   cd backend
+   python -m venv .venv
+   .\.venv\Scripts\activate
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload
+   ```
+3. Frontend (nueva terminal):
+   ```powershell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+4. Variables de entorno mínimas en `.env` (en la raíz del repo):
+   - `DATABASE_URL`
+   - `JWT_SECRET`
+   - `API_PORT`
+   - `VITE_API_URL`
+
+El frontend estará en <http://localhost:5173> y la API en <http://localhost:8000>.
+
 ## 7. Despliegue en producción (paso a paso)
 1. En un servidor Ubuntu 22.04 limpio instala Docker, Docker Compose, Node LTS, Python 3.11+ y OpenSSL.
 2. Clona el repositorio y entra en la carpeta del proyecto.
