@@ -4,9 +4,9 @@ from sqlalchemy import or_
 from typing import List
 import csv
 from io import StringIO
-from datetime import datetime, timezone
 from .. import schemas, models, database
 from ..security import get_current_user, require_role
+from ..utils import enforce_registration_window
 
 router = APIRouter(prefix="/elections/{election_id}/shareholders", tags=["shareholders"])
 
@@ -19,24 +19,6 @@ def get_db():
         db.close()
 
 
-def _enforce_window(db: Session, election_id: int, user):
-    election = db.query(models.Election).filter_by(id=election_id).first()
-    if not election:
-        raise HTTPException(status_code=404, detail="election not found")
-    now = datetime.now(timezone.utc)
-    start = election.registration_start
-    end = election.registration_end
-    if start and start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
-    if end and end.tzinfo is None:
-        end = end.replace(tzinfo=timezone.utc)
-    if start and now < start:
-        if user["role"] != "ADMIN_BVG":
-            raise HTTPException(status_code=403, detail="registration not started")
-    if end and now > end:
-        if user["role"] != "ADMIN_BVG":
-            raise HTTPException(status_code=403, detail="registration closed")
-    return election
 
 
 def _log(db: Session, election_id: int, user, action: str, request: Request, details: dict | None = None):
@@ -64,7 +46,7 @@ def import_shareholders(
     current_user = Depends(get_current_user),
 ):
     result = []
-    _enforce_window(db, election_id, current_user)
+    enforce_registration_window(db, election_id, current_user)
     for sh in shareholders:
         existing = db.query(models.Shareholder).filter_by(code=sh.code).first()
         if existing:
@@ -142,7 +124,7 @@ def import_shareholders_file(
     if errors:
         raise HTTPException(status_code=400, detail=errors)
 
-    _enforce_window(db, election_id, current_user)
+    enforce_registration_window(db, election_id, current_user)
     result = []
     for sh in valid:
         existing = db.query(models.Shareholder).filter_by(code=sh.code).first()

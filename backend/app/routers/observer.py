@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 from typing import List
 import jwt
 from .. import models, schemas, database
@@ -46,33 +47,39 @@ async def observer_ws(websocket: WebSocket, election_id: int):
 @router.get("", response_model=List[schemas.ObserverRow], dependencies=[require_role(["OBSERVADOR_BVG", "ADMIN_BVG", "REGISTRADOR_BVG"])])
 def observer_table(election_id: int, db: Session = Depends(get_db)):
     rows: List[schemas.ObserverRow] = []
-    shareholders = db.query(models.Shareholder).all()
-    for sh in shareholders:
-        attendance = (
-            db.query(models.Attendance)
-            .filter_by(election_id=election_id, shareholder_id=sh.id)
-            .first()
+    results = (
+        db.query(models.Shareholder, models.Attendance, models.Person)
+        .outerjoin(
+            models.Attendance,
+            and_(
+                models.Attendance.shareholder_id == models.Shareholder.id,
+                models.Attendance.election_id == election_id,
+            ),
         )
-        mode = attendance.mode if attendance else models.AttendanceMode.AUSENTE
-        proxy_assignment = (
-            db.query(models.ProxyAssignment)
-            .join(models.Proxy)
-            .filter(
-                models.ProxyAssignment.shareholder_id == sh.id,
+        .outerjoin(
+            models.ProxyAssignment,
+            models.ProxyAssignment.shareholder_id == models.Shareholder.id,
+        )
+        .outerjoin(
+            models.Proxy,
+            and_(
+                models.Proxy.id == models.ProxyAssignment.proxy_id,
                 models.Proxy.election_id == election_id,
                 models.Proxy.status == models.ProxyStatus.VALID,
                 models.Proxy.present.is_(True),
-            )
-            .first()
+            ),
         )
-        apoderado = None
+        .outerjoin(
+            models.Person,
+            models.Person.id == models.Proxy.proxy_person_id,
+        )
+        .all()
+    )
+    for sh, attendance, person in results:
+        mode = attendance.mode if attendance else models.AttendanceMode.AUSENTE
+        apoderado = person.name if person else None
         cuenta = 0.0
-        if proxy_assignment:
-            proxy = db.query(models.Proxy).filter_by(id=proxy_assignment.proxy_id).first()
-            person = db.query(models.Person).filter_by(id=proxy.proxy_person_id).first()
-            apoderado = person.name if person else None
-            cuenta = float(sh.actions)
-        if attendance and attendance.present:
+        if apoderado or (attendance and attendance.present):
             cuenta = float(sh.actions)
         rows.append(
             schemas.ObserverRow(

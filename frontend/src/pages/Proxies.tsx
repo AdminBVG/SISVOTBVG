@@ -3,27 +3,29 @@ import { useToast } from '../components/ui/toast';
 import { useProxies, useCreateProxy } from '../hooks/useProxies';
 import Input from '../components/ui/input';
 import Button from '../components/ui/button';
+import { useParams } from 'react-router-dom';
 
 const Proxies: React.FC = () => {
-  const electionId = 1; // demo election
+  const { id } = useParams();
+  const electionId = Number(id);
   const toast = useToast();
-  const { data: proxies, refetch, isLoading, error } = useProxies(electionId);
+  const { data: proxies, isLoading, error } = useProxies(electionId);
   const initialForm = {
     proxy_person_id: '',
     tipo_doc: '',
     num_doc: '',
     fecha_otorg: '',
     fecha_vigencia: '',
-    pdf_url: '',
   };
   const [form, setForm] = useState(initialForm);
+  const [pdf, setPdf] = useState<File | null>(null);
 
   const createProxy = useCreateProxy(
     electionId,
     () => {
       toast('Poder registrado');
       setForm(initialForm);
-      refetch();
+      setPdf(null);
     },
     (err) => toast(err.message)
   );
@@ -32,15 +34,20 @@ const Proxies: React.FC = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPdf(e.target.files?.[0] || null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pdf) return;
     createProxy.mutate({
       proxy_person_id: Number(form.proxy_person_id),
       tipo_doc: form.tipo_doc,
       num_doc: form.num_doc,
       fecha_otorg: form.fecha_otorg,
       fecha_vigencia: form.fecha_vigencia || null,
-      pdf_url: form.pdf_url,
+      pdf,
     });
   };
 
@@ -106,14 +113,14 @@ const Proxies: React.FC = () => {
           />
         </div>
         <div>
-          <label htmlFor="pdf_url" className="text-sm block mb-1">
-            URL del PDF
+          <label htmlFor="pdf" className="text-sm block mb-1">
+            Archivo PDF
           </label>
           <Input
-            id="pdf_url"
-            name="pdf_url"
-            value={form.pdf_url}
-            onChange={handleChange}
+            id="pdf"
+            name="pdf"
+            type="file"
+            onChange={handleFile}
           />
         </div>
         <Button type="submit">Guardar</Button>

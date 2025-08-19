@@ -1,9 +1,11 @@
 import React from 'react';
 import { PieChart, BarChart } from '../lib/recharts';
 import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useParams } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const electionId = 1; // demo election
+  const { id } = useParams();
+  const electionId = Number(id);
   const { data, isLoading, error } = useDashboardStats(electionId);
 
   if (isLoading) return <p>Cargando...</p>;

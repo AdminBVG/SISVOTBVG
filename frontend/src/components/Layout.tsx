@@ -1,30 +1,38 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut } from '../lib/icons';
 
 const Layout: React.FC = () => {
   const { role, username, logout } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams();
+  const base = id ? `/votaciones/${id}` : '';
   const [menuOpen, setMenuOpen] = useState(false);
 
   let links: { to: string; label: string }[] = [];
   if (role === 'REGISTRADOR_BVG') {
-    links = [
-      { to: '/upload', label: 'Carga de padrón' },
-      { to: '/attendance', label: 'Registro' },
-      { to: '/proxies', label: 'Apoderados' },
-    ];
+    if (base) {
+      links = [
+        { to: `${base}/upload`, label: 'Carga de padrón' },
+        { to: `${base}/attendance`, label: 'Registro' },
+        { to: `${base}/proxies`, label: 'Apoderados' },
+      ];
+    }
   } else if (role === 'ADMIN_BVG') {
-    links = [
-      { to: '/dashboard', label: 'Dashboard' },
-      { to: '/votaciones', label: 'Votaciones' },
-      { to: '/attendance', label: 'Registro de asistencia' },
-      { to: '/proxies', label: 'Apoderados' },
-      { to: '/users', label: 'Usuarios' },
-    ];
-  } else {
-    links = [{ to: '/dashboard', label: 'Dashboard' }];
+    links = [{ to: '/votaciones', label: 'Votaciones' }];
+    if (base) {
+      links.push(
+        { to: `${base}/dashboard`, label: 'Dashboard' },
+        { to: `${base}/attendance`, label: 'Registro de asistencia' },
+        { to: `${base}/proxies`, label: 'Apoderados' },
+      );
+    }
+    links.push({ to: '/users', label: 'Usuarios' });
+  } else if (role === 'OBSERVADOR_BVG') {
+    if (base) {
+      links = [{ to: `${base}/dashboard`, label: 'Dashboard' }];
+    }
   }
 
   const handleLogout = () => {

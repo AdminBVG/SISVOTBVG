@@ -6,6 +6,7 @@ from ..models import AttendanceMode
 from datetime import datetime, timezone
 from ..security import get_current_user, require_role
 from ..observer import manager, compute_summary
+from ..utils import enforce_registration_window
 import anyio
 
 router = APIRouter(prefix="/elections/{election_id}/attendance", tags=["attendance"])
@@ -32,24 +33,6 @@ def _has_active_proxy(db: Session, election_id: int, shareholder_id: int) -> boo
     )
 
 
-def _enforce_window(db: Session, election_id: int, user):
-    election = db.query(models.Election).filter_by(id=election_id).first()
-    if not election:
-        raise HTTPException(status_code=404, detail="election not found")
-    now = datetime.now(timezone.utc)
-    start = election.registration_start
-    end = election.registration_end
-    if start and start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
-    if end and end.tzinfo is None:
-        end = end.replace(tzinfo=timezone.utc)
-    if start and now < start:
-        if user["role"] != "ADMIN_BVG":
-            raise HTTPException(status_code=403, detail="registration not started")
-    if end and now > end:
-        if user["role"] != "ADMIN_BVG":
-            raise HTTPException(status_code=403, detail="registration closed")
-    return election
 
 
 @router.post(
@@ -76,7 +59,7 @@ def mark_attendance(
         raise HTTPException(status_code=404, detail="shareholder not found")
     if mode == AttendanceMode.AUSENTE and _has_active_proxy(db, election_id, shareholder.id):
         raise HTTPException(status_code=400, detail="shareholder has active proxy")
-    _enforce_window(db, election_id, current_user)
+    enforce_registration_window(db, election_id, current_user)
 
     attendance = db.query(models.Attendance).filter_by(election_id=election_id, shareholder_id=shareholder.id).first()
     if not attendance:
@@ -124,7 +107,7 @@ def bulk_mark_attendance(
     current_user = Depends(get_current_user),
 ):
     attendances: List[models.Attendance] = []
-    _enforce_window(db, election_id, current_user)
+    enforce_registration_window(db, election_id, current_user)
     for code in payload.codes:
         shareholder = db.query(models.Shareholder).filter_by(code=code).first()
         if not shareholder:
