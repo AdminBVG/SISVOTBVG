@@ -33,6 +33,13 @@ class Attendance(AttendanceBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class AttendanceBulkMark(BaseModel):
+    codes: List[str]
+    mode: AttendanceMode
+    evidence: Optional[dict] = None
+    reason: Optional[str] = None
+
 class AttendanceHistory(BaseModel):
     id: int
     attendance_id: int
@@ -95,7 +102,12 @@ class ElectionBase(BaseModel):
 
 
 class ElectionCreate(ElectionBase):
-    pass
+    status: ElectionStatus = ElectionStatus.DRAFT
+
+
+class ElectionUpdate(BaseModel):
+    name: Optional[str] = None
+    date: Optional[date] = None
 
 
 class Election(ElectionBase):
