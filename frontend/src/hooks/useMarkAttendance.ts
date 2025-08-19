@@ -2,8 +2,10 @@ import { useMutation } from '../lib/react-query';
 import { apiFetch } from '../lib/api';
 
 interface Payload {
-  shareholderId: number;
-  status: string;
+  code: string;
+  mode: string;
+  evidence?: any;
+  reason?: string;
 }
 
 export const useMarkAttendance = (
@@ -12,11 +14,11 @@ export const useMarkAttendance = (
   onError?: (err: any) => void
 ) => {
   return useMutation<any, Payload>({
-    mutationFn: ({ shareholderId, status }) =>
-      apiFetch(`/elections/${electionId}/shareholders/${shareholderId}/attendance`, {
+    mutationFn: ({ code, mode, evidence, reason }) =>
+      apiFetch(`/elections/${electionId}/attendance/${code}/mark`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ mode, evidence, reason }),
       }),
     onSuccess,
     onError,

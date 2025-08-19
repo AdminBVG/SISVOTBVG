@@ -17,7 +17,7 @@ export interface ImportResult {
   errors: number;
 }
 
-const REQUIRED_COLUMNS = ['code', 'name', 'document', 'email', 'actions'];
+const REQUIRED_COLUMNS = ['code', 'name', 'document', 'actions'];
 
 export const useShareholdersImport = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -49,7 +49,7 @@ export const useShareholdersImport = () => {
         code: String(row.code),
         name: String(row.name),
         document: String(row.document),
-        email: String(row.email),
+        email: String(row.email || ''),
         actions,
       });
     });
@@ -99,14 +99,17 @@ export const useShareholdersImport = () => {
       const form = new FormData();
       form.append('file', file);
 
-      const data = await apiFetch<any>(`/elections/${electionId}/shareholders/import`, {
-        method: 'POST',
-        body: form,
-      });
+      const data = await apiFetch<any>(
+        `/elections/${electionId}/shareholders/import-file?preview=false`,
+        {
+          method: 'POST',
+          body: form,
+        },
+      );
       setResult({
-        created: data.created || 0,
-        updated: data.updated || 0,
-        errors: data.errors || 0,
+        created: Array.isArray(data) ? data.length : 0,
+        updated: 0,
+        errors: 0,
       });
     } catch (err: any) {
       setErrors([err.message]);

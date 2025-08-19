@@ -23,6 +23,10 @@ class Shareholder(ShareholderBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ShareholderWithAttendance(Shareholder):
+    attendance_mode: Optional[AttendanceMode] = None
+
+
 class AttendanceBase(BaseModel):
     election_id: int
     mode: AttendanceMode
