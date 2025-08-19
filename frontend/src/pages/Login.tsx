@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
 import Input from '../components/ui/input';
 import Button from '../components/ui/button';
+import Card from '../components/ui/card';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -38,44 +39,42 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form onSubmit={onSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
-        <h1 className="text-xl font-semibold mb-4">Ingreso</h1>
-        {error && <p className="text-red-600 mb-2">{error}</p>}
-        <div className="mb-4">
-          <label htmlFor="username" className="block mb-1 text-sm">
-            Usuario
-          </label>
-          <Input
-            id="username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            autoComplete="username"
-          />
-        </div>
-        <div className="mb-4">
-          <label htmlFor="password" className="block mb-1 text-sm">
-            Contraseña
-          </label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-        </div>
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={mutation.isLoading}
-        >
-          {mutation.isLoading ? 'Ingresando…' : 'Ingresar'}
-        </Button>
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
+      <Card className="p-8 w-full max-w-md bg-white/80 backdrop-blur-sm animate-fade-in">
+        <form onSubmit={onSubmit} className="space-y-4">
+          <h1 className="text-2xl font-semibold text-center">Ingreso</h1>
+          {error && <p className="text-red-600 text-center">{error}</p>}
+          <div>
+            <label htmlFor="username" className="mb-1 block text-sm font-medium">
+              Usuario
+            </label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="mb-1 block text-sm font-medium">
+              Contraseña
+            </label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={mutation.isLoading}>
+            {mutation.isLoading ? 'Ingresando…' : 'Ingresar'}
+          </Button>
+        </form>
+      </Card>
     </div>
   );
 };
