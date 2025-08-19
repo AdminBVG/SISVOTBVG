@@ -3,20 +3,19 @@ import { apiFetch } from '../lib/api';
 import { Election } from './useElections';
 
 interface Payload {
-  name: string;
-  date: string;
-  registration_start?: string;
-  registration_end?: string;
+  id: number;
+  name?: string;
+  date?: string;
 }
 
-export const useCreateElection = (
+export const useUpdateElection = (
   onSuccess?: () => void,
   onError?: (err: any) => void
 ) => {
   return useMutation<Election, Payload>({
-    mutationFn: (payload) =>
-      apiFetch('/elections', {
-        method: 'POST',
+    mutationFn: ({ id, ...payload }) =>
+      apiFetch(`/elections/${id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       }),
