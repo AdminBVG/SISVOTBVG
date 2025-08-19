@@ -1,7 +1,7 @@
 from datetime import date
-import hashlib
 from .database import SessionLocal, Base, engine
 from . import models
+from .routers.auth import hash_password
 
 Base.metadata.create_all(bind=engine)
 
@@ -10,7 +10,7 @@ def run():
     if db.query(models.User).filter_by(username="AdminBVG").first() is None:
         admin = models.User(
             username="AdminBVG",
-            hashed_password=hashlib.sha256("BVG2025".encode()).hexdigest(),
+            hashed_password=hash_password("BVG2025"),
             role="REGISTRADOR_BVG",
         )
         db.add(admin)
