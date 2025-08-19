@@ -185,3 +185,18 @@ class AuditLog(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class AttendeeBase(BaseModel):
+    identifier: str
+    accionista: str
+    representante: Optional[str] = None
+    apoderado: Optional[str] = None
+    acciones: float
+
+
+class Attendee(AttendeeBase):
+    id: int
+    election_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+

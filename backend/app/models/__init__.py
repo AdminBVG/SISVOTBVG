@@ -147,3 +147,14 @@ class AuditLog(Base):
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
+
+class Attendee(Base):
+    __tablename__ = "attendees"
+    id = Column(Integer, primary_key=True)
+    election_id = Column(Integer, index=True, nullable=False)
+    identifier = Column(String, nullable=False)
+    accionista = Column(String, nullable=False)
+    representante = Column(String)
+    apoderado = Column(String)
+    acciones = Column(DECIMAL, nullable=False, default=0)
