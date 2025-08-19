@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from .. import schemas, models, database
+from ..security import get_current_user, require_role
 
 router = APIRouter(prefix="/elections/{election_id}/shareholders", tags=["shareholders"])
 
@@ -12,7 +13,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/import", response_model=List[schemas.Shareholder])
+@router.post("/import", response_model=List[schemas.Shareholder], dependencies=[require_role(["REGISTRADOR_BVG"])])
 def import_shareholders(election_id: int, shareholders: List[schemas.ShareholderCreate], db: Session = Depends(get_db)):
     result = []
     for sh in shareholders:
@@ -30,6 +31,6 @@ def import_shareholders(election_id: int, shareholders: List[schemas.Shareholder
         db.refresh(sh)
     return result
 
-@router.get("", response_model=List[schemas.Shareholder])
+@router.get("", response_model=List[schemas.Shareholder], dependencies=[Depends(get_current_user)])
 def list_shareholders(election_id: int, db: Session = Depends(get_db)):
     return db.query(models.Shareholder).all()

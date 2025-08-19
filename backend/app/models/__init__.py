@@ -99,6 +99,19 @@ class ProxyAssignment(Base):
     proxy = relationship("Proxy", back_populates="assignments")
 
 
+class ElectionStatus(str, enum.Enum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
+
+
+class Election(Base):
+    __tablename__ = "elections"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    date = Column(Date, nullable=False)
+    status = Column(Enum(ElectionStatus), default=ElectionStatus.OPEN, nullable=False)
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)

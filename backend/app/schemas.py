@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr
-from .models import AttendanceMode, PersonType, ProxyStatus
+from .models import AttendanceMode, PersonType, ProxyStatus, ElectionStatus
 
 class ShareholderBase(BaseModel):
     code: str
@@ -93,3 +93,24 @@ class Proxy(ProxyBase):
 
     class Config:
         orm_mode = True
+
+
+class ElectionBase(BaseModel):
+    name: str
+    date: date
+
+
+class ElectionCreate(ElectionBase):
+    pass
+
+
+class Election(ElectionBase):
+    id: int
+    status: ElectionStatus
+
+    class Config:
+        orm_mode = True
+
+
+class ElectionStatusUpdate(BaseModel):
+    status: ElectionStatus
