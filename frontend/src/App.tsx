@@ -26,22 +26,23 @@ const App: React.FC = () => {
               <Route element={<ProtectedRoute roles={["REGISTRADOR_BVG"]} />}>
                 <Route element={<Layout />}>
                   <Route path="/upload" element={<UploadShareholders />} />
-                  <Route path="/attendance" element={<RegisterAttendance />} />
-                  <Route path="/proxies" element={<Proxies />} />
                 </Route>
               </Route>
-              <Route element={<ProtectedRoute roles={["OBSERVADOR_BVG"]} />}>
+              <Route element={<ProtectedRoute roles={["REGISTRADOR_BVG", "ADMIN_BVG"]} />}>
                 <Route element={<Layout />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/attendance" element={<RegisterAttendance />} />
+                  <Route path="/proxies" element={<Proxies />} />
                 </Route>
               </Route>
               <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}>
                 <Route element={<Layout />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/votaciones" element={<Votaciones />} />
                   <Route path="/votaciones/:id/asistencia" element={<Asistencia />} />
-                  <Route path="/attendance" element={<RegisterAttendance />} />
-                  <Route path="/proxies" element={<Proxies />} />
+                </Route>
+              </Route>
+              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "OBSERVADOR_BVG"]} />}>
+                <Route element={<Layout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
                 </Route>
               </Route>
               <Route path="/" element={<Navigate to="/login" replace />} />
