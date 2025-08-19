@@ -11,6 +11,8 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Votaciones from './pages/Votaciones';
 import ManageAssistants from './pages/ManageAssistants';
+import ManageUsers from './pages/ManageUsers';
+import AuditLogs from './pages/AuditLogs';
 import { ToastProvider } from './components/ui/toast';
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App: React.FC = () => {
                 <Route element={<Layout />}>
                   <Route path="/votaciones" element={<Votaciones />} />
                   <Route path="/votaciones/:id/assistants" element={<ManageAssistants />} />
+                  <Route path="/votaciones/:id/audit" element={<AuditLogs />} />
+                  <Route path="/users" element={<ManageUsers />} />
                 </Route>
               </Route>
               <Route element={<ProtectedRoute roles={["ADMIN_BVG", "OBSERVADOR_BVG"]} />}>

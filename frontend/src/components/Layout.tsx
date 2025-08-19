@@ -21,6 +21,7 @@ const Layout: React.FC = () => {
       { to: '/votaciones', label: 'Votaciones' },
       { to: '/attendance', label: 'Registro de asistencia' },
       { to: '/proxies', label: 'Apoderados' },
+      { to: '/users', label: 'Usuarios' },
     ];
   } else {
     links = [{ to: '/dashboard', label: 'Dashboard' }];

@@ -186,6 +186,26 @@ class AuditLog(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserBase(BaseModel):
+    username: str
+    role: str
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    password: Optional[str] = None
+
+
+class User(UserBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AttendeeBase(BaseModel):
     identifier: str
     accionista: str

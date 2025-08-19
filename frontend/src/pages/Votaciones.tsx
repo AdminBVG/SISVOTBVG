@@ -190,6 +190,12 @@ const Votaciones: React.FC = () => {
                         >
                           Gestionar asistentes
                         </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate(`/votaciones/${e.id}/audit`)}
+                        >
+                          Auditoría
+                        </Button>
                       </TableCell>
                     </>
                   )}
