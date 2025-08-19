@@ -69,6 +69,8 @@ class AttendanceHistory(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     reason = Column(String)
+    ip = Column(String)
+    user_agent = Column(String)
     attendance = relationship("Attendance", back_populates="history")
 
 class Person(Base):
@@ -90,6 +92,10 @@ class Proxy(Base):
     fecha_vigencia = Column(Date)
     pdf_url = Column(String, nullable=False)
     status = Column(Enum(ProxyStatus), default=ProxyStatus.VALID)
+    mode = Column(Enum(AttendanceMode), default=AttendanceMode.AUSENTE, nullable=False)
+    present = Column(Boolean, default=False)
+    marked_by = Column(String)
+    marked_at = Column(DateTime(timezone=True))
     assignments = relationship("ProxyAssignment", back_populates="proxy")
 
 class ProxyAssignment(Base):
@@ -104,6 +110,7 @@ class ProxyAssignment(Base):
 
 
 class ElectionStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
     OPEN = "OPEN"
     CLOSED = "CLOSED"
 
@@ -113,7 +120,11 @@ class Election(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     date = Column(Date, nullable=False)
-    status = Column(Enum(ElectionStatus), default=ElectionStatus.OPEN, nullable=False)
+    status = Column(
+        Enum(ElectionStatus), default=ElectionStatus.DRAFT, nullable=False
+    )
+    registration_start = Column(DateTime(timezone=True))
+    registration_end = Column(DateTime(timezone=True))
 
 
 class User(Base):
@@ -122,3 +133,17 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, nullable=False, default="REGISTRADOR_BVG")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(Integer, primary_key=True)
+    election_id = Column(Integer, index=True, nullable=False)
+    username = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    details = Column(JSON)
+    ip = Column(String)
+    user_agent = Column(String)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )

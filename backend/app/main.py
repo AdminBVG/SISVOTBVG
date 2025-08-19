@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .routers import shareholders, attendance, proxies, auth, elections
+from .routers import shareholders, attendance, proxies, auth, elections, audit, observer
 from .database import Base, engine
 
 Base.metadata.create_all(bind=engine)
@@ -11,6 +11,8 @@ app.include_router(attendance.router)
 app.include_router(proxies.router)
 app.include_router(auth.router)
 app.include_router(elections.router)
+app.include_router(audit.router)
+app.include_router(observer.router)
 
 @app.get("/")
 def read_root():

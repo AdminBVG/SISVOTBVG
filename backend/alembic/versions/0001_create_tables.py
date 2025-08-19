@@ -39,7 +39,9 @@ def upgrade():
         sa.Column('to_present', sa.Boolean(), nullable=True),
         sa.Column('changed_by', sa.String(), nullable=False),
         sa.Column('changed_at', sa.DateTime(), nullable=False),
-        sa.Column('reason', sa.String(), nullable=True)
+        sa.Column('reason', sa.String(), nullable=True),
+        sa.Column('ip', sa.String(), nullable=True),
+        sa.Column('user_agent', sa.String(), nullable=True)
     )
     op.create_table(
         'persons',
@@ -59,7 +61,11 @@ def upgrade():
         sa.Column('fecha_otorg', sa.Date(), nullable=False),
         sa.Column('fecha_vigencia', sa.Date(), nullable=True),
         sa.Column('pdf_url', sa.String(), nullable=False),
-        sa.Column('status', sa.Enum('VALID', 'INVALID', 'EXPIRED', name='proxystatus'), nullable=False, default='VALID')
+        sa.Column('status', sa.Enum('VALID', 'INVALID', 'EXPIRED', name='proxystatus'), nullable=False, default='VALID'),
+        sa.Column('mode', sa.Enum('PRESENCIAL', 'VIRTUAL', 'AUSENTE', name='attendancemode'), nullable=False, default='AUSENTE'),
+        sa.Column('present', sa.Boolean(), default=False),
+        sa.Column('marked_by', sa.String(), nullable=True),
+        sa.Column('marked_at', sa.DateTime(), nullable=True)
     )
     op.create_table(
         'proxy_assignments',
@@ -70,6 +76,33 @@ def upgrade():
         sa.Column('valid_from', sa.Date(), nullable=True),
         sa.Column('valid_until', sa.Date(), nullable=True)
     )
+    op.create_table(
+        'elections',
+        sa.Column('id', sa.Integer(), primary_key=True),
+        sa.Column('name', sa.String(), nullable=False),
+        sa.Column('date', sa.Date(), nullable=False),
+        sa.Column('status', sa.Enum('DRAFT', 'OPEN', 'CLOSED', name='electionstatus'), nullable=False, default='DRAFT'),
+        sa.Column('registration_start', sa.DateTime(), nullable=True),
+        sa.Column('registration_end', sa.DateTime(), nullable=True)
+    )
+    op.create_table(
+        'users',
+        sa.Column('id', sa.Integer(), primary_key=True),
+        sa.Column('username', sa.String(), nullable=False, unique=True),
+        sa.Column('hashed_password', sa.String(), nullable=False),
+        sa.Column('role', sa.String(), nullable=False, default='REGISTRADOR_BVG')
+    )
+    op.create_table(
+        'audit_logs',
+        sa.Column('id', sa.Integer(), primary_key=True),
+        sa.Column('election_id', sa.Integer(), nullable=False),
+        sa.Column('username', sa.String(), nullable=False),
+        sa.Column('action', sa.String(), nullable=False),
+        sa.Column('details', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('ip', sa.String(), nullable=True),
+        sa.Column('user_agent', sa.String(), nullable=True),
+        sa.Column('created_at', sa.DateTime(), nullable=False)
+    )
 
 def downgrade():
     op.drop_table('proxy_assignments')
@@ -78,6 +111,10 @@ def downgrade():
     op.drop_table('attendance_history')
     op.drop_table('attendances')
     op.drop_table('shareholders')
+    op.drop_table('audit_logs')
+    op.drop_table('users')
+    op.drop_table('elections')
     sa.Enum(name='attendancemode').drop(op.get_bind(), checkfirst=False)
     sa.Enum(name='persontype').drop(op.get_bind(), checkfirst=False)
     sa.Enum(name='proxystatus').drop(op.get_bind(), checkfirst=False)
+    sa.Enum(name='electionstatus').drop(op.get_bind(), checkfirst=False)
