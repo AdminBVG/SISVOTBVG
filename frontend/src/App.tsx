@@ -10,7 +10,7 @@ import Proxies from './pages/Proxies';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Votaciones from './pages/Votaciones';
-import Asistencia from './pages/Asistencia';
+import ManageAssistants from './pages/ManageAssistants';
 import { ToastProvider } from './components/ui/toast';
 
 const queryClient = new QueryClient();
@@ -37,7 +37,7 @@ const App: React.FC = () => {
               <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}>
                 <Route element={<Layout />}>
                   <Route path="/votaciones" element={<Votaciones />} />
-                  <Route path="/votaciones/:id/asistencia" element={<Asistencia />} />
+                  <Route path="/votaciones/:id/assistants" element={<ManageAssistants />} />
                 </Route>
               </Route>
               <Route element={<ProtectedRoute roles={["ADMIN_BVG", "OBSERVADOR_BVG"]} />}>

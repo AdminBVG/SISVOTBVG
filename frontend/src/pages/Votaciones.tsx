@@ -186,7 +186,7 @@ const Votaciones: React.FC = () => {
                         <Button
                           variant="outline"
                           disabled={e.status === 'CLOSED'}
-                          onClick={() => navigate(`/votaciones/${e.id}/asistencia`)}
+                          onClick={() => navigate(`/votaciones/${e.id}/assistants`)}
                         >
                           Gestionar asistentes
                         </Button>
