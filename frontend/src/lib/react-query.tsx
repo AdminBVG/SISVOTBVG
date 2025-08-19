@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { useToast } from '../components/ui/toast';
 
 export class QueryClient {}
 
@@ -16,13 +17,15 @@ interface MutationConfig<TData, TVariables> {
 
 export const useMutation = <TData = any, TVariables = any>(config: MutationConfig<TData, TVariables>) => {
   const [isLoading, setLoading] = useState(false);
+  const toast = useToast();
 
   const mutate = async (vars: TVariables) => {
     try {
       setLoading(true);
       const data = await config.mutationFn(vars);
       config.onSuccess?.(data);
-    } catch (err) {
+    } catch (err: any) {
+      toast(err.message || 'Error');
       config.onError?.(err);
     } finally {
       setLoading(false);
@@ -42,6 +45,7 @@ export const useQuery = <TData = any>({ queryKey, queryFn, enabled = true }: Que
   const [data, setData] = useState<TData | undefined>();
   const [error, setError] = useState<any>(null);
   const [isLoading, setLoading] = useState(false);
+  const toast = useToast();
 
   const fetchData = async () => {
     try {
@@ -49,8 +53,9 @@ export const useQuery = <TData = any>({ queryKey, queryFn, enabled = true }: Que
       const res = await queryFn();
       setData(res);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       setError(err);
+      toast(err.message || 'Error');
     } finally {
       setLoading(false);
     }

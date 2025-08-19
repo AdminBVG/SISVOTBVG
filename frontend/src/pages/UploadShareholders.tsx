@@ -1,5 +1,7 @@
 import React, { ChangeEvent } from 'react';
 import { useShareholdersImport } from '../hooks/useShareholdersImport';
+import Input from '../components/ui/input';
+import Button from '../components/ui/button';
 
 const UploadShareholders: React.FC = () => {
   const {
@@ -33,16 +35,15 @@ const UploadShareholders: React.FC = () => {
 
         {/* File Input */}
         <div className="mb-4">
-          <input
+          <label htmlFor="shareholders_file" className="block mb-1 text-sm">
+            Archivo de accionistas
+          </label>
+          <Input
+            id="shareholders_file"
             type="file"
             accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={onFileChange}
-            className="block w-full text-sm text-gray-500
-                       file:mr-4 file:py-2 file:px-4
-                       file:rounded file:border-0
-                       file:text-sm file:font-semibold
-                       file:bg-indigo-50 file:text-indigo-700
-                       hover:file:bg-indigo-100"
+            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
           />
         </div>
 
@@ -88,23 +89,19 @@ const UploadShareholders: React.FC = () => {
 
         {/* Actions */}
         <div className="flex space-x-2">
-          <button
+          <Button
             onClick={onSubmit}
             disabled={!file || previewData.length === 0 || loading}
-            className="bg-indigo-600 text-white px-4 py-2 rounded
-                       disabled:opacity-50"
           >
             {loading ? 'Importando…' : 'Importar'}
-          </button>
-          <button
-            onClick={reset}
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded"
-          >
+          </Button>
+          <Button onClick={reset} variant="outline">
             Limpiar
-          </button>
+          </Button>
         </div>
 
         {/* Result Summary */}
+        {loading && <p className="mt-4">Procesando archivo...</p>}
         {result && (
           <div className="mt-6">
             <h2 className="text-lg font-semibold mb-2">Resumen de importación</h2>

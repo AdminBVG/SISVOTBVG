@@ -1,5 +1,5 @@
 import { useQuery } from '../lib/react-query';
-import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../lib/api';
 
 export interface Shareholder {
   id: number;
@@ -11,16 +11,11 @@ export interface Shareholder {
 }
 
 export const useShareholders = (electionId: number, search: string) => {
-  const { token } = useAuth();
   return useQuery<Shareholder[]>({
     queryKey: ['shareholders', electionId, search],
-    queryFn: async () => {
+    queryFn: () => {
       const params = search ? `?search=${encodeURIComponent(search)}` : '';
-      const res = await fetch(`/elections/${electionId}/shareholders${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Error al cargar accionistas');
-      return res.json();
+      return apiFetch<Shareholder[]>(`/elections/${electionId}/shareholders${params}`);
     },
   });
 };

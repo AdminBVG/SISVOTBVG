@@ -1,5 +1,5 @@
 import { useQuery } from '../lib/react-query';
-import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../lib/api';
 
 export interface Election {
   id: number;
@@ -9,15 +9,8 @@ export interface Election {
 }
 
 export const useElections = () => {
-  const { token } = useAuth();
   return useQuery<Election[]>({
     queryKey: ['elections'],
-    queryFn: async () => {
-      const res = await fetch('/elections', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Error al obtener votaciones');
-      return res.json();
-    },
+    queryFn: () => apiFetch<Election[]>('/elections'),
   });
 };

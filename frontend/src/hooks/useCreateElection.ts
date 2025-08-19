@@ -1,5 +1,5 @@
 import { useMutation } from '../lib/react-query';
-import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../lib/api';
 import { Election } from './useElections';
 
 interface Payload {
@@ -7,21 +7,17 @@ interface Payload {
   date: string;
 }
 
-export const useCreateElection = (onSuccess?: () => void, onError?: (err:any)=>void) => {
-  const { token } = useAuth();
+export const useCreateElection = (
+  onSuccess?: () => void,
+  onError?: (err: any) => void
+) => {
   return useMutation<Election, Payload>({
-    mutationFn: async (payload) => {
-      const res = await fetch('/elections', {
+    mutationFn: (payload) =>
+      apiFetch('/elections', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error('Error al crear votación');
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       onSuccess?.();
     },

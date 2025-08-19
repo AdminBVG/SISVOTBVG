@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '../lib/react-query';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../lib/api';
+import Input from '../components/ui/input';
+import Button from '../components/ui/button';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -12,13 +15,11 @@ const Login: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: async (vars: { username: string; password: string }) => {
-      const res = await fetch('/auth/login', {
+      return apiFetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(vars),
       });
-      if (!res.ok) throw new Error('Credenciales inválidas');
-      return res.json();
     },
     onSuccess: (data) => {
       login(data.access_token, data.role, data.username);
@@ -42,9 +43,11 @@ const Login: React.FC = () => {
         <h1 className="text-xl font-semibold mb-4">Ingreso</h1>
         {error && <p className="text-red-600 mb-2">{error}</p>}
         <div className="mb-4">
-          <label className="block mb-1 text-sm">Usuario</label>
-          <input
-            className="w-full border px-3 py-2 rounded"
+          <label htmlFor="username" className="block mb-1 text-sm">
+            Usuario
+          </label>
+          <Input
+            id="username"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -52,22 +55,24 @@ const Login: React.FC = () => {
           />
         </div>
         <div className="mb-4">
-          <label className="block mb-1 text-sm">Contraseña</label>
-          <input
-            className="w-full border px-3 py-2 rounded"
+          <label htmlFor="password" className="block mb-1 text-sm">
+            Contraseña
+          </label>
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
-        <button
+        <Button
           type="submit"
-          className="w-full bg-indigo-600 text-white py-2 rounded disabled:opacity-50"
+          className="w-full"
           disabled={mutation.isLoading}
         >
           {mutation.isLoading ? 'Ingresando…' : 'Ingresar'}
-        </button>
+        </Button>
       </form>
     </div>
   );

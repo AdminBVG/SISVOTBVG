@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import { apiFetch } from '../lib/api';
 
 export interface Shareholder {
   code: string;
@@ -98,14 +99,10 @@ export const useShareholdersImport = () => {
       const form = new FormData();
       form.append('file', file);
 
-      const res = await fetch(`/elections/${electionId}/shareholders/import`, {
+      const data = await apiFetch<any>(`/elections/${electionId}/shareholders/import`, {
         method: 'POST',
         body: form,
       });
-
-      if (!res.ok) throw new Error(await res.text());
-
-      const data = await res.json();
       setResult({
         created: data.created || 0,
         updated: data.updated || 0,
