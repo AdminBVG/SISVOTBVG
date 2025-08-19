@@ -6,6 +6,8 @@ export interface Election {
   name: string;
   date: string;
   status: string;
+  registration_start?: string;
+  registration_end?: string;
 }
 
 export const useElections = () => {

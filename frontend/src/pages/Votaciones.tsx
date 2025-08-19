@@ -3,10 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/card';
 import Button from '../components/ui/button';
 import Input from '../components/ui/input';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '../components/ui/table';
 import { useToast } from '../components/ui/toast';
 import { useElections } from '../hooks/useElections';
 import { useCreateElection } from '../hooks/useCreateElection';
+import { useUpdateElection } from '../hooks/useUpdateElection';
+import { useUpdateElectionStatus } from '../hooks/useUpdateElectionStatus';
 import { Calendar, List } from '../lib/icons';
 
 const Votaciones: React.FC = () => {
@@ -14,18 +23,69 @@ const Votaciones: React.FC = () => {
   const toast = useToast();
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
+  const [registrationStart, setRegistrationStart] = useState('');
+  const [registrationEnd, setRegistrationEnd] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDate, setEditDate] = useState('');
 
   const { data: elections, isLoading, error, refetch } = useElections();
   const { mutate, isLoading: creating } = useCreateElection(() => {
     toast('Votación creada');
     setName('');
     setDate('');
+    setRegistrationStart('');
+    setRegistrationEnd('');
+    refetch();
+  }, (err) => toast(err.message));
+  const { mutate: updateElection } = useUpdateElection(() => {
+    toast('Votación actualizada');
+    setEditingId(null);
+    refetch();
+  }, (err) => toast(err.message));
+  const { mutate: updateStatus } = useUpdateElectionStatus(() => {
+    toast('Estado actualizado');
     refetch();
   }, (err) => toast(err.message));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutate({ name, date });
+    mutate({
+      name,
+      date,
+      ...(registrationStart
+        ? { registration_start: new Date(registrationStart).toISOString() }
+        : {}),
+      ...(registrationEnd
+        ? { registration_end: new Date(registrationEnd).toISOString() }
+        : {}),
+    });
+  };
+
+  const startEdit = (election: any) => {
+    setEditingId(election.id);
+    setEditName(election.name);
+    setEditDate(election.date.slice(0, 10));
+  };
+
+  const saveEdit = () => {
+    if (editingId == null) return;
+    updateElection({ id: editingId, name: editName, date: editDate });
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+        return 'Borrador';
+      case 'OPEN':
+        return 'Abierta';
+      case 'CLOSED':
+        return 'Cerrada';
+      default:
+        return status;
+    }
   };
 
   return (
@@ -38,8 +98,26 @@ const Votaciones: React.FC = () => {
             <Input value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm mb-1 flex items-center"><Calendar className="w-4 h-4 mr-1" />Fecha de la asamblea</label>
+            <label className="block text-sm mb-1 flex items-center">
+              <Calendar className="w-4 h-4 mr-1" />Fecha de la asamblea
+            </label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Inicio de registro</label>
+            <Input
+              type="datetime-local"
+              value={registrationStart}
+              onChange={(e) => setRegistrationStart(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Fin de registro</label>
+            <Input
+              type="datetime-local"
+              value={registrationEnd}
+              onChange={(e) => setRegistrationEnd(e.target.value)}
+            />
           </div>
           <Button type="submit" disabled={creating}>Crear votación</Button>
         </form>
@@ -62,14 +140,59 @@ const Votaciones: React.FC = () => {
             <TableBody>
               {elections?.map((e) => (
                 <TableRow key={e.id}>
-                  <TableCell>{e.name}</TableCell>
-                  <TableCell>{new Date(e.date).toLocaleDateString('es-EC')}</TableCell>
-                  <TableCell>{e.status === 'OPEN' ? 'Abierta' : 'Cerrada'}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" onClick={() => navigate(`/votaciones/${e.id}/asistencia`)}>
-                      Gestionar asistentes
-                    </Button>
-                  </TableCell>
+                  {editingId === e.id ? (
+                    <>
+                      <TableCell>
+                        <Input value={editName} onChange={(ev) => setEditName(ev.target.value)} />
+                      </TableCell>
+                      <TableCell>
+                        <Input type="date" value={editDate} onChange={(ev) => setEditDate(ev.target.value)} />
+                      </TableCell>
+                      <TableCell>{statusLabel(e.status)}</TableCell>
+                      <TableCell className="space-x-2">
+                        <Button onClick={saveEdit}>Guardar</Button>
+                        <Button variant="outline" onClick={cancelEdit}>
+                          Cancelar
+                        </Button>
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell>{e.name}</TableCell>
+                      <TableCell>{new Date(e.date).toLocaleDateString('es-EC')}</TableCell>
+                      <TableCell>{statusLabel(e.status)}</TableCell>
+                      <TableCell className="space-x-2">
+                        {e.status === 'DRAFT' && (
+                          <>
+                            <Button variant="outline" onClick={() => startEdit(e)}>
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => updateStatus({ id: e.id, status: 'OPEN' })}
+                            >
+                              Abrir
+                            </Button>
+                          </>
+                        )}
+                        {e.status === 'OPEN' && (
+                          <Button
+                            variant="outline"
+                            onClick={() => updateStatus({ id: e.id, status: 'CLOSED' })}
+                          >
+                            Cerrar
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          disabled={e.status === 'CLOSED'}
+                          onClick={() => navigate(`/votaciones/${e.id}/asistencia`)}
+                        >
+                          Gestionar asistentes
+                        </Button>
+                      </TableCell>
+                    </>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
