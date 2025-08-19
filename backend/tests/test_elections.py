@@ -26,14 +26,49 @@ def auth_headers():
 
 def test_create_list_and_update_election():
     headers = auth_headers()
-    resp = client.post("/elections", json={"name": "Demo", "date": "2024-01-01"}, headers=headers)
+    resp = client.post(
+        "/elections", json={"name": "Demo", "date": "2024-01-01"}, headers=headers
+    )
     assert resp.status_code == 200
-    election_id = resp.json()["id"]
+    election = resp.json()
+    election_id = election["id"]
+    assert election["status"] == "DRAFT"
 
     resp = client.get("/elections", headers=headers)
     assert resp.status_code == 200
     assert len(resp.json()) == 1
 
-    resp = client.patch(f"/elections/{election_id}/status", json={"status": "CLOSED"}, headers=headers)
+    # update while draft
+    resp = client.patch(
+        f"/elections/{election_id}",
+        json={"name": "Demo Updated"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "Demo Updated"
+
+    # open election
+    resp = client.patch(
+        f"/elections/{election_id}/status",
+        json={"status": "OPEN"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "OPEN"
+
+    # editing after open fails
+    resp = client.patch(
+        f"/elections/{election_id}",
+        json={"name": "Another"},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+    # close election
+    resp = client.patch(
+        f"/elections/{election_id}/status",
+        json={"status": "CLOSED"},
+        headers=headers,
+    )
     assert resp.status_code == 200
     assert resp.json()["status"] == "CLOSED"

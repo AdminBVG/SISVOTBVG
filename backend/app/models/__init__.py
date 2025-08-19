@@ -90,6 +90,10 @@ class Proxy(Base):
     fecha_vigencia = Column(Date)
     pdf_url = Column(String, nullable=False)
     status = Column(Enum(ProxyStatus), default=ProxyStatus.VALID)
+    mode = Column(Enum(AttendanceMode), default=AttendanceMode.AUSENTE, nullable=False)
+    present = Column(Boolean, default=False)
+    marked_by = Column(String)
+    marked_at = Column(DateTime(timezone=True))
     assignments = relationship("ProxyAssignment", back_populates="proxy")
 
 class ProxyAssignment(Base):
@@ -104,6 +108,7 @@ class ProxyAssignment(Base):
 
 
 class ElectionStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
     OPEN = "OPEN"
     CLOSED = "CLOSED"
 
@@ -113,7 +118,9 @@ class Election(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     date = Column(Date, nullable=False)
-    status = Column(Enum(ElectionStatus), default=ElectionStatus.OPEN, nullable=False)
+    status = Column(
+        Enum(ElectionStatus), default=ElectionStatus.DRAFT, nullable=False
+    )
 
 
 class User(Base):

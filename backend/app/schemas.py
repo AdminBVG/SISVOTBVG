@@ -33,6 +33,13 @@ class Attendance(AttendanceBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class AttendanceBulkMark(BaseModel):
+    codes: List[str]
+    mode: AttendanceMode
+    evidence: Optional[dict] = None
+    reason: Optional[str] = None
+
 class AttendanceHistory(BaseModel):
     id: int
     attendance_id: int
@@ -77,6 +84,10 @@ class ProxyBase(BaseModel):
     fecha_vigencia: Optional[date]
     pdf_url: str
     status: ProxyStatus = ProxyStatus.VALID
+    mode: AttendanceMode = AttendanceMode.AUSENTE
+    present: bool = False
+    marked_by: Optional[str] = None
+    marked_at: Optional[datetime] = None
     assignments: Optional[List[ProxyAssignmentBase]] = None
 
 class ProxyCreate(ProxyBase):
@@ -89,13 +100,22 @@ class Proxy(ProxyBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProxyMark(BaseModel):
+    mode: AttendanceMode
+
+
 class ElectionBase(BaseModel):
     name: str
     date: date
 
 
 class ElectionCreate(ElectionBase):
-    pass
+    status: ElectionStatus = ElectionStatus.DRAFT
+
+
+class ElectionUpdate(BaseModel):
+    name: Optional[str] = None
+    date: Optional[date] = None
 
 
 class Election(ElectionBase):
