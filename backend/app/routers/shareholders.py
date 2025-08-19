@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List
+import csv
+from io import StringIO
 from .. import schemas, models, database
 from ..security import get_current_user, require_role
 
@@ -31,6 +34,91 @@ def import_shareholders(election_id: int, shareholders: List[schemas.Shareholder
         db.refresh(sh)
     return result
 
+
+@router.post(
+    "/import-file",
+    dependencies=[require_role(["REGISTRADOR_BVG"])]
+)
+def import_shareholders_file(
+    election_id: int,
+    file: UploadFile = File(...),
+    preview: bool = True,
+    db: Session = Depends(get_db),
+):
+    content = file.file.read().decode("utf-8")
+    reader = csv.DictReader(StringIO(content))
+    required = {"code", "name", "document", "actions"}
+    if not required.issubset(reader.fieldnames or []):
+        missing = required - set(reader.fieldnames or [])
+        raise HTTPException(status_code=400, detail=f"Missing columns: {', '.join(missing)}")
+    valid: List[schemas.ShareholderCreate] = []
+    errors = []
+    seen_codes = set()
+    for idx, row in enumerate(reader, start=2):
+        row_errors = []
+        code = (row.get("code") or "").strip()
+        if not code:
+            row_errors.append("code required")
+        elif code in seen_codes:
+            row_errors.append("duplicate code in file")
+        else:
+            seen_codes.add(code)
+        name = (row.get("name") or "").strip()
+        if not name:
+            row_errors.append("name required")
+        document = (row.get("document") or "").strip()
+        if not document:
+            row_errors.append("document required")
+        email = (row.get("email") or "").strip() or None
+        actions_raw = row.get("actions")
+        try:
+            actions = float(actions_raw)
+            if actions < 0:
+                row_errors.append("actions must be >= 0")
+        except (TypeError, ValueError):
+            row_errors.append("actions must be a number")
+            actions = 0
+        if row_errors:
+            errors.append({"row": idx, "errors": row_errors})
+            continue
+        valid.append(
+            schemas.ShareholderCreate(
+                code=code, name=name, document=document, email=email, actions=actions
+            )
+        )
+    if preview:
+        return {"valid": [v.model_dump() for v in valid], "invalid": errors}
+    if errors:
+        raise HTTPException(status_code=400, detail=errors)
+    result = []
+    for sh in valid:
+        existing = db.query(models.Shareholder).filter_by(code=sh.code).first()
+        if existing:
+            for field, value in sh.model_dump().items():
+                setattr(existing, field, value)
+            result.append(existing)
+        else:
+            new_sh = models.Shareholder(**sh.model_dump())
+            db.add(new_sh)
+            result.append(new_sh)
+    db.commit()
+    for sh in result:
+        db.refresh(sh)
+    return [schemas.Shareholder.model_validate(r).model_dump() for r in result]
+
 @router.get("", response_model=List[schemas.Shareholder], dependencies=[Depends(get_current_user)])
-def list_shareholders(election_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Shareholder).all()
+def list_shareholders(
+    election_id: int,
+    q: str | None = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.Shareholder)
+    if q:
+        q_like = f"%{q}%"
+        query = query.filter(
+            or_(
+                models.Shareholder.name.ilike(q_like),
+                models.Shareholder.code.ilike(q_like),
+            )
+        )
+    return query.all()

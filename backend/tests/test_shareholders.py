@@ -22,18 +22,67 @@ def setup_auth_and_election():
     db.close()
     token = client.post("/auth/login", json={"username": "AdminBVG", "password": "BVG2025"}).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
-    resp = client.post("/elections", json={"name": "Demo", "date": "2024-01-01"}, headers=headers)
+    resp = client.post(
+        "/elections", json={"name": "Demo", "date": "2024-01-01"}, headers=headers
+    )
     assert resp.status_code == 200
     election_id = resp.json()["id"]
     return headers, election_id
 
 
-def test_import_and_list_shareholders():
+def test_import_preview_and_confirm_shareholders_csv():
     headers, election_id = setup_auth_and_election()
-    data = [{"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10}]
-    response = client.post(f"/elections/{election_id}/shareholders/import", json=data, headers=headers)
+    csv_content = (
+        "code,name,document,email,actions\n"
+        "SH1,Alice,D1,a@example.com,10\n"
+        "SH1,Bob,D2,b@example.com,5\n"
+        "SH3,Charlie,D3,c@example.com,-1\n"
+    )
+    files = {"file": ("shareholders.csv", csv_content, "text/csv")}
+    response = client.post(
+        f"/elections/{election_id}/shareholders/import-file?preview=true",
+        files=files,
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["valid"]) == 1
+    assert len(data["invalid"]) == 2
+
+    valid_csv = (
+        "code,name,document,email,actions\n"
+        "SH1,Alice,D1,a@example.com,10\n"
+    )
+    files = {"file": ("shareholders.csv", valid_csv, "text/csv")}
+    response = client.post(
+        f"/elections/{election_id}/shareholders/import-file?preview=false",
+        files=files,
+        headers=headers,
+    )
     assert response.status_code == 200
     assert response.json()[0]["code"] == "SH1"
-    response = client.get(f"/elections/{election_id}/shareholders", headers=headers)
+
+    # idempotent import
+    response = client.post(
+        f"/elections/{election_id}/shareholders/import-file?preview=false",
+        files=files,
+        headers=headers,
+    )
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    list_resp = client.get(
+        f"/elections/{election_id}/shareholders", headers=headers
+    )
+    assert list_resp.status_code == 200
+    assert len(list_resp.json()) == 1
+
+    # search filter
+    search_resp = client.get(
+        f"/elections/{election_id}/shareholders?q=SH1", headers=headers
+    )
+    assert search_resp.status_code == 200
+    assert len(search_resp.json()) == 1
+    empty_resp = client.get(
+        f"/elections/{election_id}/shareholders?q=ZZZ", headers=headers
+    )
+    assert empty_resp.status_code == 200
+    assert len(empty_resp.json()) == 0
