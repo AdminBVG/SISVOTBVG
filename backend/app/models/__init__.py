@@ -11,7 +11,7 @@ from sqlalchemy import (
     JSON
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 
 from ..database import Base
@@ -49,7 +49,9 @@ class Attendance(Base):
     mode = Column(Enum(AttendanceMode), default=AttendanceMode.AUSENTE, nullable=False)
     present = Column(Boolean, default=False)
     marked_by = Column(String)
-    marked_at = Column(DateTime, default=datetime.utcnow)
+    marked_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     evidence_json = Column(JSON)
     shareholder = relationship("Shareholder", back_populates="attendances")
     history = relationship("AttendanceHistory", back_populates="attendance")
@@ -63,7 +65,9 @@ class AttendanceHistory(Base):
     from_present = Column(Boolean)
     to_present = Column(Boolean)
     changed_by = Column(String, nullable=False)
-    changed_at = Column(DateTime, default=datetime.utcnow)
+    changed_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     reason = Column(String)
     attendance = relationship("Attendance", back_populates="history")
 

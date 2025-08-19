@@ -18,13 +18,15 @@ def get_db():
 def create_proxy(election_id: int, proxy: schemas.ProxyCreate, db: Session = Depends(get_db)):
     if proxy.fecha_vigencia and proxy.fecha_vigencia < date.today():
         raise HTTPException(status_code=400, detail="proxy expired")
-    db_proxy = models.Proxy(**proxy.dict(exclude={"assignments"}))
+    db_proxy = models.Proxy(**proxy.model_dump(exclude={"assignments"}))
     db.add(db_proxy)
     db.commit()
     db.refresh(db_proxy)
     assignments = []
     for assignment in proxy.assignments or []:
-        db_assignment = models.ProxyAssignment(proxy_id=db_proxy.id, **assignment.dict())
+        db_assignment = models.ProxyAssignment(
+            proxy_id=db_proxy.id, **assignment.model_dump()
+        )
         db.add(db_assignment)
         assignments.append(db_assignment)
     db.commit()
