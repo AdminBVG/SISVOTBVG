@@ -11,7 +11,7 @@ def run():
         admin = models.User(
             username="AdminBVG",
             hashed_password=hash_password("BVG2025"),
-            role="REGISTRADOR_BVG",
+            role="ADMIN_BVG",
         )
         db.add(admin)
         db.commit()
