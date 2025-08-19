@@ -1,10 +1,36 @@
+import os
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional dependency
+    def load_dotenv(*args, **kwargs):
+        return None
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from .routers import shareholders, attendance, proxies, auth, elections, audit, observer
 from .database import Base, engine
+
+load_dotenv()
+
+CORS_ORIGINS_ENV = os.getenv("CORS_ORIGINS", "")
+if CORS_ORIGINS_ENV:
+    CORS_ORIGINS = [o.strip() for o in CORS_ORIGINS_ENV.split(",") if o.strip()]
+else:
+    CORS_ORIGINS = ["http://localhost:5173"]
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="BVG Attendance API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(shareholders.router)
 app.include_router(attendance.router)
