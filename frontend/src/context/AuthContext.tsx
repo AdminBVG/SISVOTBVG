@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { getItem, setItem } from '../lib/storage';
 
 interface AuthContextValue {
   token: string | null;
@@ -11,15 +12,15 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-  const [role, setRole] = useState<string | null>(() => localStorage.getItem('role'));
-  const [username, setUsername] = useState<string | null>(() => localStorage.getItem('username'));
+  const [token, setToken] = useState<string | null>(() => getItem('token'));
+  const [role, setRole] = useState<string | null>(() => getItem('role'));
+  const [username, setUsername] = useState<string | null>(() => getItem('username'));
 
   const login = (tok: string, rol: string, user?: string) => {
-    localStorage.setItem('token', tok);
-    localStorage.setItem('role', rol);
+    setItem('token', tok);
+    setItem('role', rol);
     if (user) {
-      localStorage.setItem('username', user);
+      setItem('username', user);
       setUsername(user);
     }
     setToken(tok);

@@ -1,6 +1,8 @@
+import { getItem } from './storage';
+
 export async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const base = import.meta.env.VITE_API_URL || '/api';
-  const token = localStorage.getItem('token');
+  const token = getItem('token');
   const headers: HeadersInit = {
     ...(init.headers || {}),
   };
