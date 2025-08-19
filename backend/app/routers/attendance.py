@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, List
 from .. import schemas, models, database
 from ..models import AttendanceMode
-from datetime import datetime
+from datetime import datetime, timezone
 from ..security import get_current_user, require_role
 
 router = APIRouter(prefix="/elections/{election_id}/attendance", tags=["attendance"])
@@ -17,7 +17,11 @@ def get_db():
 
 @router.post("/{code}/mark", response_model=schemas.Attendance, dependencies=[require_role(["REGISTRADOR_BVG"])])
 def mark_attendance(election_id: int, code: str, payload: Dict, db: Session = Depends(get_db)):
-    mode = AttendanceMode(payload.get("mode"))
+    mode_value = payload.get("mode")
+    try:
+        mode = AttendanceMode(mode_value)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid attendance mode")
     evidence = payload.get("evidence")
     shareholder = db.query(models.Shareholder).filter_by(code=code).first()
     if not shareholder:
@@ -38,13 +42,13 @@ def mark_attendance(election_id: int, code: str, payload: Dict, db: Session = De
         from_present=attendance.present,
         to_present=mode != AttendanceMode.AUSENTE,
         changed_by="system",
-        changed_at=datetime.utcnow(),
+        changed_at=datetime.now(timezone.utc),
         reason=payload.get("reason")
     )
     attendance.mode = mode
     attendance.present = mode != AttendanceMode.AUSENTE
     attendance.marked_by = "system"
-    attendance.marked_at = datetime.utcnow()
+    attendance.marked_at = datetime.now(timezone.utc)
     attendance.evidence_json = evidence
     db.add(history)
     db.commit()

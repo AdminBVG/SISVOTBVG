@@ -19,11 +19,11 @@ def import_shareholders(election_id: int, shareholders: List[schemas.Shareholder
     for sh in shareholders:
         existing = db.query(models.Shareholder).filter_by(code=sh.code).first()
         if existing:
-            for field, value in sh.dict().items():
+            for field, value in sh.model_dump().items():
                 setattr(existing, field, value)
             result.append(existing)
         else:
-            new_sh = models.Shareholder(**sh.dict())
+            new_sh = models.Shareholder(**sh.model_dump())
             db.add(new_sh)
             result.append(new_sh)
     db.commit()

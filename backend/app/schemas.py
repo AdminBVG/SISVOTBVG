@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from .models import AttendanceMode, PersonType, ProxyStatus, ElectionStatus
 
 class ShareholderBase(BaseModel):
@@ -17,8 +17,7 @@ class Shareholder(ShareholderBase):
     id: int
     status: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AttendanceBase(BaseModel):
     election_id: int
@@ -32,8 +31,7 @@ class Attendance(AttendanceBase):
     marked_by: Optional[str]
     marked_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AttendanceHistory(BaseModel):
     id: int
@@ -46,8 +44,7 @@ class AttendanceHistory(BaseModel):
     changed_at: datetime
     reason: Optional[str]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PersonBase(BaseModel):
     type: PersonType
@@ -58,8 +55,7 @@ class PersonBase(BaseModel):
 class Person(PersonBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProxyAssignmentBase(BaseModel):
     shareholder_id: int
@@ -70,8 +66,7 @@ class ProxyAssignmentBase(BaseModel):
 class ProxyAssignment(ProxyAssignmentBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProxyBase(BaseModel):
     election_id: int
@@ -91,8 +86,7 @@ class Proxy(ProxyBase):
     id: int
     assignments: List[ProxyAssignment] = []
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ElectionBase(BaseModel):
@@ -108,8 +102,7 @@ class Election(ElectionBase):
     id: int
     status: ElectionStatus
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ElectionStatusUpdate(BaseModel):

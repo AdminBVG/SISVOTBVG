@@ -1,8 +1,8 @@
-import hashlib
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import Base, engine, SessionLocal
 from app import models
+from app.routers.auth import hash_password
 
 client = TestClient(app)
 
@@ -11,7 +11,13 @@ def auth_headers():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
-    db.add(models.User(username="AdminBVG", hashed_password=hashlib.sha256("BVG2025".encode()).hexdigest(), role="REGISTRADOR_BVG"))
+    db.add(
+        models.User(
+            username="AdminBVG",
+            hashed_password=hash_password("BVG2025"),
+            role="REGISTRADOR_BVG",
+        )
+    )
     db.commit()
     db.close()
     token = client.post("/auth/login", json={"username": "AdminBVG", "password": "BVG2025"}).json()["access_token"]

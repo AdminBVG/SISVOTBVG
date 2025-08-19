@@ -17,7 +17,7 @@ def get_db():
 
 @router.post("", response_model=schemas.Election, dependencies=[require_role(["REGISTRADOR_BVG"])])
 def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_db)):
-    db_election = models.Election(**election.dict())
+    db_election = models.Election(**election.model_dump())
     db.add(db_election)
     db.commit()
     db.refresh(db_election)
