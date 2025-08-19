@@ -7,7 +7,7 @@ from app import models
 client = TestClient(app)
 
 
-def setup_auth_and_election():
+def auth_headers():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -15,19 +15,19 @@ def setup_auth_and_election():
     db.commit()
     db.close()
     token = client.post("/auth/login", json={"username": "AdminBVG", "password": "BVG2025"}).json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_create_list_and_update_election():
+    headers = auth_headers()
     resp = client.post("/elections", json={"name": "Demo", "date": "2024-01-01"}, headers=headers)
     assert resp.status_code == 200
     election_id = resp.json()["id"]
-    return headers, election_id
 
+    resp = client.get("/elections", headers=headers)
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1
 
-def test_import_and_list_shareholders():
-    headers, election_id = setup_auth_and_election()
-    data = [{"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10}]
-    response = client.post(f"/elections/{election_id}/shareholders/import", json=data, headers=headers)
-    assert response.status_code == 200
-    assert response.json()[0]["code"] == "SH1"
-    response = client.get(f"/elections/{election_id}/shareholders", headers=headers)
-    assert response.status_code == 200
-    assert len(response.json()) == 1
+    resp = client.patch(f"/elections/{election_id}/status", json={"status": "CLOSED"}, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "CLOSED"

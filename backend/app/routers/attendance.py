@@ -4,6 +4,7 @@ from typing import Dict, List
 from .. import schemas, models, database
 from ..models import AttendanceMode
 from datetime import datetime
+from ..security import get_current_user, require_role
 
 router = APIRouter(prefix="/elections/{election_id}/attendance", tags=["attendance"])
 
@@ -14,7 +15,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/{code}/mark", response_model=schemas.Attendance)
+@router.post("/{code}/mark", response_model=schemas.Attendance, dependencies=[require_role(["REGISTRADOR_BVG"])])
 def mark_attendance(election_id: int, code: str, payload: Dict, db: Session = Depends(get_db)):
     mode = AttendanceMode(payload.get("mode"))
     evidence = payload.get("evidence")
@@ -50,7 +51,7 @@ def mark_attendance(election_id: int, code: str, payload: Dict, db: Session = De
     db.refresh(attendance)
     return attendance
 
-@router.get("/history", response_model=List[schemas.AttendanceHistory])
+@router.get("/history", response_model=List[schemas.AttendanceHistory], dependencies=[Depends(get_current_user)])
 def attendance_history(election_id: int, code: str, db: Session = Depends(get_db)):
     shareholder = db.query(models.Shareholder).filter_by(code=code).first()
     if not shareholder:
@@ -67,7 +68,7 @@ def attendance_history(election_id: int, code: str, db: Session = Depends(get_db
         .all()
     )
 
-@router.get("/summary")
+@router.get("/summary", dependencies=[Depends(get_current_user)])
 def summary_attendance(election_id: int, db: Session = Depends(get_db)):
     total = db.query(models.Attendance).filter_by(election_id=election_id).count()
     presencial = db.query(models.Attendance).filter_by(election_id=election_id, mode=AttendanceMode.PRESENCIAL).count()

@@ -3,7 +3,7 @@ import hashlib
 import pytest
 
 from app.main import app
-from app.database import SessionLocal
+from app.database import Base, engine, SessionLocal
 from app import models
 
 client = TestClient(app)
@@ -11,6 +11,8 @@ client = TestClient(app)
 
 @pytest.fixture(scope="module")
 def admin_user():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     db.add(
         models.User(
