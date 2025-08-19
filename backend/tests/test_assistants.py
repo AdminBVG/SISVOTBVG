@@ -1,8 +1,13 @@
++101
+-0
+
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import Base, engine, SessionLocal
 from app import models
 from app.routers.auth import hash_password
+from openpyxl import Workbook
+from io import BytesIO
 
 client = TestClient(app)
 
@@ -38,6 +43,18 @@ def create_csv(rows):
     return "".join(lines)
 
 
+def create_xlsx(rows):
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["id", "accionista", "representante", "apoderado", "acciones"])
+    for r in rows:
+        ws.append(r)
+    bio = BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+    return bio.getvalue()
+
+
 def test_import_attendees_excel_success():
     headers, election_id = setup_auth_and_election()
     data = create_csv([["1", "Alice", "", "", 10]])
@@ -54,6 +71,25 @@ def test_import_attendees_excel_success():
     )
     assert list_resp.status_code == 200
     assert len(list_resp.json()) == 1
+
+
+def test_import_attendees_excel_xlsx_success():
+    headers, election_id = setup_auth_and_election()
+    data = create_xlsx([["1", "Alice", "", "", 10]])
+    files = {
+        "file": (
+            "attendees.xlsx",
+            data,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    }
+    resp = client.post(
+        f"/elections/{election_id}/assistants/import-excel",
+        files=files,
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1
 
 
 def test_import_attendees_excel_missing_columns():

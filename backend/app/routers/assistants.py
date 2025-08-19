@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import csv
 from io import StringIO
+from openpyxl import load_workbook
 
 from .. import models, schemas, database
 from ..security import get_current_user, require_role
@@ -29,25 +30,51 @@ def import_attendees_excel(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
-    content = file.file.read().decode("utf-8")
-    reader = csv.DictReader(StringIO(content))
     required = {"id", "accionista", "representante", "apoderado", "acciones"}
-    if not required.issubset(reader.fieldnames or []):
-        missing = required - set(reader.fieldnames or [])
-        raise HTTPException(status_code=400, detail=f"Missing columns: {', '.join(sorted(missing))}")
-
     results: List[models.Attendee] = []
-    for row in reader:
-        attendee = models.Attendee(
-            election_id=election_id,
-            identifier=str(row.get("id", "")),
-            accionista=row.get("accionista", ""),
-            representante=row.get("representante"),
-            apoderado=row.get("apoderado"),
-            acciones=float(row.get("acciones") or 0),
-        )
-        db.add(attendee)
-        results.append(attendee)
+
+    if file.filename and file.filename.lower().endswith(".xlsx"):
+        wb = load_workbook(file.file)
+        sheet = wb.active
+        rows = list(sheet.values)
+        headers = [str(h).strip() if h is not None else "" for h in rows[0]]
+        if not required.issubset(headers):
+            missing = required - set(headers)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing columns: {', '.join(sorted(missing))}",
+            )
+        for data_row in rows[1:]:
+            row = dict(zip(headers, data_row))
+            attendee = models.Attendee(
+                election_id=election_id,
+                identifier=str(row.get("id", "")),
+                accionista=row.get("accionista", ""),
+                representante=row.get("representante"),
+                apoderado=row.get("apoderado"),
+                acciones=float(row.get("acciones") or 0),
+            )
+            db.add(attendee)
+            results.append(attendee)
+    else:
+        content = file.file.read().decode("utf-8")
+        reader = csv.DictReader(StringIO(content))
+        if not required.issubset(reader.fieldnames or []):
+            missing = required - set(reader.fieldnames or [])
+            raise HTTPException(
+                status_code=400, detail=f"Missing columns: {', '.join(sorted(missing))}"
+            )
+        for row in reader:
+            attendee = models.Attendee(
+                election_id=election_id,
+                identifier=str(row.get("id", "")),
+                accionista=row.get("accionista", ""),
+                representante=row.get("representante"),
+                apoderado=row.get("apoderado"),
+                acciones=float(row.get("acciones") or 0),
+            )
+            db.add(attendee)
+            results.append(attendee)
     db.commit()
     for att in results:
         db.refresh(att)
