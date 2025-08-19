@@ -198,7 +198,7 @@ npm test
 
 ## 11. Salud y monitoreo
 - Backend: `GET /` responde con mensaje simple.
-- Se pueden añadir endpoints de healthcheck para liveness/readiness.
+- Endpoint de healthcheck: `GET /health` devuelve `{ "status": "ok" }` para liveness/readiness.
 
 ## 12. Backups básicos
 ```bash
