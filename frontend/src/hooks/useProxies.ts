@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '../lib/react-query';
-import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../lib/api';
 
 export interface Proxy {
   id: number;
@@ -18,16 +18,9 @@ export interface ProxyPayload {
 }
 
 export const useProxies = (electionId: number) => {
-  const { token } = useAuth();
   return useQuery<Proxy[]>({
     queryKey: ['proxies', electionId],
-    queryFn: async () => {
-      const res = await fetch(`/elections/${electionId}/proxies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Error al cargar poderes');
-      return res.json();
-    },
+    queryFn: () => apiFetch<Proxy[]>(`/elections/${electionId}/proxies`),
   });
 };
 
@@ -36,20 +29,13 @@ export const useCreateProxy = (
   onSuccess?: () => void,
   onError?: (err: any) => void
 ) => {
-  const { token } = useAuth();
   return useMutation<any, ProxyPayload>({
-    mutationFn: async (payload) => {
-      const res = await fetch(`/elections/${electionId}/proxies`, {
+    mutationFn: (payload) =>
+      apiFetch(`/elections/${electionId}/proxies`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, election_id: electionId }),
-      });
-      if (!res.ok) throw new Error('Error al crear poder');
-      return res.json();
-    },
+      }),
     onSuccess,
     onError,
   });

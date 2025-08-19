@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useToast } from '../components/ui/toast';
 import { useProxies, useCreateProxy } from '../hooks/useProxies';
+import Input from '../components/ui/input';
+import Button from '../components/ui/button';
 
 const Proxies: React.FC = () => {
   const electionId = 1; // demo election
   const toast = useToast();
-  const { data: proxies, refetch } = useProxies(electionId);
+  const { data: proxies, refetch, isLoading, error } = useProxies(electionId);
   const initialForm = {
     proxy_person_id: '',
     tipo_doc: '',
@@ -46,54 +48,78 @@ const Proxies: React.FC = () => {
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Gestión de Apoderados</h1>
       <form className="space-y-2 max-w-md" onSubmit={handleSubmit}>
-        <input
-          className="border px-3 py-2 rounded w-full"
-          name="proxy_person_id"
-          placeholder="ID persona apoderada"
-          value={form.proxy_person_id}
-          onChange={handleChange}
-        />
-        <input
-          className="border px-3 py-2 rounded w-full"
-          name="tipo_doc"
-          placeholder="Tipo de documento"
-          value={form.tipo_doc}
-          onChange={handleChange}
-        />
-        <input
-          className="border px-3 py-2 rounded w-full"
-          name="num_doc"
-          placeholder="Número de documento"
-          value={form.num_doc}
-          onChange={handleChange}
-        />
-        <input
-          className="border px-3 py-2 rounded w-full"
-          name="fecha_otorg"
-          placeholder="Fecha de otorgamiento"
-          type="date"
-          value={form.fecha_otorg}
-          onChange={handleChange}
-        />
-        <input
-          className="border px-3 py-2 rounded w-full"
-          name="fecha_vigencia"
-          placeholder="Fecha de vigencia"
-          type="date"
-          value={form.fecha_vigencia}
-          onChange={handleChange}
-        />
-        <input
-          className="border px-3 py-2 rounded w-full"
-          name="pdf_url"
-          placeholder="URL del PDF"
-          value={form.pdf_url}
-          onChange={handleChange}
-        />
-        <button className="bg-green-600 text-white px-4 py-2 rounded" type="submit">
-          Guardar
-        </button>
+        <div>
+          <label htmlFor="proxy_person_id" className="text-sm block mb-1">
+            ID persona apoderada
+          </label>
+          <Input
+            id="proxy_person_id"
+            name="proxy_person_id"
+            value={form.proxy_person_id}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="tipo_doc" className="text-sm block mb-1">
+            Tipo de documento
+          </label>
+          <Input
+            id="tipo_doc"
+            name="tipo_doc"
+            value={form.tipo_doc}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="num_doc" className="text-sm block mb-1">
+            Número de documento
+          </label>
+          <Input
+            id="num_doc"
+            name="num_doc"
+            value={form.num_doc}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="fecha_otorg" className="text-sm block mb-1">
+            Fecha de otorgamiento
+          </label>
+          <Input
+            id="fecha_otorg"
+            name="fecha_otorg"
+            type="date"
+            value={form.fecha_otorg}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="fecha_vigencia" className="text-sm block mb-1">
+            Fecha de vigencia
+          </label>
+          <Input
+            id="fecha_vigencia"
+            name="fecha_vigencia"
+            type="date"
+            value={form.fecha_vigencia}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="pdf_url" className="text-sm block mb-1">
+            URL del PDF
+          </label>
+          <Input
+            id="pdf_url"
+            name="pdf_url"
+            value={form.pdf_url}
+            onChange={handleChange}
+          />
+        </div>
+        <Button type="submit">Guardar</Button>
       </form>
+      {isLoading && <p>Cargando...</p>}
+      {error && <p className="text-red-600">{error.message}</p>}
       {proxies && proxies.length > 0 && (
         <ul className="list-disc pl-4">
           {proxies.map((p) => (
