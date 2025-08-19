@@ -95,7 +95,12 @@ class ElectionBase(BaseModel):
 
 
 class ElectionCreate(ElectionBase):
-    pass
+    status: ElectionStatus = ElectionStatus.DRAFT
+
+
+class ElectionUpdate(BaseModel):
+    name: Optional[str] = None
+    date: Optional[date] = None
 
 
 class Election(ElectionBase):
