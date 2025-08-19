@@ -90,6 +90,10 @@ class Proxy(Base):
     fecha_vigencia = Column(Date)
     pdf_url = Column(String, nullable=False)
     status = Column(Enum(ProxyStatus), default=ProxyStatus.VALID)
+    mode = Column(Enum(AttendanceMode), default=AttendanceMode.AUSENTE, nullable=False)
+    present = Column(Boolean, default=False)
+    marked_by = Column(String)
+    marked_at = Column(DateTime(timezone=True))
     assignments = relationship("ProxyAssignment", back_populates="proxy")
 
 class ProxyAssignment(Base):

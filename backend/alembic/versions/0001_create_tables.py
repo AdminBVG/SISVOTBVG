@@ -59,7 +59,11 @@ def upgrade():
         sa.Column('fecha_otorg', sa.Date(), nullable=False),
         sa.Column('fecha_vigencia', sa.Date(), nullable=True),
         sa.Column('pdf_url', sa.String(), nullable=False),
-        sa.Column('status', sa.Enum('VALID', 'INVALID', 'EXPIRED', name='proxystatus'), nullable=False, default='VALID')
+        sa.Column('status', sa.Enum('VALID', 'INVALID', 'EXPIRED', name='proxystatus'), nullable=False, default='VALID'),
+        sa.Column('mode', sa.Enum('PRESENCIAL', 'VIRTUAL', 'AUSENTE', name='attendancemode'), nullable=False, default='AUSENTE'),
+        sa.Column('present', sa.Boolean(), default=False),
+        sa.Column('marked_by', sa.String(), nullable=True),
+        sa.Column('marked_at', sa.DateTime(), nullable=True)
     )
     op.create_table(
         'proxy_assignments',

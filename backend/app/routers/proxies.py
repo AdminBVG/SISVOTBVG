@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import List
 from .. import schemas, models, database
+from ..models import AttendanceMode
 from ..security import get_current_user, require_role
 
 router = APIRouter(prefix="/elections/{election_id}/proxies", tags=["proxies"])
@@ -14,10 +15,27 @@ def get_db():
     finally:
         db.close()
 
+def _refresh_status(db: Session, proxy: models.Proxy):
+    if (
+        proxy.status == models.ProxyStatus.VALID
+        and proxy.fecha_vigencia
+        and date.today() > proxy.fecha_vigencia
+    ):
+        proxy.status = models.ProxyStatus.EXPIRED
+        proxy.present = False
+        db.commit()
+        db.refresh(proxy)
+
+
 @router.post("", response_model=schemas.Proxy, dependencies=[require_role(["REGISTRADOR_BVG"])])
 def create_proxy(election_id: int, proxy: schemas.ProxyCreate, db: Session = Depends(get_db)):
-    if proxy.fecha_vigencia and proxy.fecha_vigencia < date.today():
-        raise HTTPException(status_code=400, detail="proxy expired")
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="election not found")
+    if proxy.fecha_otorg > election.date:
+        raise HTTPException(status_code=400, detail="proxy not yet valid")
+    if proxy.fecha_vigencia and election.date > proxy.fecha_vigencia:
+        raise HTTPException(status_code=400, detail="proxy expired for election date")
     db_proxy = models.Proxy(**proxy.model_dump(exclude={"assignments"}))
     db.add(db_proxy)
     db.commit()
@@ -35,4 +53,50 @@ def create_proxy(election_id: int, proxy: schemas.ProxyCreate, db: Session = Dep
 
 @router.get("", response_model=List[schemas.Proxy], dependencies=[Depends(get_current_user)])
 def list_proxies(election_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Proxy).filter_by(election_id=election_id).all()
+    proxies = db.query(models.Proxy).filter_by(election_id=election_id).all()
+    for prx in proxies:
+        _refresh_status(db, prx)
+    return proxies
+
+
+@router.post("/{proxy_id}/mark", response_model=schemas.Proxy, dependencies=[require_role(["REGISTRADOR_BVG"])])
+def mark_proxy(
+    election_id: int, proxy_id: int, payload: schemas.ProxyMark, db: Session = Depends(get_db)
+):
+    proxy = (
+        db.query(models.Proxy)
+        .filter_by(id=proxy_id, election_id=election_id)
+        .first()
+    )
+    if not proxy:
+        raise HTTPException(status_code=404, detail="proxy not found")
+    _refresh_status(db, proxy)
+    if proxy.status != models.ProxyStatus.VALID:
+        raise HTTPException(status_code=400, detail="proxy not valid")
+    proxy.mode = payload.mode
+    proxy.present = payload.mode != AttendanceMode.AUSENTE
+    proxy.marked_by = "system"
+    proxy.marked_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(proxy)
+    return proxy
+
+
+@router.post(
+    "/{proxy_id}/invalidate",
+    response_model=schemas.Proxy,
+    dependencies=[require_role(["REGISTRADOR_BVG"])]
+)
+def invalidate_proxy(election_id: int, proxy_id: int, db: Session = Depends(get_db)):
+    proxy = (
+        db.query(models.Proxy)
+        .filter_by(id=proxy_id, election_id=election_id)
+        .first()
+    )
+    if not proxy:
+        raise HTTPException(status_code=404, detail="proxy not found")
+    proxy.status = models.ProxyStatus.INVALID
+    proxy.present = False
+    db.commit()
+    db.refresh(proxy)
+    return proxy

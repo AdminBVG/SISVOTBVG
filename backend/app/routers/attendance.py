@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import Dict, List
 from .. import schemas, models, database
 from ..models import AttendanceMode
@@ -145,4 +146,20 @@ def summary_attendance(election_id: int, db: Session = Depends(get_db)):
     presencial = db.query(models.Attendance).filter_by(election_id=election_id, mode=AttendanceMode.PRESENCIAL).count()
     virtual = db.query(models.Attendance).filter_by(election_id=election_id, mode=AttendanceMode.VIRTUAL).count()
     ausente = db.query(models.Attendance).filter_by(election_id=election_id, mode=AttendanceMode.AUSENTE).count()
-    return {"total": total, "presencial": presencial, "virtual": virtual, "ausente": ausente}
+    representado = (
+        db.query(func.count(models.ProxyAssignment.id))
+        .join(models.Proxy)
+        .filter(
+            models.Proxy.election_id == election_id,
+            models.Proxy.present.is_(True),
+            models.Proxy.status == models.ProxyStatus.VALID,
+        )
+        .scalar()
+    )
+    return {
+        "total": total,
+        "presencial": presencial,
+        "virtual": virtual,
+        "ausente": ausente,
+        "representado": representado,
+    }
