@@ -15,6 +15,7 @@ def get_db():
     finally:
         db.close()
 
+
 def _refresh_status(db: Session, proxy: models.Proxy):
     if (
         proxy.status == models.ProxyStatus.VALID
@@ -46,6 +47,7 @@ def _enforce_window(db: Session, election_id: int, user):
             raise HTTPException(status_code=403, detail="registration closed")
     return election
 
+
 def _log(db: Session, election_id: int, user, action: str, request: Request, details: dict | None = None):
     log = models.AuditLog(
         election_id=election_id,
@@ -56,6 +58,7 @@ def _log(db: Session, election_id: int, user, action: str, request: Request, det
         user_agent=request.headers.get("user-agent"),
     )
     db.add(log)
+
 
 @router.post(
     "",
@@ -92,6 +95,7 @@ def create_proxy(
     db.commit()
     db_proxy.assignments = assignments
     return db_proxy
+
 
 @router.get("", response_model=List[schemas.Proxy], dependencies=[Depends(get_current_user)])
 def list_proxies(election_id: int, db: Session = Depends(get_db)):

@@ -49,7 +49,12 @@ def _log(db: Session, election_id: int, user, action: str, request: Request, det
     )
     db.add(log)
 
-@router.post("/import", response_model=List[schemas.Shareholder], dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])])
+
+@router.post(
+    "/import",
+    response_model=List[schemas.Shareholder],
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
 def import_shareholders(
     election_id: int,
     shareholders: List[schemas.ShareholderCreate],
@@ -150,6 +155,7 @@ def import_shareholders_file(
     for sh in result:
         db.refresh(sh)
     return [schemas.Shareholder.model_validate(r).model_dump() for r in result]
+
 
 @router.get("", response_model=List[schemas.Shareholder], dependencies=[Depends(get_current_user)])
 def list_shareholders(

@@ -50,6 +50,7 @@ def _enforce_window(db: Session, election_id: int, user):
             raise HTTPException(status_code=403, detail="registration closed")
     return election
 
+
 @router.post(
     "/{code}/mark",
     response_model=schemas.Attendance,
@@ -75,6 +76,7 @@ def mark_attendance(
     if mode == AttendanceMode.AUSENTE and _has_active_proxy(db, election_id, shareholder.id):
         raise HTTPException(status_code=400, detail="shareholder has active proxy")
     _enforce_window(db, election_id, current_user)
+
     attendance = db.query(models.Attendance).filter_by(election_id=election_id, shareholder_id=shareholder.id).first()
     if not attendance:
         attendance = models.Attendance(
@@ -164,6 +166,7 @@ def bulk_mark_attendance(
         db.refresh(att)
     return attendances
 
+
 @router.get("/history", response_model=List[schemas.AttendanceHistory], dependencies=[Depends(get_current_user)])
 def attendance_history(election_id: int, code: str, db: Session = Depends(get_db)):
     shareholder = db.query(models.Shareholder).filter_by(code=code).first()
@@ -180,6 +183,7 @@ def attendance_history(election_id: int, code: str, db: Session = Depends(get_db
         .order_by(models.AttendanceHistory.id)
         .all()
     )
+
 
 @router.get("/summary", dependencies=[Depends(get_current_user)])
 def summary_attendance(election_id: int, db: Session = Depends(get_db)):
