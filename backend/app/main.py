@@ -14,3 +14,9 @@ app.include_router(auth.router)
 @app.get("/")
 def read_root():
     return {"message": "BVG Attendance API"}
+
+
+@app.get("/health", tags=["health"])
+def health_check():
+    """Simple healthcheck endpoint for monitoring."""
+    return {"status": "ok"}
