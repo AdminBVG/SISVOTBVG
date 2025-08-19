@@ -104,6 +104,7 @@ class ProxyAssignment(Base):
 
 
 class ElectionStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
     OPEN = "OPEN"
     CLOSED = "CLOSED"
 
@@ -113,7 +114,9 @@ class Election(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     date = Column(Date, nullable=False)
-    status = Column(Enum(ElectionStatus), default=ElectionStatus.OPEN, nullable=False)
+    status = Column(
+        Enum(ElectionStatus), default=ElectionStatus.DRAFT, nullable=False
+    )
 
 
 class User(Base):
