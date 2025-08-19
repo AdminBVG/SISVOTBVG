@@ -164,7 +164,7 @@ def import_shareholders_file(
 
 @router.get(
     "",
-    response_model=List[schemas.Shareholder],
+    response_model=List[schemas.ShareholderWithAttendance],
     dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
 )
 def list_shareholders(
@@ -172,7 +172,14 @@ def list_shareholders(
     q: str | None = None,
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Shareholder)
+    query = (
+        db.query(models.Shareholder, models.Attendance.mode)
+        .outerjoin(
+            models.Attendance,
+            (models.Shareholder.id == models.Attendance.shareholder_id)
+            & (models.Attendance.election_id == election_id),
+        )
+    )
     if q:
         q_like = f"%{q}%"
         query = query.filter(
@@ -181,4 +188,11 @@ def list_shareholders(
                 models.Shareholder.code.ilike(q_like),
             )
         )
-    return query.all()
+    rows = query.all()
+    result: List[schemas.ShareholderWithAttendance] = []
+    for sh, mode in rows:
+        data = schemas.Shareholder.model_validate(sh).model_dump()
+        result.append(
+            schemas.ShareholderWithAttendance(**data, attendance_mode=mode)
+        )
+    return result

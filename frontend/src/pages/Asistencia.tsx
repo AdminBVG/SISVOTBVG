@@ -20,15 +20,19 @@ const Asistencia: React.FC = () => {
     toast('Asistencia registrada');
     refetch();
   }, (err) => toast(err.message));
-
-  const handleMark = (shareholderId: number, status: string) => {
-    markAttendance.mutate({ shareholderId, status });
+  const handleMark = (code: string, mode: string) => {
+    markAttendance.mutate({ code, mode });
   };
 
-  const capitalSuscrito = shareholders?.reduce((acc, sh) => acc + (sh.capital || 0), 0) || 0;
-  const capitalPresente = shareholders?.filter((sh) => sh.attendance && sh.attendance !== 'AUSENTE')
-    .reduce((acc, sh) => acc + (sh.capital || 0), 0) || 0;
-  const quorum = capitalSuscrito ? ((capitalPresente / capitalSuscrito) * 100).toFixed(2) : '0';
+  const capitalSuscrito =
+    shareholders?.reduce((acc, sh) => acc + (sh.actions || 0), 0) || 0;
+  const capitalPresente =
+    shareholders?.filter(
+      (sh) => sh.attendance_mode && sh.attendance_mode !== 'AUSENTE',
+    ).reduce((acc, sh) => acc + (sh.actions || 0), 0) || 0;
+  const quorum = capitalSuscrito
+    ? ((capitalPresente / capitalSuscrito) * 100).toFixed(2)
+    : '0';
 
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -48,8 +52,8 @@ const Asistencia: React.FC = () => {
                 <TableHead>Código</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Acciones</TableHead>
+                <TableHead>Marcar</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Apoderado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -57,19 +61,19 @@ const Asistencia: React.FC = () => {
                 <TableRow key={s.id}>
                   <TableCell>{s.code}</TableCell>
                   <TableCell>{s.name}</TableCell>
+                  <TableCell>{s.actions}</TableCell>
                   <TableCell className="space-x-2">
-                    <Button onClick={() => handleMark(s.id, 'PRESENCIAL')}>
+                    <Button onClick={() => handleMark(s.code, 'PRESENCIAL')}>
                       <Check className="w-4 h-4 inline mr-1" />Presencial
                     </Button>
-                    <Button onClick={() => handleMark(s.id, 'VIRTUAL')}>
+                    <Button onClick={() => handleMark(s.code, 'VIRTUAL')}>
                       <Check className="w-4 h-4 inline mr-1" />Virtual
                     </Button>
-                    <Button onClick={() => handleMark(s.id, 'AUSENTE')}>
+                    <Button onClick={() => handleMark(s.code, 'AUSENTE')}>
                       <Check className="w-4 h-4 inline mr-1" />Ausente
                     </Button>
                   </TableCell>
-                  <TableCell>{s.attendance || 'Sin registrar'}</TableCell>
-                  <TableCell>{s.proxy || '—'}</TableCell>
+                  <TableCell>{s.attendance_mode || 'AUSENTE'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
