@@ -42,6 +42,7 @@ def test_attendance_history_endpoint():
     assert history[0]["to_mode"] == "PRESENCIAL"
     assert history[1]["from_mode"] == "PRESENCIAL"
     assert history[1]["to_mode"] == "VIRTUAL"
+    # Extra verificaciones de auditoría/captura de request
     assert history[0]["changed_by"] == "AdminBVG"
     assert history[0]["ip"]
     assert history[0]["user_agent"]
@@ -174,6 +175,7 @@ def test_cannot_mark_absent_with_active_proxy():
 
 
 def test_registration_window_blocks_marking():
+    # Reinicia y crea usuarios con roles distintos
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -189,10 +191,12 @@ def test_registration_window_blocks_marking():
     )
     db.commit()
     db.close()
+
     reg_token = client.post("/auth/login", json={"username": "Reg", "password": "pass"}).json()["access_token"]
     admin_token = client.post("/auth/login", json={"username": "Admin", "password": "pass"}).json()["access_token"]
     headers_reg = {"Authorization": f"Bearer {reg_token}"}
     headers_admin = {"Authorization": f"Bearer {admin_token}"}
+
     now = datetime.now(timezone.utc)
     resp = client.post(
         "/elections",
@@ -202,16 +206,19 @@ def test_registration_window_blocks_marking():
             "registration_start": (now - timedelta(days=1)).isoformat(),
             "registration_end": (now - timedelta(hours=1)).isoformat(),
         },
-        headers=headers_admin,
+        headers=headers_admin,  # Solo admin puede crear elecciones
     )
     assert resp.status_code == 200
     election_id = resp.json()["id"]
+
     resp = client.post(
         f"/elections/{election_id}/shareholders/import",
         json=[{"code": "S1", "name": "A", "document": "D", "email": "a@a.com", "actions": 1}],
         headers=headers_admin,
     )
     assert resp.status_code == 200
+
+    # Debe bloquear al registrador (fuera de ventana)
     assert (
         client.post(
             f"/elections/{election_id}/attendance/S1/mark",
@@ -220,6 +227,8 @@ def test_registration_window_blocks_marking():
         ).status_code
         == 403
     )
+
+    # El ADMIN puede marcar aunque esté fuera de ventana
     assert (
         client.post(
             f"/elections/{election_id}/attendance/S1/mark",

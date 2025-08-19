@@ -3,6 +3,7 @@ from typing import Optional, List
 from pydantic import BaseModel, EmailStr, ConfigDict
 from .models import AttendanceMode, PersonType, ProxyStatus, ElectionStatus
 
+
 class ShareholderBase(BaseModel):
     code: str
     name: str
@@ -10,8 +11,10 @@ class ShareholderBase(BaseModel):
     email: Optional[EmailStr]
     actions: float
 
+
 class ShareholderCreate(ShareholderBase):
     pass
+
 
 class Shareholder(ShareholderBase):
     id: int
@@ -19,11 +22,13 @@ class Shareholder(ShareholderBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class AttendanceBase(BaseModel):
     election_id: int
     mode: AttendanceMode
     present: bool
     evidence_json: Optional[dict]
+
 
 class Attendance(AttendanceBase):
     id: int
@@ -40,6 +45,7 @@ class AttendanceBulkMark(BaseModel):
     evidence: Optional[dict] = None
     reason: Optional[str] = None
 
+
 class AttendanceHistory(BaseModel):
     id: int
     attendance_id: int
@@ -55,16 +61,19 @@ class AttendanceHistory(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class PersonBase(BaseModel):
     type: PersonType
     name: str
     document: str
     email: Optional[EmailStr]
 
+
 class Person(PersonBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class ProxyAssignmentBase(BaseModel):
     shareholder_id: int
@@ -72,10 +81,12 @@ class ProxyAssignmentBase(BaseModel):
     valid_from: Optional[date]
     valid_until: Optional[date]
 
+
 class ProxyAssignment(ProxyAssignmentBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class ProxyBase(BaseModel):
     election_id: int
@@ -91,12 +102,25 @@ class ProxyBase(BaseModel):
     marked_at: Optional[datetime] = None
     assignments: Optional[List[ProxyAssignmentBase]] = None
 
+
 class ProxyCreate(ProxyBase):
     pass
 
-class Proxy(ProxyBase):
+
+class Proxy(BaseModel):
     id: int
+    election_id: int
+    proxy_person_id: int
+    tipo_doc: str
+    num_doc: str
+    fecha_otorg: date
+    fecha_vigencia: Optional[date]
     pdf_url: str
+    status: ProxyStatus = ProxyStatus.VALID
+    mode: AttendanceMode = AttendanceMode.AUSENTE
+    present: bool = False
+    marked_by: Optional[str] = None
+    marked_at: Optional[datetime] = None
     assignments: List[ProxyAssignment] = []
 
     model_config = ConfigDict(from_attributes=True)
@@ -156,3 +180,4 @@ class AuditLog(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+

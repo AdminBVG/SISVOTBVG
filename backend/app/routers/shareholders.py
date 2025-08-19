@@ -10,6 +10,7 @@ from ..security import get_current_user, require_role
 
 router = APIRouter(prefix="/elections/{election_id}/shareholders", tags=["shareholders"])
 
+
 def get_db():
     db = database.SessionLocal()
     try:
@@ -49,7 +50,12 @@ def _log(db: Session, election_id: int, user, action: str, request: Request, det
     )
     db.add(log)
 
-@router.post("/import", response_model=List[schemas.Shareholder], dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])])
+
+@router.post(
+    "/import",
+    response_model=List[schemas.Shareholder],
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
 def import_shareholders(
     election_id: int,
     shareholders: List[schemas.ShareholderCreate],
@@ -94,6 +100,7 @@ def import_shareholders_file(
     if not required.issubset(reader.fieldnames or []):
         missing = required - set(reader.fieldnames or [])
         raise HTTPException(status_code=400, detail=f"Missing columns: {', '.join(missing)}")
+
     valid: List[schemas.ShareholderCreate] = []
     errors = []
     seen_codes = set()
@@ -129,10 +136,12 @@ def import_shareholders_file(
                 code=code, name=name, document=document, email=email, actions=actions
             )
         )
+
     if preview:
         return {"valid": [v.model_dump() for v in valid], "invalid": errors}
     if errors:
         raise HTTPException(status_code=400, detail=errors)
+
     _enforce_window(db, election_id, current_user)
     result = []
     for sh in valid:
@@ -145,11 +154,13 @@ def import_shareholders_file(
             new_sh = models.Shareholder(**sh.model_dump())
             db.add(new_sh)
             result.append(new_sh)
+
     _log(db, election_id, current_user, "SHAREHOLDER_IMPORT", request, {"count": len(result)})
     db.commit()
     for sh in result:
         db.refresh(sh)
     return [schemas.Shareholder.model_validate(r).model_dump() for r in result]
+
 
 @router.get(
     "",

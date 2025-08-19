@@ -36,7 +36,7 @@ def list_elections(db: Session = Depends(get_db)):
 @router.patch(
     "/{election_id}",
     response_model=schemas.Election,
-    dependencies=[require_role(["ADMIN_BVG"])],
+    dependencies=[require_role(["ADMIN_BVG"])]
 )
 def update_election(
     election_id: int, payload: schemas.ElectionUpdate, db: Session = Depends(get_db)
@@ -52,12 +52,20 @@ def update_election(
         election.name = payload.name
     if payload.date is not None:
         election.date = payload.date
+    if payload.registration_start is not None:
+        election.registration_start = payload.registration_start
+    if payload.registration_end is not None:
+        election.registration_end = payload.registration_end
     db.commit()
     db.refresh(election)
     return election
 
 
-@router.patch("/{election_id}/status", response_model=schemas.Election, dependencies=[require_role(["ADMIN_BVG"])])
+@router.patch(
+    "/{election_id}/status",
+    response_model=schemas.Election,
+    dependencies=[require_role(["ADMIN_BVG"])]
+)
 def update_status(election_id: int, payload: schemas.ElectionStatusUpdate, db: Session = Depends(get_db)):
     election = db.query(models.Election).filter_by(id=election_id).first()
     if not election:

@@ -15,7 +15,11 @@ def get_db():
         db.close()
 
 
-@router.get("", response_model=List[schemas.AuditLog], dependencies=[require_role(["ADMIN_BVG"])])
+@router.get(
+    "",
+    response_model=List[schemas.AuditLog],
+    dependencies=[require_role(["ADMIN_BVG"])]
+)
 def list_audit_logs(election_id: int, db: Session = Depends(get_db)):
     return (
         db.query(models.AuditLog)

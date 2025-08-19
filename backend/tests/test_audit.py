@@ -70,3 +70,4 @@ def test_audit_logs_recorded():
     logs = resp.json()
     assert logs[0]["action"] == "SHAREHOLDER_IMPORT"
     assert logs[1]["action"] == "PROXY_INVALIDATE"
+
