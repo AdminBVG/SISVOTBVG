@@ -22,8 +22,8 @@ nginx/      Reverse proxy
 ```
 
 ## 3. Variables de entorno
-Copia `.env.example` a `.env` y ajusta valores:
-- `DATABASE_URL`
+Copia `.env.example` a `.env` y ajusta valores (el backend carga este archivo automáticamente):
+- `DATABASE_URL` (solo PostgreSQL; SQLite ya no es compatible)
 - `JWT_SECRET`
 - `CORS_ORIGINS`
 - `API_PORT`
@@ -32,7 +32,7 @@ Copia `.env.example` a `.env` y ajusta valores:
 - `VITE_WS_URL`
 
 ## 4. Base de datos
-Las migraciones se gestionan con `backend/migrate.py`, que usa `DATABASE_URL` de las variables de entorno.
+Este proyecto usa exclusivamente **PostgreSQL**. Las migraciones se gestionan con `backend/migrate.py`, que lee `DATABASE_URL` del archivo `.env`.
 Levanta PostgreSQL vía Docker Compose y ejecuta migraciones:
 ```bash
 docker compose up -d db
@@ -117,7 +117,7 @@ Pasos rápidos usando PowerShell:
 ## 6.2 Windows sin Docker
 Si prefieres ejecutar los servicios sin contenedores:
 
-1. Instala [Python 3.11+](https://www.python.org) y [Node LTS](https://nodejs.org) para Windows.
+1. Instala [Python 3.11+](https://www.python.org) y [Node LTS](https://nodejs.org) para Windows. También necesitarás un servidor PostgreSQL en ejecución.
 2. Backend:
    ```powershell
    cd backend
@@ -138,7 +138,7 @@ Si prefieres ejecutar los servicios sin contenedores:
    - `API_PORT`
    - `VITE_API_URL`
 
-El frontend estará en <http://localhost:5173> y la API en <http://localhost:8000>.
+El archivo `.env` se carga automáticamente; asegúrate de que `DATABASE_URL` apunte a un servidor PostgreSQL en ejecución. El frontend estará en <http://localhost:5173> y la API en <http://localhost:8000>.
 
 ## 7. Despliegue en producción (paso a paso)
 1. En un servidor Ubuntu 22.04 limpio instala Docker, Docker Compose, Node LTS, Python 3.11+ y OpenSSL.

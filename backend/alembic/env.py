@@ -4,8 +4,21 @@ from logging.config import fileConfig
 from sqlalchemy import create_engine, pool
 from alembic import context
 
+try:  # optional dependency
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - fallback if python-dotenv is missing
+    def load_dotenv(path: str = ".env") -> None:
+        if os.path.exists(path):
+            with open(path) as f:
+                for line in f:
+                    if line.strip() and not line.startswith("#"):
+                        key, _, value = line.strip().partition("=")
+                        os.environ.setdefault(key, value)
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from app import models, database  # noqa
+
+load_dotenv()
 
 config = context.config
 
@@ -17,8 +30,10 @@ target_metadata = models.Base.metadata
 
 
 def get_url():
-    """Retrieve database URL from environment or default to local SQLite."""
-    return os.getenv("DATABASE_URL", "sqlite:///./app.db")
+    """Retrieve database URL from environment or default to local PostgreSQL."""
+    return os.getenv(
+        "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/bvg"
+    )
 
 def run_migrations_offline():
     url = get_url()
