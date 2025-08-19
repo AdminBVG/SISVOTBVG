@@ -33,7 +33,6 @@ class Attendance(AttendanceBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class AttendanceBulkMark(BaseModel):
     codes: List[str]
     mode: AttendanceMode
@@ -50,6 +49,8 @@ class AttendanceHistory(BaseModel):
     changed_by: str
     changed_at: datetime
     reason: Optional[str]
+    ip: Optional[str]
+    user_agent: Optional[str]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -93,30 +94,41 @@ class ProxyBase(BaseModel):
 class ProxyCreate(ProxyBase):
     pass
 
-class Proxy(ProxyBase):
+class Proxy(BaseModel):
     id: int
+    election_id: int
+    proxy_person_id: int
+    tipo_doc: str
+    num_doc: str
+    fecha_otorg: date
+    fecha_vigencia: Optional[date]
+    pdf_url: str
+    status: ProxyStatus = ProxyStatus.VALID
+    mode: AttendanceMode = AttendanceMode.AUSENTE
+    present: bool = False
+    marked_by: Optional[str] = None
+    marked_at: Optional[datetime] = None
     assignments: List[ProxyAssignment] = []
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class ProxyMark(BaseModel):
     mode: AttendanceMode
-
 
 class ElectionBase(BaseModel):
     name: str
     date: date
-
+    registration_start: Optional[datetime] = None
+    registration_end: Optional[datetime] = None
 
 class ElectionCreate(ElectionBase):
     status: ElectionStatus = ElectionStatus.DRAFT
 
-
 class ElectionUpdate(BaseModel):
     name: Optional[str] = None
     date: Optional[date] = None
-
+    registration_start: Optional[datetime] = None
+    registration_end: Optional[datetime] = None
 
 class Election(ElectionBase):
     id: int
@@ -124,6 +136,17 @@ class Election(ElectionBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class ElectionStatusUpdate(BaseModel):
     status: ElectionStatus
+
+class AuditLog(BaseModel):
+    id: int
+    election_id: int
+    username: str
+    action: str
+    details: Optional[dict]
+    ip: Optional[str]
+    user_agent: Optional[str]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

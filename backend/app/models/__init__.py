@@ -69,6 +69,8 @@ class AttendanceHistory(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     reason = Column(String)
+    ip = Column(String)
+    user_agent = Column(String)
     attendance = relationship("Attendance", back_populates="history")
 
 class Person(Base):
@@ -121,6 +123,9 @@ class Election(Base):
     status = Column(
         Enum(ElectionStatus), default=ElectionStatus.DRAFT, nullable=False
     )
+    registration_start = Column(DateTime(timezone=True))
+    registration_end = Column(DateTime(timezone=True))
+
 
 
 class User(Base):
@@ -129,3 +134,17 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, nullable=False, default="REGISTRADOR_BVG")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(Integer, primary_key=True)
+    election_id = Column(Integer, index=True, nullable=False)
+    username = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    details = Column(JSON)
+    ip = Column(String)
+    user_agent = Column(String)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
