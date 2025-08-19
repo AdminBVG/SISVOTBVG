@@ -1,13 +1,26 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useToast } from '../components/ui/toast';
 
-export class QueryClient {}
+export class QueryClient {
+  invalidateQueries(_opts: { queryKey: any[] }) {
+    // no-op
+  }
+}
 
 const QueryContext = createContext<QueryClient | null>(null);
 
-export const QueryClientProvider: React.FC<{ client: QueryClient; children: React.ReactNode }> = ({ children }) => (
-  <QueryContext.Provider value={null}>{children}</QueryContext.Provider>
-);
+export const QueryClientProvider: React.FC<{ client: QueryClient; children: React.ReactNode }> = ({
+  client,
+  children,
+}) => <QueryContext.Provider value={client}>{children}</QueryContext.Provider>;
+
+export const useQueryClient = () => {
+  const client = useContext(QueryContext);
+  if (!client) {
+    throw new Error('useQueryClient must be used within a QueryClientProvider');
+  }
+  return client;
+};
 
 interface MutationConfig<TData, TVariables> {
   mutationFn: (variables: TVariables) => Promise<TData>;
