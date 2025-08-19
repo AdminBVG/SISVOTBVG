@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from .. import schemas, models, database
-from ..security import get_current_user, require_role
+from ..security import require_role
 
 router = APIRouter(prefix="/elections", tags=["elections"])
 
@@ -15,7 +15,7 @@ def get_db():
         db.close()
 
 
-@router.post("", response_model=schemas.Election, dependencies=[require_role(["REGISTRADOR_BVG"])])
+@router.post("", response_model=schemas.Election, dependencies=[require_role(["ADMIN_BVG"])])
 def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_db)):
     db_election = models.Election(**election.model_dump())
     db.add(db_election)
@@ -24,7 +24,11 @@ def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_
     return db_election
 
 
-@router.get("", response_model=List[schemas.Election], dependencies=[Depends(get_current_user)])
+@router.get(
+    "",
+    response_model=List[schemas.Election],
+    dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG", "OBSERVADOR_BVG"])]
+)
 def list_elections(db: Session = Depends(get_db)):
     return db.query(models.Election).all()
 
@@ -32,7 +36,7 @@ def list_elections(db: Session = Depends(get_db)):
 @router.patch(
     "/{election_id}",
     response_model=schemas.Election,
-    dependencies=[require_role(["REGISTRADOR_BVG"])],
+    dependencies=[require_role(["ADMIN_BVG"])]
 )
 def update_election(
     election_id: int, payload: schemas.ElectionUpdate, db: Session = Depends(get_db)
@@ -48,12 +52,20 @@ def update_election(
         election.name = payload.name
     if payload.date is not None:
         election.date = payload.date
+    if payload.registration_start is not None:
+        election.registration_start = payload.registration_start
+    if payload.registration_end is not None:
+        election.registration_end = payload.registration_end
     db.commit()
     db.refresh(election)
     return election
 
 
-@router.patch("/{election_id}/status", response_model=schemas.Election, dependencies=[require_role(["REGISTRADOR_BVG"])])
+@router.patch(
+    "/{election_id}/status",
+    response_model=schemas.Election,
+    dependencies=[require_role(["ADMIN_BVG"])]
+)
 def update_status(election_id: int, payload: schemas.ElectionStatusUpdate, db: Session = Depends(get_db)):
     election = db.query(models.Election).filter_by(id=election_id).first()
     if not election:

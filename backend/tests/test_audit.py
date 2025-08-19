@@ -16,7 +16,7 @@ def setup_env():
         models.User(
             username="AdminBVG",
             hashed_password=hash_password("BVG2025"),
-            role="REGISTRADOR_BVG",
+            role="ADMIN_BVG",
         )
     )
     db.commit()
@@ -70,3 +70,4 @@ def test_audit_logs_recorded():
     logs = resp.json()
     assert logs[0]["action"] == "SHAREHOLDER_IMPORT"
     assert logs[1]["action"] == "PROXY_INVALIDATE"
+

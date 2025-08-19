@@ -16,7 +16,7 @@ def setup_env():
         models.User(
             username="AdminBVG",
             hashed_password=hash_password("BVG2025"),
-            role="REGISTRADOR_BVG",
+            role="ADMIN_BVG",
         )
     )
     db.commit()
@@ -206,7 +206,7 @@ def test_registration_window_blocks_marking():
             "registration_start": (now - timedelta(days=1)).isoformat(),
             "registration_end": (now - timedelta(hours=1)).isoformat(),
         },
-        headers=headers_reg,
+        headers=headers_admin,  # Solo admin puede crear elecciones
     )
     assert resp.status_code == 200
     election_id = resp.json()["id"]
@@ -227,6 +227,7 @@ def test_registration_window_blocks_marking():
         ).status_code
         == 403
     )
+
     # El ADMIN puede marcar aunque esté fuera de ventana
     assert (
         client.post(

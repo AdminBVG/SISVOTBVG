@@ -15,7 +15,7 @@ def setup_auth_and_election():
         models.User(
             username="AdminBVG",
             hashed_password=hash_password("BVG2025"),
-            role="REGISTRADOR_BVG",
+            role="ADMIN_BVG",
         )
     )
     db.commit()

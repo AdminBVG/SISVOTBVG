@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import Dict, List
 from .. import schemas, models, database
 from ..models import AttendanceMode
 from datetime import datetime, timezone
 from ..security import get_current_user, require_role
+from ..observer import manager, compute_summary
+import anyio
 
 router = APIRouter(prefix="/elections/{election_id}/attendance", tags=["attendance"])
 
@@ -106,6 +107,7 @@ def mark_attendance(
     db.add(history)
     db.commit()
     db.refresh(attendance)
+    anyio.from_thread.run(manager.broadcast, {"summary": compute_summary(db, election_id)})
     return attendance
 
 
@@ -164,10 +166,15 @@ def bulk_mark_attendance(
     db.commit()
     for att in attendances:
         db.refresh(att)
+    anyio.from_thread.run(manager.broadcast, {"summary": compute_summary(db, election_id)})
     return attendances
 
 
-@router.get("/history", response_model=List[schemas.AttendanceHistory], dependencies=[Depends(get_current_user)])
+@router.get(
+    "/history",
+    response_model=List[schemas.AttendanceHistory],
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+)
 def attendance_history(election_id: int, code: str, db: Session = Depends(get_db)):
     shareholder = db.query(models.Shareholder).filter_by(code=code).first()
     if not shareholder:
@@ -185,54 +192,9 @@ def attendance_history(election_id: int, code: str, db: Session = Depends(get_db
     )
 
 
-@router.get("/summary", dependencies=[Depends(get_current_user)])
+@router.get(
+    "/summary",
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+)
 def summary_attendance(election_id: int, db: Session = Depends(get_db)):
-    total = db.query(models.Attendance).filter_by(election_id=election_id).count()
-    presencial = db.query(models.Attendance).filter_by(election_id=election_id, mode=AttendanceMode.PRESENCIAL).count()
-    virtual = db.query(models.Attendance).filter_by(election_id=election_id, mode=AttendanceMode.VIRTUAL).count()
-    ausente = db.query(models.Attendance).filter_by(election_id=election_id, mode=AttendanceMode.AUSENTE).count()
-    representado = (
-        db.query(func.count(models.ProxyAssignment.id))
-        .join(models.Proxy)
-        .filter(
-            models.Proxy.election_id == election_id,
-            models.Proxy.present.is_(True),
-            models.Proxy.status == models.ProxyStatus.VALID,
-        )
-        .scalar()
-    )
-    suscrito = db.query(func.coalesce(func.sum(models.Shareholder.actions), 0)).scalar() or 0
-    directo = (
-        db.query(func.coalesce(func.sum(models.Shareholder.actions), 0))
-        .join(
-            models.Attendance,
-            (models.Attendance.shareholder_id == models.Shareholder.id)
-            & (models.Attendance.election_id == election_id),
-        )
-        .filter(models.Attendance.present.is_(True))
-        .scalar()
-        or 0
-    )
-    representado_cap = (
-        db.query(func.coalesce(func.sum(models.ProxyAssignment.weight_actions_snapshot), 0))
-        .join(models.Proxy)
-        .filter(
-            models.Proxy.election_id == election_id,
-            models.Proxy.present.is_(True),
-            models.Proxy.status == models.ProxyStatus.VALID,
-        )
-        .scalar()
-        or 0
-    )
-    porcentaje = (directo + representado_cap) / suscrito if suscrito else 0
-    return {
-        "total": total,
-        "presencial": presencial,
-        "virtual": virtual,
-        "ausente": ausente,
-        "representado": representado,
-        "capital_suscrito": float(suscrito),
-        "capital_presente_directo": float(directo),
-        "capital_presente_representado": float(representado_cap),
-        "porcentaje_quorum": float(porcentaje),
-    }
+    return compute_summary(db, election_id)
