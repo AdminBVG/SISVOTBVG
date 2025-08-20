@@ -7,9 +7,10 @@ export interface User {
   role: string;
 }
 
-export const useUsers = () => {
+export const useUsers = (enabled = true) => {
   return useQuery<User[]>({
     queryKey: ['users'],
     queryFn: () => apiFetch<User[]>('/users'),
+    enabled,
   });
 };
