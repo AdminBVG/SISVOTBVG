@@ -20,6 +20,7 @@ from .routers import (
     assistants,
     users,
     voting,
+    election_users,
 )
 from .database import Base, engine
 
@@ -53,6 +54,7 @@ app.include_router(observer.router)
 app.include_router(assistants.router)
 app.include_router(users.router)
 app.include_router(voting.router)
+app.include_router(election_users.router)
 
 @app.get("/")
 def read_root():

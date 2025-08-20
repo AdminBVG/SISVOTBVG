@@ -8,7 +8,8 @@ from sqlalchemy import (
     Enum,
     DECIMAL,
     ForeignKey,
-    JSON
+    JSON,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -140,12 +141,17 @@ class User(Base):
 
 
 class ElectionRole(str, enum.Enum):
+    VOTER = "VOTER"
     ATTENDANCE = "ATTENDANCE"
     VOTE = "VOTE"
+    DELEGATE = "DELEGATE"
 
 
 class ElectionUserRole(Base):
     __tablename__ = "election_user_roles"
+    __table_args__ = (
+        UniqueConstraint("election_id", "user_id", name="uix_election_user"),
+    )
     id = Column(Integer, primary_key=True)
     election_id = Column(Integer, ForeignKey("elections.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)

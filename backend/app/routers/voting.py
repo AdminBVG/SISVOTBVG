@@ -71,10 +71,12 @@ def cast_vote(
         )
         allowed = (
             db.query(models.ElectionUserRole)
-            .filter_by(
-                election_id=ballot.election_id,
-                user_id=user.id,
-                role=models.ElectionRole.VOTE,
+            .filter(
+                models.ElectionUserRole.election_id == ballot.election_id,
+                models.ElectionUserRole.user_id == user.id,
+                models.ElectionUserRole.role.in_(
+                    [models.ElectionRole.VOTE, models.ElectionRole.VOTER]
+                ),
             )
             .first()
         )
