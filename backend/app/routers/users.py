@@ -39,7 +39,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.put("/{user_id}", response_model=schemas.User, dependencies=[require_role(["ADMIN_BVG"])] )
 def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).get(user_id)
+    db_user = db.get(models.User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     if user.role is not None:
@@ -53,7 +53,7 @@ def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(ge
 
 @router.delete("/{user_id}", status_code=204, dependencies=[require_role(["ADMIN_BVG"])] )
 def delete_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).get(user_id)
+    db_user = db.get(models.User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     db.delete(db_user)
