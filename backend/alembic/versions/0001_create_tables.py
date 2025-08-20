@@ -90,7 +90,7 @@ def upgrade():
         sa.Column('id', sa.Integer(), primary_key=True),
         sa.Column('username', sa.String(), nullable=False, unique=True),
         sa.Column('hashed_password', sa.String(), nullable=False),
-        sa.Column('role', sa.String(), nullable=False, default='REGISTRADOR_BVG')
+        sa.Column('role', sa.String(), nullable=False, default='FUNCIONAL_BVG')
     )
     op.create_table(
         'audit_logs',

@@ -18,7 +18,7 @@ def get_db():
 @router.post("", response_model=schemas.Election, dependencies=[require_role(["ADMIN_BVG"])])
 def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_db)):
     data = election.model_dump(
-        exclude={"attendance_registrars", "vote_registrars", "questions"}
+        exclude={"attendance_registrars", "vote_registrars", "observers", "questions"}
     )
     db_election = models.Election(**data)
     db.add(db_election)
@@ -38,6 +38,14 @@ def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_
                 election_id=db_election.id,
                 user_id=uid,
                 role=models.ElectionRole.VOTE,
+            )
+        )
+    for uid in election.observers:
+        db.add(
+            models.ElectionUserRole(
+                election_id=db_election.id,
+                user_id=uid,
+                role=models.ElectionRole.OBSERVER,
             )
         )
     for idx, q in enumerate(election.questions):
@@ -63,13 +71,13 @@ def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_
 @router.get(
     "",
     response_model=List[schemas.Election],
-    dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])]
 )
 def list_elections(
     db: Session = Depends(get_db), current_user=Depends(get_current_user)
 ):
     query = db.query(models.Election)
-    if current_user["role"] == "REGISTRADOR_BVG":
+    if current_user["role"] == "FUNCIONAL_BVG":
         user = (
             db.query(models.User)
             .filter_by(username=current_user["username"])
@@ -101,6 +109,7 @@ def list_elections(
                     registration_end=e.registration_end,
                     can_manage_attendance=models.ElectionRole.ATTENDANCE in perms,
                     can_manage_votes=models.ElectionRole.VOTE in perms,
+                    can_observe=models.ElectionRole.OBSERVER in perms,
                 )
             )
         return result
@@ -121,7 +130,7 @@ def list_elections(
 @router.get(
     "/{election_id}",
     response_model=schemas.Election,
-    dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])]
 )
 def get_election(election_id: int, db: Session = Depends(get_db)):
     election = db.query(models.Election).filter_by(id=election_id).first()
@@ -147,13 +156,14 @@ def update_election(
         )
     data = payload.model_dump(
         exclude_unset=True,
-        exclude={"attendance_registrars", "vote_registrars"},
+        exclude={"attendance_registrars", "vote_registrars", "observers"},
     )
     for key, value in data.items():
         setattr(election, key, value)
     if (
         payload.attendance_registrars is not None
         or payload.vote_registrars is not None
+        or payload.observers is not None
     ):
         db.query(models.ElectionUserRole).filter_by(
             election_id=election_id
@@ -172,6 +182,14 @@ def update_election(
                     election_id=election_id,
                     user_id=uid,
                     role=models.ElectionRole.VOTE,
+                )
+            )
+        for uid in payload.observers or []:
+            db.add(
+                models.ElectionUserRole(
+                    election_id=election_id,
+                    user_id=uid,
+                    role=models.ElectionRole.OBSERVER,
                 )
             )
     db.commit()
@@ -216,7 +234,7 @@ def update_election_status(
 @router.get(
     "/{election_id}/questions",
     response_model=List[schemas.Question],
-    dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG", "OBSERVADOR_BVG"])],
+    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])],
 )
 def list_questions(election_id: int, db: Session = Depends(get_db)):
     election = db.query(models.Election).filter_by(id=election_id).first()

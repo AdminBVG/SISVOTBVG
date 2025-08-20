@@ -59,7 +59,7 @@ MAX_PDF_SIZE = 2 * 1024 * 1024
 @router.post(
     "",
     response_model=schemas.Proxy,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 async def create_proxy(
     election_id: int,
@@ -140,7 +140,7 @@ async def create_proxy(
 @router.get(
     "",
     response_model=List[schemas.Proxy],
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def list_proxies(election_id: int, db: Session = Depends(get_db)):
     proxies = db.query(models.Proxy).filter_by(election_id=election_id).all()
@@ -152,7 +152,7 @@ def list_proxies(election_id: int, db: Session = Depends(get_db)):
 @router.put(
     "/{proxy_id}",
     response_model=schemas.Proxy,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 async def update_proxy(
     election_id: int,
@@ -228,7 +228,7 @@ async def update_proxy(
 @router.delete(
     "/{proxy_id}",
     status_code=204,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def delete_proxy(
     election_id: int,
@@ -261,7 +261,7 @@ def delete_proxy(
 @router.post(
     "/{proxy_id}/mark",
     response_model=schemas.Proxy,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def mark_proxy(
     election_id: int,
@@ -302,7 +302,7 @@ def mark_proxy(
 @router.post(
     "/{proxy_id}/invalidate",
     response_model=schemas.Proxy,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def invalidate_proxy(
     election_id: int,
@@ -335,7 +335,7 @@ def invalidate_proxy(
 
 @router.get(
     "/{proxy_id}/pdf",
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def download_proxy_pdf(election_id: int, proxy_id: int, db: Session = Depends(get_db)):
     proxy = (

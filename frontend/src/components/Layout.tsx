@@ -11,7 +11,7 @@ const Layout: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   let links: { to: string; label: string }[] = [];
-  if (role === 'REGISTRADOR_BVG') {
+  if (role === 'FUNCIONAL_BVG') {
     if (base) {
       links = [
         { to: `${base}/upload`, label: 'Carga de padrón' },
@@ -29,10 +29,6 @@ const Layout: React.FC = () => {
       );
     }
     links.push({ to: '/users', label: 'Usuarios' });
-  } else if (role === 'OBSERVADOR_BVG') {
-    if (base) {
-      links = [{ to: `${base}/dashboard`, label: 'Dashboard' }];
-    }
   }
 
   const handleLogout = () => {

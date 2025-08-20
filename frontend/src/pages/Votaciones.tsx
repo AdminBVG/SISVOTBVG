@@ -39,7 +39,7 @@ const Votaciones: React.FC = () => {
 
   const { data: elections, isLoading, error, refetch } = useElections();
   const { data: users } = useUsers();
-  const registrarUsers = users?.filter((u) => u.role === 'REGISTRADOR_BVG') || [];
+  const registrarUsers = users?.filter((u) => u.role === 'FUNCIONAL_BVG') || [];
   const { mutate, isLoading: creating } = useCreateElection(() => {
     toast('Votación creada');
     setName('');
@@ -256,7 +256,7 @@ const Votaciones: React.FC = () => {
                               </Button>
                             </>
                           )}
-                          {role === 'REGISTRADOR_BVG' && (
+                          {role === 'FUNCIONAL_BVG' && (
                             <>
                               {e.can_manage_attendance && (
                                 <Button

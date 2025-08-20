@@ -133,7 +133,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, nullable=False, default="REGISTRADOR_BVG")
+    role = Column(String, nullable=False, default="FUNCIONAL_BVG")
     is_verified = Column(Boolean, default=True)
     verification_token = Column(String, nullable=True)
     reset_token = Column(String, nullable=True)
@@ -145,6 +145,7 @@ class ElectionRole(str, enum.Enum):
     ATTENDANCE = "ATTENDANCE"
     VOTE = "VOTE"
     DELEGATE = "DELEGATE"
+    OBSERVER = "OBSERVER"
 
 
 class ElectionUserRole(Base):

@@ -192,12 +192,14 @@ class ElectionCreate(ElectionBase):
     status: ElectionStatus = ElectionStatus.DRAFT
     attendance_registrars: List[int] = []
     vote_registrars: List[int] = []
+    observers: List[int] = []
     questions: List["QuestionCreate"] = []
 
 
 class ElectionUpdate(BaseModel):
     name: Optional[str] = None
     date: Optional[date] = None
+    observers: Optional[List[int]] = None
     registration_start: Optional[datetime] = None
     registration_end: Optional[datetime] = None
     attendance_registrars: Optional[List[int]] = None
@@ -209,6 +211,7 @@ class Election(ElectionBase):
     status: ElectionStatus
     can_manage_attendance: bool = False
     can_manage_votes: bool = False
+    can_observe: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

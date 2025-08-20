@@ -11,8 +11,8 @@ def setup_db():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     admin = models.User(username="admin", hashed_password=hash_password("pass"), role="ADMIN_BVG")
-    reg1 = models.User(username="reg1", hashed_password=hash_password("pass"), role="REGISTRADOR_BVG")
-    reg2 = models.User(username="reg2", hashed_password=hash_password("pass"), role="REGISTRADOR_BVG")
+    reg1 = models.User(username="reg1", hashed_password=hash_password("pass"), role="FUNCIONAL_BVG")
+    reg2 = models.User(username="reg2", hashed_password=hash_password("pass"), role="FUNCIONAL_BVG")
     db.add_all([admin, reg1, reg2])
     db.commit()
     reg1_id = reg1.id

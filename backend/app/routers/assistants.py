@@ -22,7 +22,7 @@ def get_db():
 @router.post(
     "/import-excel",
     response_model=List[schemas.Attendee],
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def import_attendees_excel(
     election_id: int,
@@ -84,7 +84,7 @@ def import_attendees_excel(
 @router.get(
     "",
     response_model=List[schemas.Attendee],
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def list_attendees(election_id: int, db: Session = Depends(get_db)):
     return db.query(models.Attendee).filter_by(election_id=election_id).all()
@@ -93,7 +93,7 @@ def list_attendees(election_id: int, db: Session = Depends(get_db)):
 @router.get(
     "/{attendee_id}",
     response_model=schemas.Attendee,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def get_attendee(
     election_id: int,
@@ -109,7 +109,7 @@ def get_attendee(
 @router.put(
     "/{attendee_id}",
     response_model=schemas.Attendee,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def update_attendee(
     election_id: int,
@@ -130,7 +130,7 @@ def update_attendee(
 @router.delete(
     "/{attendee_id}",
     status_code=204,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def delete_attendee(
     election_id: int,
