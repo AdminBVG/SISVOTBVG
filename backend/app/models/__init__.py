@@ -179,6 +179,35 @@ class Attendee(Base):
     acciones = Column(DECIMAL, nullable=False, default=0)
 
 
+class QuestionType(str, enum.Enum):
+    SINGLE_CHOICE = "single_choice"
+    MULTIPLE_CHOICE = "multiple_choice"
+    SHORT_TEXT = "short_text"
+    LONG_TEXT = "long_text"
+    BOOLEAN = "boolean"
+    NUMERIC = "numeric"
+
+
+class Question(Base):
+    __tablename__ = "questions"
+    id = Column(Integer, primary_key=True, index=True)
+    election_id = Column(Integer, ForeignKey("elections.id"), nullable=False, index=True)
+    text = Column(String, nullable=False)
+    type = Column(Enum(QuestionType), nullable=False)
+    required = Column(Boolean, default=False)
+    order = Column(Integer, nullable=False, default=0)
+    options = relationship("QuestionOption", back_populates="question", cascade="all, delete-orphan")
+
+
+class QuestionOption(Base):
+    __tablename__ = "question_options"
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    text = Column(String, nullable=False)
+    value = Column(String, nullable=False)
+    question = relationship("Question", back_populates="options")
+
+
 class Ballot(Base):
     __tablename__ = "ballots"
     id = Column(Integer, primary_key=True, index=True)
