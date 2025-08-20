@@ -36,7 +36,7 @@ def _log(db: Session, election_id: int, user, action: str, request: Request, det
 @router.post(
     "/import",
     response_model=List[schemas.Shareholder],
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def import_shareholders(
     election_id: int,
@@ -66,7 +66,7 @@ def import_shareholders(
 
 @router.post(
     "/import-file",
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def import_shareholders_file(
     election_id: int,
@@ -147,7 +147,7 @@ def import_shareholders_file(
 @router.get(
     "",
     response_model=List[schemas.ShareholderWithAttendance],
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def list_shareholders(
     election_id: int,
@@ -183,7 +183,7 @@ def list_shareholders(
 @router.get(
     "/{shareholder_id}",
     response_model=schemas.ShareholderWithAttendance,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def get_shareholder(
     election_id: int,
@@ -210,7 +210,7 @@ def get_shareholder(
 @router.put(
     "/{shareholder_id}",
     response_model=schemas.Shareholder,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def update_shareholder(
     election_id: int,
@@ -239,7 +239,7 @@ def update_shareholder(
 @router.delete(
     "/{shareholder_id}",
     status_code=204,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def delete_shareholder(
     election_id: int,

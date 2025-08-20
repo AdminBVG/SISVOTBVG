@@ -170,7 +170,7 @@ El archivo `.env` se carga automáticamente; asegúrate de que `DATABASE_URL` ap
 10. Asegura la persistencia de volúmenes de la base de datos y de los PDFs de poderes.
 
 ## 8. Usuarios y roles
-Este prototipo no implementa autenticación completa. Se esperan roles `REGISTRADOR_BVG` y `OBSERVADOR_BVG` para controlar permisos.
+Este prototipo no implementa autenticación completa. Se esperan roles globales `ADMIN_BVG` y `FUNCIONAL_BVG`. Los usuarios funcionales reciben permisos específicos por votación (asistencia, votos u observador) para controlar el acceso.
 
 Credenciales por defecto:
 

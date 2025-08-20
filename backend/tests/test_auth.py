@@ -15,10 +15,10 @@ def admin_user():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     db.add(
-                models.User(
+        models.User(
             username="AdminBVG",
             hashed_password=hash_password("BVG2025"),
-            role="REGISTRADOR_BVG",
+            role="FUNCIONAL_BVG",
         )
     )
     db.commit()
@@ -34,7 +34,7 @@ def test_login_success(admin_user):
     assert response.status_code == 200
     data = response.json()
     assert data["access_token"]
-    assert data["role"] == "REGISTRADOR_BVG"
+    assert data["role"] == "FUNCIONAL_BVG"
     assert data["username"] == "AdminBVG"
 
 def test_login_failure(admin_user):

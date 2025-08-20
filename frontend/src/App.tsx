@@ -26,17 +26,17 @@ const App: React.FC = () => {
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "REGISTRADOR_BVG"]} />}> 
+              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}>
                 <Route element={<Layout />}> 
                   <Route path="/votaciones" element={<Votaciones />} /> 
                 </Route> 
               </Route> 
-              <Route element={<ProtectedRoute roles={["REGISTRADOR_BVG"]} />}> 
+              <Route element={<ProtectedRoute roles={["FUNCIONAL_BVG"]} />}>
                 <Route element={<Layout />}> 
                   <Route path="/votaciones/:id/upload" element={<UploadShareholders />} /> 
                 </Route> 
               </Route> 
-              <Route element={<ProtectedRoute roles={["REGISTRADOR_BVG", "ADMIN_BVG"]} />}> 
+              <Route element={<ProtectedRoute roles={["FUNCIONAL_BVG", "ADMIN_BVG"]} />}>
                 <Route element={<Layout />}> 
                   <Route path="/votaciones/:id/attendance" element={<Asistencia />} /> 
                   <Route path="/votaciones/:id/proxies" element={<Proxies />} /> 
@@ -50,7 +50,7 @@ const App: React.FC = () => {
                   <Route path="/votaciones/:id/users" element={<ManageElectionUsers />} />
                 </Route>
               </Route>
-              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "OBSERVADOR_BVG"]} />}>
+              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}>
                 <Route element={<Layout />}>
                   <Route path="/votaciones/:id/dashboard" element={<Dashboard />} />
                 </Route>

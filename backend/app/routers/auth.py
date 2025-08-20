@@ -67,7 +67,7 @@ class ChangePasswordRequest(BaseModel):
 class RegisterRequest(BaseModel):
     username: str
     password: str
-    role: str = "REGISTRADOR_BVG"
+    role: str = "FUNCIONAL_BVG"
 
 
 class VerifyRequest(BaseModel):

@@ -34,8 +34,8 @@ describe('Votaciones', () => {
   });
 
   it('oculta el formulario de creación para registradores', async () => {
-    mockRole = 'REGISTRADOR_BVG';
-    vi.spyOn(api, 'apiFetch').mockResolvedValueOnce([
+    mockRole = 'FUNCIONAL_BVG';
+    vi.spyOn(api, 'apiFetch').mockResolvedValue([
       { id: 1, name: 'Elec1', date: '2024-01-01', status: 'OPEN', can_manage_attendance: true },
     ]);
     renderPage();
@@ -45,8 +45,8 @@ describe('Votaciones', () => {
 
   it('deshabilita gestionar cuando el registro está cerrado', async () => {
     const past = new Date(Date.now() - 86400000).toISOString();
-    mockRole = 'REGISTRADOR_BVG';
-    vi.spyOn(api, 'apiFetch').mockResolvedValueOnce([
+    mockRole = 'FUNCIONAL_BVG';
+    vi.spyOn(api, 'apiFetch').mockResolvedValue([
       {
         id: 2,
         name: 'Elec2',

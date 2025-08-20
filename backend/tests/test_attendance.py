@@ -198,7 +198,7 @@ def test_registration_window_blocks_marking():
     db = SessionLocal()
     db.add(
         models.User(
-            username="Reg", hashed_password=hash_password("pass"), role="REGISTRADOR_BVG"
+            username="Reg", hashed_password=hash_password("pass"), role="FUNCIONAL_BVG"
         )
     )
     db.add(

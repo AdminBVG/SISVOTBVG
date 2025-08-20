@@ -31,7 +31,7 @@ def create_ballot(election_id: int, ballot: schemas.BallotCreate, db: Session = 
 @router.get(
     "/elections/{election_id}/ballots",
     response_model=List[schemas.Ballot],
-    dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])]
 )
 def list_ballots(election_id: int, db: Session = Depends(get_db)):
     return db.query(models.Ballot).filter_by(election_id=election_id).all()
@@ -99,7 +99,7 @@ def cast_vote(
 @router.get(
     "/ballots/{ballot_id}/results",
     response_model=List[schemas.OptionResult],
-    dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])]
 )
 def ballot_results(ballot_id: int, db: Session = Depends(get_db)):
     options = db.query(models.BallotOption).filter_by(ballot_id=ballot_id).all()

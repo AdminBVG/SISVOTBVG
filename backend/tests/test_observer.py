@@ -14,10 +14,12 @@ def setup_env():
     db = SessionLocal()
     db.add_all([
         models.User(username="Admin", hashed_password=hash_password("pass"), role="ADMIN_BVG"),
-        models.User(username="Reg", hashed_password=hash_password("pass"), role="REGISTRADOR_BVG"),
-        models.User(username="Obs", hashed_password=hash_password("pass"), role="OBSERVADOR_BVG"),
+        models.User(username="Reg", hashed_password=hash_password("pass"), role="FUNCIONAL_BVG"),
+        models.User(username="Obs", hashed_password=hash_password("pass"), role="FUNCIONAL_BVG"),
     ])
     db.commit()
+    reg_id = db.query(models.User).filter_by(username="Reg").first().id
+    obs_id = db.query(models.User).filter_by(username="Obs").first().id
     db.close()
     admin_token = client.post("/auth/login", json={"username": "Admin", "password": "pass"}).json()["access_token"]
     reg_token = client.post("/auth/login", json={"username": "Reg", "password": "pass"}).json()["access_token"]
@@ -25,7 +27,16 @@ def setup_env():
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
     reg_headers = {"Authorization": f"Bearer {reg_token}"}
     obs_headers = {"Authorization": f"Bearer {obs_token}"}
-    resp = client.post("/elections", json={"name": "Demo", "date": "2024-01-01"}, headers=admin_headers)
+    resp = client.post(
+        "/elections",
+        json={
+            "name": "Demo",
+            "date": "2024-01-01",
+            "attendance_registrars": [reg_id],
+            "observers": [obs_id],
+        },
+        headers=admin_headers,
+    )
     election_id = resp.json()["id"]
     data = [{"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10}]
     client.post(f"/elections/{election_id}/shareholders/import", json=data, headers=reg_headers)

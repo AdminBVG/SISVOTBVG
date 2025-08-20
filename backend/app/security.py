@@ -42,7 +42,7 @@ def require_election_role(roles):
         election_id: int,
         user=Depends(get_current_user),
     ):
-        if user["role"] in ["ADMIN_BVG", "OBSERVADOR_BVG"]:
+        if user["role"] == "ADMIN_BVG":
             return
         db = SessionLocal()
         try:

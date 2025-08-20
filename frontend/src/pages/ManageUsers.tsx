@@ -9,20 +9,20 @@ import { useUpdateUser } from '../hooks/useUpdateUser';
 import { useDeleteUser } from '../hooks/useDeleteUser';
 import { useToast } from '../components/ui/toast';
 
-const roles = ['ADMIN_BVG', 'REGISTRADOR_BVG', 'OBSERVADOR_BVG'];
+const roles = ['ADMIN_BVG', 'FUNCIONAL_BVG'];
 
 const ManageUsers: React.FC = () => {
   const toast = useToast();
   const { data: users, isLoading, error, refetch } = useUsers();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('REGISTRADOR_BVG');
+  const [role, setRole] = useState('FUNCIONAL_BVG');
 
   const { mutate: createUser, isLoading: creating } = useCreateUser(() => {
     toast('Usuario creado');
     setUsername('');
     setPassword('');
-    setRole('REGISTRADOR_BVG');
+    setRole('FUNCIONAL_BVG');
     refetch();
   }, (err) => toast(err.message));
 
