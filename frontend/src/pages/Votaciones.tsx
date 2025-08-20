@@ -241,6 +241,12 @@ const Votaciones: React.FC = () => {
                               >
                                 Gestionar asistentes
                               </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => navigate(`/votaciones/${e.id}/users`)}
+                              >
+                                Roles
+                              </Button>
                               {!open && <span className="text-sm text-gray-500">Bloqueada</span>}
                               <Button
                                 variant="outline"

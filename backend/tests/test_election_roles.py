@@ -63,3 +63,40 @@ def test_assignment_and_filtering():
         headers=reg1_headers,
     )
     assert resp.status_code == 403
+
+
+def test_manage_election_user_roles():
+    reg1_id, _ = setup_db()
+    admin_headers = login("admin")
+    # create election
+    resp = client.post(
+        "/elections",
+        json={"name": "A", "date": "2024-01-01"},
+        headers=admin_headers,
+    )
+    election_id = resp.json()["id"]
+    # assign voter role
+    resp = client.post(
+        f"/elections/{election_id}/users",
+        json={"user_id": reg1_id, "role": "VOTER"},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "VOTER"
+    # list roles
+    resp = client.get(f"/elections/{election_id}/users", headers=admin_headers)
+    assert len(resp.json()) == 1
+    # change role
+    resp = client.post(
+        f"/elections/{election_id}/users",
+        json={"user_id": reg1_id, "role": "DELEGATE"},
+        headers=admin_headers,
+    )
+    assert resp.json()["role"] == "DELEGATE"
+    # remove role
+    resp = client.delete(
+        f"/elections/{election_id}/users/{reg1_id}", headers=admin_headers
+    )
+    assert resp.status_code == 204
+    resp = client.get(f"/elections/{election_id}/users", headers=admin_headers)
+    assert resp.json() == []

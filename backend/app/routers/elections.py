@@ -210,7 +210,7 @@ def update_election_status(
     election.status = payload.status
     db.commit()
     db.refresh(election)
-return election
+    return election
 
 
 @router.get(

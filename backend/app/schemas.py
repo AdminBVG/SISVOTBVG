@@ -7,6 +7,7 @@ from .models import (
     ProxyStatus,
     ElectionStatus,
     QuestionType,
+    ElectionRole,
 )
 
 
@@ -245,6 +246,22 @@ class UserUpdate(BaseModel):
 
 class User(UserBase):
     id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ElectionUserRoleBase(BaseModel):
+    user_id: int
+    role: ElectionRole
+
+
+class ElectionUserRoleCreate(ElectionUserRoleBase):
+    pass
+
+
+class ElectionUserRole(ElectionUserRoleBase):
+    id: int
+    username: str
 
     model_config = ConfigDict(from_attributes=True)
 
