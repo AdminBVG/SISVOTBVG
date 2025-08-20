@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from typing import Dict, List
 from .. import schemas, models, database
@@ -8,6 +8,8 @@ from ..security import get_current_user, require_role
 from ..observer import manager, compute_summary
 from ..utils import enforce_registration_window
 import anyio
+import io
+import csv
 
 router = APIRouter(prefix="/elections/{election_id}/attendance", tags=["attendance"])
 
@@ -181,3 +183,28 @@ def attendance_history(election_id: int, code: str, db: Session = Depends(get_db
 )
 def summary_attendance(election_id: int, db: Session = Depends(get_db)):
     return compute_summary(db, election_id)
+
+
+@router.get(
+    "/export",
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
+def export_attendance(election_id: int, db: Session = Depends(get_db)):
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["code", "name", "mode", "present", "marked_at"])
+    rows = (
+        db.query(models.Attendance, models.Shareholder)
+        .join(models.Shareholder, models.Shareholder.id == models.Attendance.shareholder_id)
+        .filter(models.Attendance.election_id == election_id)
+        .all()
+    )
+    for attendance, shareholder in rows:
+        writer.writerow([
+            shareholder.code,
+            shareholder.name,
+            attendance.mode.value,
+            str(attendance.present),
+            attendance.marked_at.isoformat() if attendance.marked_at else "",
+        ])
+    return Response(content=output.getvalue(), media_type="text/csv")

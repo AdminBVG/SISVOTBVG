@@ -72,3 +72,21 @@ def test_create_list_and_update_election():
     )
     assert resp.status_code == 200
     assert resp.json()["status"] == "CLOSED"
+
+
+def test_get_and_delete_election():
+    headers = auth_headers()
+    resp = client.post(
+        "/elections", json={"name": "Temp", "date": "2024-01-01"}, headers=headers
+    )
+    election_id = resp.json()["id"]
+
+    resp = client.get(f"/elections/{election_id}", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["id"] == election_id
+
+    resp = client.delete(f"/elections/{election_id}", headers=headers)
+    assert resp.status_code == 204
+
+    resp = client.get(f"/elections/{election_id}", headers=headers)
+    assert resp.status_code == 404
