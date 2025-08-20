@@ -5,7 +5,7 @@ from typing import List
 import csv
 from io import StringIO
 from .. import schemas, models, database
-from ..security import get_current_user, require_role
+from ..security import get_current_user, require_role, require_election_role
 from ..utils import enforce_registration_window
 
 router = APIRouter(prefix="/elections/{election_id}/shareholders", tags=["shareholders"])
@@ -33,6 +33,23 @@ def _log(db: Session, election_id: int, user, action: str, request: Request, det
     db.add(log)
 
 
+def _ensure_attendance(db: Session, election_id: int, shareholder_id: int):
+    exists = (
+        db.query(models.Attendance)
+        .filter_by(election_id=election_id, shareholder_id=shareholder_id)
+        .first()
+    )
+    if not exists:
+        db.add(
+            models.Attendance(
+                election_id=election_id,
+                shareholder_id=shareholder_id,
+                mode=models.AttendanceMode.AUSENTE,
+                present=False,
+            )
+        )
+
+
 @router.post(
     "/import",
     response_model=List[schemas.Shareholder],
@@ -52,10 +69,14 @@ def import_shareholders(
         if existing:
             for field, value in sh.model_dump().items():
                 setattr(existing, field, value)
+            db.flush()
+            _ensure_attendance(db, election_id, existing.id)
             result.append(existing)
         else:
             new_sh = models.Shareholder(**sh.model_dump())
             db.add(new_sh)
+            db.flush()
+            _ensure_attendance(db, election_id, new_sh.id)
             result.append(new_sh)
     _log(db, election_id, current_user, "SHAREHOLDER_IMPORT", request, {"count": len(result)})
     db.commit()
@@ -131,10 +152,14 @@ def import_shareholders_file(
         if existing:
             for field, value in sh.model_dump().items():
                 setattr(existing, field, value)
+            db.flush()
+            _ensure_attendance(db, election_id, existing.id)
             result.append(existing)
         else:
             new_sh = models.Shareholder(**sh.model_dump())
             db.add(new_sh)
+            db.flush()
+            _ensure_attendance(db, election_id, new_sh.id)
             result.append(new_sh)
 
     _log(db, election_id, current_user, "SHAREHOLDER_IMPORT", request, {"count": len(result)})
@@ -147,7 +172,7 @@ def import_shareholders_file(
 @router.get(
     "",
     response_model=List[schemas.ShareholderWithAttendance],
-    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
 )
 def list_shareholders(
     election_id: int,
@@ -156,11 +181,12 @@ def list_shareholders(
 ):
     query = (
         db.query(models.Shareholder, models.Attendance.mode)
-        .outerjoin(
+        .join(
             models.Attendance,
             (models.Shareholder.id == models.Attendance.shareholder_id)
             & (models.Attendance.election_id == election_id),
         )
+        .filter(models.Attendance.election_id == election_id)
     )
     if q:
         q_like = f"%{q}%"
@@ -183,7 +209,7 @@ def list_shareholders(
 @router.get(
     "/{shareholder_id}",
     response_model=schemas.ShareholderWithAttendance,
-    dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
 )
 def get_shareholder(
     election_id: int,
@@ -192,12 +218,12 @@ def get_shareholder(
 ):
     row = (
         db.query(models.Shareholder, models.Attendance.mode)
-        .outerjoin(
+        .join(
             models.Attendance,
             (models.Shareholder.id == models.Attendance.shareholder_id)
             & (models.Attendance.election_id == election_id),
         )
-        .filter(models.Shareholder.id == shareholder_id)
+        .filter(models.Shareholder.id == shareholder_id, models.Attendance.election_id == election_id)
         .first()
     )
     if not row:
@@ -252,6 +278,9 @@ def delete_shareholder(
     if not shareholder:
         raise HTTPException(status_code=404, detail="shareholder not found")
     enforce_registration_window(db, election_id, current_user)
+    db.query(models.Attendance).filter_by(
+        election_id=election_id, shareholder_id=shareholder.id
+    ).delete()
     db.delete(shareholder)
     _log(db, election_id, current_user, "SHAREHOLDER_DELETE", request, {"shareholder_id": shareholder.id})
     db.commit()

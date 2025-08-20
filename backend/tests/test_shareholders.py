@@ -88,6 +88,31 @@ def test_import_preview_and_confirm_shareholders_csv():
     assert len(empty_resp.json()) == 0
 
 
+def test_list_shareholders_scoped_by_election():
+    headers, election_id = setup_auth_and_election()
+    # Create another election
+    resp = client.post(
+        "/elections",
+        json={"name": "Other", "date": "2024-02-01"},
+        headers=headers,
+    )
+    other_election = resp.json()["id"]
+    data1 = [
+        {"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10},
+    ]
+    data2 = [
+        {"code": "SH2", "name": "Bob", "document": "D2", "email": "b@example.com", "actions": 5},
+    ]
+    client.post(f"/elections/{election_id}/shareholders/import", json=data1, headers=headers)
+    client.post(f"/elections/{other_election}/shareholders/import", json=data2, headers=headers)
+    resp1 = client.get(f"/elections/{election_id}/shareholders", headers=headers)
+    resp2 = client.get(f"/elections/{other_election}/shareholders", headers=headers)
+    assert len(resp1.json()) == 1
+    assert resp1.json()[0]["code"] == "SH1"
+    assert len(resp2.json()) == 1
+    assert resp2.json()[0]["code"] == "SH2"
+
+
 def test_get_update_delete_shareholder():
     headers, election_id = setup_auth_and_election()
     payload = [
