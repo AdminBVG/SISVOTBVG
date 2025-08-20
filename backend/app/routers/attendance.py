@@ -6,6 +6,7 @@ from ..models import AttendanceMode
 from datetime import datetime, timezone
 from ..security import get_current_user, require_role
 from ..observer import manager, compute_summary
+from ..observer import observer_row
 from ..utils import enforce_registration_window
 import anyio
 import io
@@ -72,6 +73,8 @@ def mark_attendance(
             present=False,
         )
         db.add(attendance)
+    elif attendance.mode == mode and attendance.present == (mode != AttendanceMode.AUSENTE):
+        raise HTTPException(status_code=400, detail="attendance already marked")
     history = models.AttendanceHistory(
         attendance=attendance,
         from_mode=attendance.mode,
@@ -92,7 +95,9 @@ def mark_attendance(
     db.add(history)
     db.commit()
     db.refresh(attendance)
-    anyio.from_thread.run(manager.broadcast, {"summary": compute_summary(db, election_id)})
+    row = observer_row(db, election_id, shareholder.id)
+    summary = compute_summary(db, election_id)
+    anyio.from_thread.run(manager.broadcast, {"summary": summary, "row": row})
     return attendance
 
 
@@ -129,6 +134,8 @@ def bulk_mark_attendance(
                 present=False,
             )
             db.add(attendance)
+        elif attendance.mode == payload.mode and attendance.present == (payload.mode != AttendanceMode.AUSENTE):
+            raise HTTPException(status_code=400, detail=f"attendance already marked for {code}")
         history = models.AttendanceHistory(
             attendance=attendance,
             from_mode=attendance.mode,
@@ -149,9 +156,14 @@ def bulk_mark_attendance(
         db.add(history)
         attendances.append(attendance)
     db.commit()
+    summary = compute_summary(db, election_id)
+    rows = []
     for att in attendances:
         db.refresh(att)
-    anyio.from_thread.run(manager.broadcast, {"summary": compute_summary(db, election_id)})
+        row = observer_row(db, election_id, att.shareholder_id)
+        rows.append(row)
+    for row in rows:
+        anyio.from_thread.run(manager.broadcast, {"summary": summary, "row": row})
     return attendances
 
 

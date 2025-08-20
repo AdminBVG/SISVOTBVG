@@ -3,6 +3,7 @@ from app.main import app
 from app.database import Base, engine, SessionLocal
 from app import models
 from app.routers.auth import hash_password
+from datetime import date
 
 client = TestClient(app)
 
@@ -43,6 +44,8 @@ def test_observer_ws_and_permissions():
         )
         msg = ws.receive_json()
         assert msg["summary"]["presencial"] == 1
+        assert msg["row"]["code"] == "SH1"
+        assert msg["row"]["estado"] == "PRESENCIAL"
     resp = client.post(
         f"/elections/{election_id}/attendance/SH1/mark",
         json={"mode": "AUSENTE"},
@@ -52,3 +55,36 @@ def test_observer_ws_and_permissions():
     resp = client.get(f"/elections/{election_id}/observer", headers=obs_headers)
     assert resp.status_code == 200
     assert resp.json()[0]["code"] == "SH1"
+
+
+def test_observer_table_shows_represented_actions():
+    election_id, admin_headers, reg_headers, obs_headers, obs_token = setup_env()
+    db = SessionLocal()
+    sh = db.query(models.Shareholder).filter_by(code="SH1").first()
+    person = models.Person(type=models.PersonType.TERCERO, name="Proxy One", document="P1", email=None)
+    db.add(person)
+    db.commit()
+    db.refresh(person)
+    proxy = models.Proxy(
+        election_id=election_id,
+        proxy_person_id=person.id,
+        tipo_doc="ID",
+        num_doc="123",
+        fecha_otorg=date(2023,1,1),
+        fecha_vigencia=None,
+        pdf_url="url",
+        status=models.ProxyStatus.VALID,
+        mode=models.AttendanceMode.PRESENCIAL,
+        present=True,
+    )
+    db.add(proxy)
+    db.commit()
+    db.refresh(proxy)
+    assignment = models.ProxyAssignment(proxy_id=proxy.id, shareholder_id=sh.id, weight_actions_snapshot=10)
+    db.add(assignment)
+    db.commit()
+    db.close()
+    table = client.get(f"/elections/{election_id}/observer", headers=obs_headers).json()
+    row = table[0]
+    assert row["acciones_representadas"] == 10.0
+    assert row["acciones_propias"] == 0.0

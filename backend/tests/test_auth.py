@@ -15,7 +15,7 @@ def admin_user():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     db.add(
-        models.User(
+                models.User(
             username="AdminBVG",
             hashed_password=hash_password("BVG2025"),
             role="REGISTRADOR_BVG",
@@ -40,6 +40,18 @@ def test_login_success(admin_user):
 def test_login_failure(admin_user):
     response = client.post("/auth/login", json={"username": "foo", "password": "bar"})
     assert response.status_code == 401
+
+
+def test_login_rate_limit(admin_user):
+    for _ in range(5):
+        resp = client.post(
+            "/auth/login", json={"username": "AdminBVG", "password": "wrong"}
+        )
+        assert resp.status_code == 401
+    resp = client.post(
+        "/auth/login", json={"username": "AdminBVG", "password": "wrong"}
+    )
+    assert resp.status_code == 429
 
 
 def test_auth_flows():

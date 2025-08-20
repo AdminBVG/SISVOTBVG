@@ -18,6 +18,10 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24
 
+# track failed login attempts per username
+FAILED_LOGINS: dict[str, int] = {}
+MAX_FAILED_ATTEMPTS = 5
+
 
 def hash_password(password: str, salt: bytes | None = None) -> str:
     if salt is None:
@@ -83,10 +87,15 @@ class ResetPasswordRequest(BaseModel):
 @router.post("/login")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter_by(username=req.username).first()
+    if FAILED_LOGINS.get(req.username, 0) >= MAX_FAILED_ATTEMPTS:
+        if not user or not verify_password(req.password, user.hashed_password):
+            raise HTTPException(status_code=429, detail="Too many failed attempts")
     if not user or not verify_password(req.password, user.hashed_password):
+        FAILED_LOGINS[req.username] = FAILED_LOGINS.get(req.username, 0) + 1
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     if not user.is_verified:
         raise HTTPException(status_code=401, detail="Usuario no verificado")
+    FAILED_LOGINS.pop(req.username, None)
     token_data = {"sub": user.username, "role": user.role}
     access_token = create_token(
         token_data, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES), "access"

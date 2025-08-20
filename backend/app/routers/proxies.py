@@ -8,6 +8,7 @@ from .. import schemas, models, database
 from ..models import AttendanceMode
 from ..security import get_current_user, require_role
 from ..observer import manager, compute_summary
+from ..observer import observer_row
 from ..utils import enforce_registration_window
 import anyio
 
@@ -33,29 +34,7 @@ def _refresh_status(db: Session, proxy: models.Proxy):
         db.commit()
         db.refresh(proxy)
 
-
-
-
-def _log(db: Session, election_id: int, user, action: str, request: Request, details: dict | None = None):
-    log = models.AuditLog(
-        election_id=election_id,
-        username=user["username"],
-        action=action,
-        details=details,
-        ip=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-    )
-    db.add(log)
-
-
-MAX_PDF_SIZE = 2 * 1024 * 1024
-
-
-@router.post(
-    "",
-    response_model=schemas.Proxy,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
-)
+@@ -59,161 +60,286 @@ MAX_PDF_SIZE = 2 * 1024 * 1024
 async def create_proxy(
     election_id: int,
     request: Request,
@@ -81,6 +60,13 @@ async def create_proxy(
 
     enforce_registration_window(db, election_id, current_user)
 
+    existing = (
+        db.query(models.Proxy)
+        .filter_by(election_id=election_id, num_doc=proxy_data.num_doc)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="proxy already exists")
     db_proxy = models.Proxy(
         pdf_url="",
         election_id=election_id,
@@ -107,7 +93,11 @@ async def create_proxy(
 
     db_proxy.pdf_url = str(file_path)
     assignments = []
+    seen = set()
     for assignment in proxy_data.assignments or []:
+        if assignment.shareholder_id in seen:
+            raise HTTPException(status_code=400, detail="duplicate assignment")
+        seen.add(assignment.shareholder_id)
         db_assignment = models.ProxyAssignment(
             proxy_id=db_proxy.id, **assignment.model_dump()
         )
@@ -172,6 +162,14 @@ async def update_proxy(
             f.write(content)
         proxy.pdf_url = str(file_path)
 
+    if proxy_data.num_doc != proxy.num_doc:
+        existing = (
+            db.query(models.Proxy)
+            .filter_by(election_id=election_id, num_doc=proxy_data.num_doc)
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="proxy already exists")
     proxy.proxy_person_id = proxy_data.proxy_person_id
     proxy.tipo_doc = proxy_data.tipo_doc
     proxy.num_doc = proxy_data.num_doc
@@ -185,7 +183,11 @@ async def update_proxy(
 
     db.query(models.ProxyAssignment).filter_by(proxy_id=proxy.id).delete()
     assignments = []
+    seen = set()
     for assignment in proxy_data.assignments or []:
+        if assignment.shareholder_id in seen:
+            raise HTTPException(status_code=400, detail="duplicate assignment")
+        seen.add(assignment.shareholder_id)
         db_assignment = models.ProxyAssignment(proxy_id=proxy.id, **assignment.model_dump())
         db.add(db_assignment)
         assignments.append(db_assignment)
@@ -264,8 +266,10 @@ def mark_proxy(
     _log(db, election_id, current_user, "PROXY_MARK", request, {"proxy_id": proxy.id, "mode": payload.mode.value})
     db.commit()
     db.refresh(proxy)
-
-    anyio.from_thread.run(manager.broadcast, {"summary": compute_summary(db, election_id)})
+    summary = compute_summary(db, election_id)
+    for assignment in proxy.assignments:
+        row = observer_row(db, election_id, assignment.shareholder_id)
+        anyio.from_thread.run(manager.broadcast, {"summary": summary, "row": row})
     return proxy
 
 
@@ -296,8 +300,10 @@ def invalidate_proxy(
     _log(db, election_id, current_user, "PROXY_INVALIDATE", request, {"proxy_id": proxy.id})
     db.commit()
     db.refresh(proxy)
-
-    anyio.from_thread.run(manager.broadcast, {"summary": compute_summary(db, election_id)})
+    summary = compute_summary(db, election_id)
+    for assignment in proxy.assignments:
+        row = observer_row(db, election_id, assignment.shareholder_id)
+        anyio.from_thread.run(manager.broadcast, {"summary": summary, "row": row})
     return proxy
 
 
@@ -314,4 +320,3 @@ def download_proxy_pdf(election_id: int, proxy_id: int, db: Session = Depends(ge
     if not proxy:
         raise HTTPException(status_code=404, detail="proxy not found")
     return FileResponse(proxy.pdf_url, media_type="application/pdf", filename=f"{proxy_id}.pdf")
-
