@@ -246,7 +246,7 @@ def update_shareholder(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
-    shareholder = db.query(models.Shareholder).get(shareholder_id)
+    shareholder = db.get(models.Shareholder, shareholder_id)
     if not shareholder:
         raise HTTPException(status_code=404, detail="shareholder not found")
     enforce_registration_window(db, election_id, current_user)
@@ -274,7 +274,7 @@ def delete_shareholder(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
-    shareholder = db.query(models.Shareholder).get(shareholder_id)
+    shareholder = db.get(models.Shareholder, shareholder_id)
     if not shareholder:
         raise HTTPException(status_code=404, detail="shareholder not found")
     enforce_registration_window(db, election_id, current_user)
