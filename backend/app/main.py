@@ -9,7 +9,18 @@ except ImportError:  # pragma: no cover - optional dependency
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import shareholders, attendance, proxies, auth, elections, audit, observer, assistants, users
+from .routers import (
+    shareholders,
+    attendance,
+    proxies,
+    auth,
+    elections,
+    audit,
+    observer,
+    assistants,
+    users,
+    voting,
+)
 from .database import Base, engine
 
 load_dotenv()
@@ -41,6 +52,7 @@ app.include_router(audit.router)
 app.include_router(observer.router)
 app.include_router(assistants.router)
 app.include_router(users.router)
+app.include_router(voting.router)
 
 @app.get("/")
 def read_root():
