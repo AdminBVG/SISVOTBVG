@@ -4,7 +4,9 @@
 
 @layer base {
   body {
-    @apply font-sans bg-gray-50 text-gray-900 antialiased;
+    @apply font-sans antialiased;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
   }
 }
 

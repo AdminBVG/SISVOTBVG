@@ -45,14 +45,13 @@ const UploadShareholders: React.FC = () => {
             type="file"
             accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={onFileChange}
-            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
           />
         </div>
 
         {/* Errors */}
         {errors.length > 0 && (
-          <div className="mb-4 text-red-600">
-            <p className="font-semibold">Errores:</p>
+          <div className="mb-4 text-body" role="alert">
+            <p className="fw-semibold">Errores:</p>
             <ul className="list-disc list-inside">
               {errors.map((e, i) => (
                 <li key={i}>{e}</li>

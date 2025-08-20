@@ -126,7 +126,11 @@ const Proxies: React.FC = () => {
         <Button type="submit">Guardar</Button>
       </form>
       {isLoading && <p>Cargando...</p>}
-      {error && <p className="text-red-600">{error.message}</p>}
+      {error && (
+        <p role="alert" className="text-body">
+          {error.message}
+        </p>
+      )}
       {proxies && proxies.length > 0 && (
         <ul className="list-disc pl-4">
           {proxies.map((p) => (
