@@ -9,6 +9,13 @@ interface Payload {
   registration_end?: string;
   attendance_registrars?: number[];
   vote_registrars?: number[];
+  questions?: {
+    text: string;
+    type: string;
+    required?: boolean;
+    order: number;
+    options?: { text: string; value: string }[];
+  }[];
 }
 
 export const useCreateElection = (

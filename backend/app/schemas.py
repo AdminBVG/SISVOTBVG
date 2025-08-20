@@ -1,7 +1,13 @@
 from datetime import datetime, date
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, ConfigDict
-from .models import AttendanceMode, PersonType, ProxyStatus, ElectionStatus
+from .models import (
+    AttendanceMode,
+    PersonType,
+    ProxyStatus,
+    ElectionStatus,
+    QuestionType,
+)
 
 
 class ShareholderBase(BaseModel):
@@ -152,6 +158,28 @@ class ObserverRow(BaseModel):
     total_quorum: float
 
 
+class QuestionOption(BaseModel):
+    text: str
+    value: str
+    id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuestionCreate(BaseModel):
+    text: str
+    type: QuestionType
+    required: bool = False
+    order: int
+    options: List[QuestionOption] = []
+
+
+class Question(QuestionCreate):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ElectionBase(BaseModel):
     name: str
     date: date
@@ -163,6 +191,7 @@ class ElectionCreate(ElectionBase):
     status: ElectionStatus = ElectionStatus.DRAFT
     attendance_registrars: List[int] = []
     vote_registrars: List[int] = []
+    questions: List["QuestionCreate"] = []
 
 
 class ElectionUpdate(BaseModel):

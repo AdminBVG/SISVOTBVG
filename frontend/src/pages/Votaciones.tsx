@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/card';
 import Button from '../components/ui/button';
 import Input from '../components/ui/input';
+import UserRoleSelector from '../components/UserRoleSelector';
+import QuestionBuilder, { QuestionDraft } from '../components/QuestionBuilder';
 import {
   Table,
   TableHeader,
@@ -30,6 +32,7 @@ const Votaciones: React.FC = () => {
   const [registrationEnd, setRegistrationEnd] = useState('');
   const [attendanceRegs, setAttendanceRegs] = useState<number[]>([]);
   const [voteRegs, setVoteRegs] = useState<number[]>([]);
+  const [questions, setQuestions] = useState<QuestionDraft[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [editDate, setEditDate] = useState('');
@@ -68,6 +71,13 @@ const Votaciones: React.FC = () => {
         : {}),
       attendance_registrars: attendanceRegs,
       vote_registrars: voteRegs,
+      questions: questions.map((q, i) => ({
+        text: q.text,
+        type: q.type,
+        required: q.required,
+        order: i,
+        options: q.options.map((o, oi) => ({ text: o, value: String(oi) })),
+      })),
     });
   };
 
@@ -138,42 +148,18 @@ const Votaciones: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">Registradores de asistencia</label>
-              <select
-                multiple
-                className="border rounded w-full p-2"
-                value={attendanceRegs.map(String)}
-                onChange={(e) =>
-                  setAttendanceRegs(
-                    Array.from(e.target.selectedOptions).map((o) => Number(o.value)),
-                  )
-                }
-              >
-                {registrarUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.username}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm mb-1">Usuarios y roles</label>
+              <UserRoleSelector
+                users={registrarUsers}
+                attendance={attendanceRegs}
+                vote={voteRegs}
+                setAttendance={setAttendanceRegs}
+                setVote={setVoteRegs}
+              />
             </div>
             <div>
-              <label className="block text-sm mb-1">Registradores de votos</label>
-              <select
-                multiple
-                className="border rounded w-full p-2"
-                value={voteRegs.map(String)}
-                onChange={(e) =>
-                  setVoteRegs(
-                    Array.from(e.target.selectedOptions).map((o) => Number(o.value)),
-                  )
-                }
-              >
-                {registrarUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.username}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm mb-1">Preguntas</label>
+              <QuestionBuilder questions={questions} setQuestions={setQuestions} />
             </div>
             <Button type="submit" disabled={creating}>Crear votación</Button>
           </form>
