@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '../lib/react-query';
+import { useQuery, useMutation, useQueryClient } from '../lib/react-query';
 import { apiFetch } from '../lib/api';
 
 export interface Proxy {
@@ -13,8 +13,7 @@ export interface ProxyPayload {
   num_doc: string;
   fecha_otorg: string;
   fecha_vigencia?: string | null;
-  pdf_url: string;
-  election_id?: number;
+  pdf: File;
 }
 
 export const useProxies = (electionId: number) => {
@@ -29,14 +28,30 @@ export const useCreateProxy = (
   onSuccess?: () => void,
   onError?: (err: any) => void
 ) => {
+  const queryClient = useQueryClient();
   return useMutation<any, ProxyPayload>({
-    mutationFn: (payload) =>
-      apiFetch(`/elections/${electionId}/proxies`, {
+    mutationFn: (payload) => {
+      const form = new FormData();
+      form.append(
+        'data',
+        JSON.stringify({
+          proxy_person_id: payload.proxy_person_id,
+          tipo_doc: payload.tipo_doc,
+          num_doc: payload.num_doc,
+          fecha_otorg: payload.fecha_otorg,
+          fecha_vigencia: payload.fecha_vigencia,
+        })
+      );
+      form.append('pdf', payload.pdf);
+      return apiFetch(`/elections/${electionId}/proxies`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, election_id: electionId }),
-      }),
-    onSuccess,
+        body: form,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proxies', electionId] });
+      onSuccess?.();
+    },
     onError,
   });
 };

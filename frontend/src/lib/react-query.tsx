@@ -2,8 +2,23 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useToast } from '../components/ui/toast';
 
 export class QueryClient {
-  invalidateQueries(_opts: { queryKey: any[] }) {
-    // no-op
+  private listeners = new Map<string, Set<() => void>>();
+
+  subscribe(queryKey: any[], cb: () => void) {
+    const key = JSON.stringify(queryKey);
+    if (!this.listeners.has(key)) {
+      this.listeners.set(key, new Set());
+    }
+    this.listeners.get(key)!.add(cb);
+    return () => {
+      this.listeners.get(key)!.delete(cb);
+    };
+  }
+
+  invalidateQueries(opts: { queryKey: any[] }) {
+    const key = JSON.stringify(opts.queryKey);
+    const subs = this.listeners.get(key);
+    subs?.forEach((cb) => cb());
   }
 }
 
@@ -59,6 +74,7 @@ export const useQuery = <TData = any>({ queryKey, queryFn, enabled = true }: Que
   const [error, setError] = useState<any>(null);
   const [isLoading, setLoading] = useState(false);
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const fetchData = async () => {
     try {
@@ -78,6 +94,8 @@ export const useQuery = <TData = any>({ queryKey, queryFn, enabled = true }: Que
     if (enabled) {
       fetchData();
     }
+    const unsubscribe = queryClient.subscribe(queryKey, fetchData);
+    return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...queryKey, enabled]);
 

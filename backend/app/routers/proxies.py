@@ -8,6 +8,7 @@ from .. import schemas, models, database
 from ..models import AttendanceMode
 from ..security import get_current_user, require_role
 from ..observer import manager, compute_summary
+from ..utils import enforce_registration_window
 import anyio
 
 router = APIRouter(prefix="/elections/{election_id}/proxies", tags=["proxies"])
@@ -33,24 +34,6 @@ def _refresh_status(db: Session, proxy: models.Proxy):
         db.refresh(proxy)
 
 
-def _enforce_window(db: Session, election_id: int, user):
-    election = db.query(models.Election).filter_by(id=election_id).first()
-    if not election:
-        raise HTTPException(status_code=404, detail="election not found")
-    now = datetime.now(timezone.utc)
-    start = election.registration_start
-    end = election.registration_end
-    if start and start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
-    if end and end.tzinfo is None:
-        end = end.replace(tzinfo=timezone.utc)
-    if start and now < start:
-        if user["role"] != "ADMIN_BVG":
-            raise HTTPException(status_code=403, detail="registration not started")
-    if end and now > end:
-        if user["role"] != "ADMIN_BVG":
-            raise HTTPException(status_code=403, detail="registration closed")
-    return election
 
 
 def _log(db: Session, election_id: int, user, action: str, request: Request, details: dict | None = None):
@@ -96,7 +79,7 @@ async def create_proxy(
     if proxy_data.fecha_vigencia and election.date > proxy_data.fecha_vigencia:
         raise HTTPException(status_code=400, detail="proxy expired for election date")
 
-    _enforce_window(db, election_id, current_user)
+    enforce_registration_window(db, election_id, current_user)
 
     db_proxy = models.Proxy(
         pdf_url="",
@@ -171,7 +154,7 @@ def mark_proxy(
     if not proxy:
         raise HTTPException(status_code=404, detail="proxy not found")
 
-    _enforce_window(db, election_id, current_user)
+    enforce_registration_window(db, election_id, current_user)
     _refresh_status(db, proxy)
     if proxy.status != models.ProxyStatus.VALID:
         raise HTTPException(status_code=400, detail="proxy not valid")
@@ -209,7 +192,7 @@ def invalidate_proxy(
     if not proxy:
         raise HTTPException(status_code=404, detail="proxy not found")
 
-    _enforce_window(db, election_id, current_user)
+    enforce_registration_window(db, election_id, current_user)
     proxy.status = models.ProxyStatus.INVALID
     proxy.present = False
 

@@ -24,8 +24,8 @@ const Login: React.FC = () => {
     },
     onSuccess: (data) => {
       login(data.access_token, data.role, data.username);
-      if (data.role === 'REGISTRADOR_BVG') navigate('/upload');
-      else navigate('/dashboard');
+      if (data.role === 'REGISTRADOR_BVG') navigate('/votaciones/1/upload');
+      else navigate('/votaciones/1/dashboard');
     },
     onError: (err: any) => {
       setError(err.message);

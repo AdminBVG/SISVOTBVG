@@ -5,7 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import UploadShareholders from './pages/UploadShareholders';
-import RegisterAttendance from './pages/RegisterAttendance';
+import Asistencia from './pages/Asistencia';
 import Proxies from './pages/Proxies';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -27,13 +27,13 @@ const App: React.FC = () => {
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedRoute roles={["REGISTRADOR_BVG"]} />}>
                 <Route element={<Layout />}>
-                  <Route path="/upload" element={<UploadShareholders />} />
+                  <Route path="/votaciones/:id/upload" element={<UploadShareholders />} />
                 </Route>
               </Route>
               <Route element={<ProtectedRoute roles={["REGISTRADOR_BVG", "ADMIN_BVG"]} />}>
                 <Route element={<Layout />}>
-                  <Route path="/attendance" element={<RegisterAttendance />} />
-                  <Route path="/proxies" element={<Proxies />} />
+                  <Route path="/votaciones/:id/attendance" element={<Asistencia />} />
+                  <Route path="/votaciones/:id/proxies" element={<Proxies />} />
                 </Route>
               </Route>
               <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}>
@@ -46,7 +46,7 @@ const App: React.FC = () => {
               </Route>
               <Route element={<ProtectedRoute roles={["ADMIN_BVG", "OBSERVADOR_BVG"]} />}>
                 <Route element={<Layout />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/votaciones/:id/dashboard" element={<Dashboard />} />
                 </Route>
               </Route>
               <Route path="/" element={<Navigate to="/login" replace />} />

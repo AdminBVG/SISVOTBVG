@@ -2,6 +2,7 @@ import React, { ChangeEvent } from 'react';
 import { useShareholdersImport } from '../hooks/useShareholdersImport';
 import Input from '../components/ui/input';
 import Button from '../components/ui/button';
+import { useParams } from 'react-router-dom';
 
 const UploadShareholders: React.FC = () => {
   const {
@@ -15,7 +16,8 @@ const UploadShareholders: React.FC = () => {
     reset,
   } = useShareholdersImport();
 
-  const electionId = 1; // fijo en este prototipo
+  const { id } = useParams();
+  const electionId = Number(id);
 
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
