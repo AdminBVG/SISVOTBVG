@@ -12,12 +12,22 @@ export interface Shareholder {
   attendance_mode?: string | null;
 }
 
-export const useShareholders = (electionId: number, search: string) => {
+export const useShareholders = (
+  electionId: number,
+  search: string,
+  onError?: (err: any) => void,
+) => {
   return useQuery<Shareholder[]>({
     queryKey: ['shareholders', electionId, search],
     queryFn: () => {
       const params = search ? `?q=${encodeURIComponent(search)}` : '';
       return apiFetch<Shareholder[]>(`/elections/${electionId}/shareholders${params}`);
+    },
+    onError: (err) => {
+      if ((err as any).status === 403) {
+        (err as any).message = 'Registro no habilitado';
+      }
+      onError?.(err);
     },
   });
 };

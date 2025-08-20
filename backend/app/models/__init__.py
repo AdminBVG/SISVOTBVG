@@ -139,6 +139,21 @@ class User(Base):
     reset_token_expires = Column(DateTime(timezone=True), nullable=True)
 
 
+class ElectionRole(str, enum.Enum):
+    ATTENDANCE = "ATTENDANCE"
+    VOTE = "VOTE"
+
+
+class ElectionUserRole(Base):
+    __tablename__ = "election_user_roles"
+    id = Column(Integer, primary_key=True)
+    election_id = Column(Integer, ForeignKey("elections.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(Enum(ElectionRole), nullable=False)
+    user = relationship("User")
+    election = relationship("Election")
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id = Column(Integer, primary_key=True)

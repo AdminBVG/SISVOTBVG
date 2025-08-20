@@ -4,7 +4,7 @@ from typing import Dict, List
 from .. import schemas, models, database
 from ..models import AttendanceMode
 from datetime import datetime, timezone
-from ..security import get_current_user, require_role
+from ..security import get_current_user, require_election_role
 from ..observer import manager, compute_summary
 from ..observer import observer_row
 from ..utils import enforce_registration_window
@@ -41,7 +41,7 @@ def _has_active_proxy(db: Session, election_id: int, shareholder_id: int) -> boo
 @router.post(
     "/{code}/mark",
     response_model=schemas.Attendance,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
 )
 def mark_attendance(
     election_id: int,
@@ -104,7 +104,7 @@ def mark_attendance(
 @router.post(
     "/bulk_mark",
     response_model=List[schemas.Attendance],
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
 )
 def bulk_mark_attendance(
     election_id: int,
@@ -170,7 +170,7 @@ def bulk_mark_attendance(
 @router.get(
     "/history",
     response_model=List[schemas.AttendanceHistory],
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
 )
 def attendance_history(election_id: int, code: str, db: Session = Depends(get_db)):
     shareholder = db.query(models.Shareholder).filter_by(code=code).first()
@@ -191,7 +191,7 @@ def attendance_history(election_id: int, code: str, db: Session = Depends(get_db
 
 @router.get(
     "/summary",
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
 )
 def summary_attendance(election_id: int, db: Session = Depends(get_db)):
     return compute_summary(db, election_id)
@@ -199,7 +199,7 @@ def summary_attendance(election_id: int, db: Session = Depends(get_db)):
 
 @router.get(
     "/export",
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
 )
 def export_attendance(election_id: int, db: Session = Depends(get_db)):
     output = io.StringIO()

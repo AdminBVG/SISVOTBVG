@@ -14,12 +14,36 @@ const Asistencia: React.FC = () => {
   const electionId = Number(id);
   const toast = useToast();
   const [search, setSearch] = useState('');
+  const [blocked, setBlocked] = useState(false);
 
-  const { data: shareholders, isLoading, error, refetch } = useShareholders(electionId, search);
-  const markAttendance = useMarkAttendance(electionId, () => {
-    toast('Asistencia registrada');
-    refetch();
-  }, (err) => toast(err.message));
+  const handleForbidden = (err: any) => {
+    toast(err.message);
+    setBlocked(true);
+  };
+
+  const { data: shareholders, isLoading, error, refetch } = useShareholders(
+    electionId,
+    search,
+    (err) => {
+      if (err.status === 403) {
+        handleForbidden(err);
+      }
+    },
+  );
+  const markAttendance = useMarkAttendance(
+    electionId,
+    () => {
+      toast('Asistencia registrada');
+      refetch();
+    },
+    (err) => {
+      if (err.status === 403) {
+        handleForbidden(err);
+      } else {
+        toast(err.message);
+      }
+    },
+  );
   const handleMark = (code: string, mode: string) => {
     markAttendance.mutate({ code, mode });
   };
@@ -46,7 +70,7 @@ const Asistencia: React.FC = () => {
         {isLoading && <p>Cargando...</p>}
         {error && (
           <p role="alert" className="text-body">
-            Error al cargar accionistas
+            {error.message || 'Error al cargar accionistas'}
           </p>
         )}
         {!isLoading && !error && (
@@ -67,13 +91,13 @@ const Asistencia: React.FC = () => {
                   <TableCell>{s.name}</TableCell>
                   <TableCell>{s.actions}</TableCell>
                   <TableCell className="space-x-2">
-                    <Button onClick={() => handleMark(s.code, 'PRESENCIAL')}>
+                    <Button disabled={blocked} onClick={() => handleMark(s.code, 'PRESENCIAL')}>
                       <Check className="w-4 h-4 inline mr-1" />Presencial
                     </Button>
-                    <Button onClick={() => handleMark(s.code, 'VIRTUAL')}>
+                    <Button disabled={blocked} onClick={() => handleMark(s.code, 'VIRTUAL')}>
                       <Check className="w-4 h-4 inline mr-1" />Virtual
                     </Button>
-                    <Button onClick={() => handleMark(s.code, 'AUSENTE')}>
+                    <Button disabled={blocked} onClick={() => handleMark(s.code, 'AUSENTE')}>
                       <Check className="w-4 h-4 inline mr-1" />Ausente
                     </Button>
                   </TableCell>
