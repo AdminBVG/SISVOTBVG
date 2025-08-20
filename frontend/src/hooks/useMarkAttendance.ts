@@ -21,6 +21,11 @@ export const useMarkAttendance = (
         body: JSON.stringify({ mode, evidence, reason }),
       }),
     onSuccess,
-    onError,
+    onError: (err) => {
+      if ((err as any).status === 403) {
+        (err as any).message = 'Registro no habilitado';
+      }
+      onError?.(err);
+    },
   });
 };

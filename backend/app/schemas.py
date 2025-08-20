@@ -175,6 +175,8 @@ class ElectionUpdate(BaseModel):
 class Election(ElectionBase):
     id: int
     status: ElectionStatus
+    can_manage_attendance: bool = False
+    can_manage_votes: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -8,6 +8,8 @@ export interface Election {
   status: string;
   registration_start?: string;
   registration_end?: string;
+  can_manage_attendance?: boolean;
+  can_manage_votes?: boolean;
 }
 
 export const useElections = () => {
