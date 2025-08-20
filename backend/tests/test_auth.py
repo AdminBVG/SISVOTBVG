@@ -15,7 +15,7 @@ def admin_user():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     db.add(
-        models.User(
+                models.User(
             username="AdminBVG",
             hashed_password=hash_password("BVG2025"),
             role="REGISTRADOR_BVG",

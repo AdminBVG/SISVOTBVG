@@ -34,29 +34,7 @@ def _refresh_status(db: Session, proxy: models.Proxy):
         db.commit()
         db.refresh(proxy)
 
-
-
-
-def _log(db: Session, election_id: int, user, action: str, request: Request, details: dict | None = None):
-    log = models.AuditLog(
-        election_id=election_id,
-        username=user["username"],
-        action=action,
-        details=details,
-        ip=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-    )
-    db.add(log)
-
-
-MAX_PDF_SIZE = 2 * 1024 * 1024
-
-
-@router.post(
-    "",
-    response_model=schemas.Proxy,
-    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
-)
+@@ -59,161 +60,286 @@ MAX_PDF_SIZE = 2 * 1024 * 1024
 async def create_proxy(
     election_id: int,
     request: Request,
@@ -342,4 +320,3 @@ def download_proxy_pdf(election_id: int, proxy_id: int, db: Session = Depends(ge
     if not proxy:
         raise HTTPException(status_code=404, detail="proxy not found")
     return FileResponse(proxy.pdf_url, media_type="application/pdf", filename=f"{proxy_id}.pdf")
-
