@@ -139,3 +139,45 @@ def test_get_update_delete_attendee():
     assert list_resp.status_code == 200
     assert list_resp.json() == []
 
+
+def test_import_attendees_creates_shareholders():
+    headers, election_id = setup_auth_and_election()
+    data = create_csv([["1", "Alice", "", "", 10]])
+    files = {"file": ("attendees.csv", data, "text/csv")}
+    # import attendees as admin
+    resp = client.post(
+        f"/elections/{election_id}/assistants/import-excel",
+        files=files,
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    # create registrar user and assign role
+    db = SessionLocal()
+    reg = models.User(
+        username="Reg",
+        hashed_password=hash_password("pass"),
+        role="FUNCIONAL_BVG",
+    )
+    db.add(reg)
+    db.commit()
+    db.add(
+        models.ElectionUserRole(
+            election_id=election_id,
+            user_id=reg.id,
+            role=models.ElectionRole.ATTENDANCE,
+        )
+    )
+    db.commit()
+    db.close()
+    token = client.post(
+        "/auth/login", json={"username": "Reg", "password": "pass"}
+    ).json()["access_token"]
+    reg_headers = {"Authorization": f"Bearer {token}"}
+    share_resp = client.get(
+        f"/elections/{election_id}/shareholders", headers=reg_headers
+    )
+    assert share_resp.status_code == 200
+    data = share_resp.json()
+    assert len(data) == 1
+    assert data[0]["code"] == "1"
+

@@ -33,6 +33,49 @@ def import_attendees_excel(
     required = {"id", "accionista", "representante", "apoderado", "acciones"}
     results: List[models.Attendee] = []
 
+    def process_row(row: dict):
+        attendee = models.Attendee(
+            election_id=election_id,
+            identifier=str(row.get("id", "")),
+            accionista=row.get("accionista", ""),
+            representante=row.get("representante"),
+            apoderado=row.get("apoderado"),
+            acciones=float(row.get("acciones") or 0),
+        )
+        db.add(attendee)
+        results.append(attendee)
+        # Sync with shareholders/attendance so registrars can see attendees
+        sh = (
+            db.query(models.Shareholder)
+            .filter_by(code=attendee.identifier)
+            .first()
+        )
+        if not sh:
+            sh = models.Shareholder(
+                code=attendee.identifier,
+                name=attendee.accionista,
+                document=attendee.identifier,
+                actions=attendee.acciones,
+                status="ACTIVE",
+            )
+            db.add(sh)
+            db.flush()
+        else:
+            sh.name = attendee.accionista
+            sh.actions = attendee.acciones
+            db.flush()
+        if not db.query(models.Attendance).filter_by(
+            election_id=election_id, shareholder_id=sh.id
+        ).first():
+            db.add(
+                models.Attendance(
+                    election_id=election_id,
+                    shareholder_id=sh.id,
+                    mode=models.AttendanceMode.AUSENTE,
+                    present=False,
+                )
+            )
+
     if file.filename and file.filename.lower().endswith(".xlsx"):
         wb = load_workbook(file.file)
         sheet = wb.active
@@ -46,16 +89,7 @@ def import_attendees_excel(
             )
         for data_row in rows[1:]:
             row = dict(zip(headers, data_row))
-            attendee = models.Attendee(
-                election_id=election_id,
-                identifier=str(row.get("id", "")),
-                accionista=row.get("accionista", ""),
-                representante=row.get("representante"),
-                apoderado=row.get("apoderado"),
-                acciones=float(row.get("acciones") or 0),
-            )
-            db.add(attendee)
-            results.append(attendee)
+            process_row(row)
     else:
         content = file.file.read().decode("utf-8")
         reader = csv.DictReader(StringIO(content))
@@ -65,16 +99,7 @@ def import_attendees_excel(
                 status_code=400, detail=f"Missing columns: {', '.join(sorted(missing))}"
             )
         for row in reader:
-            attendee = models.Attendee(
-                election_id=election_id,
-                identifier=str(row.get("id", "")),
-                accionista=row.get("accionista", ""),
-                representante=row.get("representante"),
-                apoderado=row.get("apoderado"),
-                acciones=float(row.get("acciones") or 0),
-            )
-            db.add(attendee)
-            results.append(attendee)
+            process_row(row)
     db.commit()
     for att in results:
         db.refresh(att)
