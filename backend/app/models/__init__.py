@@ -133,6 +133,10 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, nullable=False, default="REGISTRADOR_BVG")
+    is_verified = Column(Boolean, default=True)
+    verification_token = Column(String, nullable=True)
+    reset_token = Column(String, nullable=True)
+    reset_token_expires = Column(DateTime(timezone=True), nullable=True)
 
 
 class AuditLog(Base):
@@ -158,3 +162,30 @@ class Attendee(Base):
     representante = Column(String)
     apoderado = Column(String)
     acciones = Column(DECIMAL, nullable=False, default=0)
+
+
+class Ballot(Base):
+    __tablename__ = "ballots"
+    id = Column(Integer, primary_key=True, index=True)
+    election_id = Column(Integer, ForeignKey("elections.id"), nullable=False)
+    title = Column(String, nullable=False)
+    options = relationship("BallotOption", back_populates="ballot")
+    votes = relationship("Vote", back_populates="ballot")
+
+
+class BallotOption(Base):
+    __tablename__ = "ballot_options"
+    id = Column(Integer, primary_key=True, index=True)
+    ballot_id = Column(Integer, ForeignKey("ballots.id"), nullable=False)
+    text = Column(String, nullable=False)
+    ballot = relationship("Ballot", back_populates="options")
+    votes = relationship("Vote", back_populates="option")
+
+
+class Vote(Base):
+    __tablename__ = "votes"
+    id = Column(Integer, primary_key=True, index=True)
+    ballot_id = Column(Integer, ForeignKey("ballots.id"), nullable=False)
+    option_id = Column(Integer, ForeignKey("ballot_options.id"), nullable=False)
+    ballot = relationship("Ballot", back_populates="votes")
+    option = relationship("BallotOption", back_populates="votes")

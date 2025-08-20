@@ -8,6 +8,7 @@ from .. import schemas, models, database
 from ..models import AttendanceMode
 from ..security import get_current_user, require_role
 from ..observer import manager, compute_summary
+from ..observer import observer_row
 from ..utils import enforce_registration_window
 import anyio
 
@@ -81,6 +82,13 @@ async def create_proxy(
 
     enforce_registration_window(db, election_id, current_user)
 
+    existing = (
+        db.query(models.Proxy)
+        .filter_by(election_id=election_id, num_doc=proxy_data.num_doc)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="proxy already exists")
     db_proxy = models.Proxy(
         pdf_url="",
         election_id=election_id,
@@ -107,7 +115,11 @@ async def create_proxy(
 
     db_proxy.pdf_url = str(file_path)
     assignments = []
+    seen = set()
     for assignment in proxy_data.assignments or []:
+        if assignment.shareholder_id in seen:
+            raise HTTPException(status_code=400, detail="duplicate assignment")
+        seen.add(assignment.shareholder_id)
         db_assignment = models.ProxyAssignment(
             proxy_id=db_proxy.id, **assignment.model_dump()
         )
@@ -131,6 +143,115 @@ def list_proxies(election_id: int, db: Session = Depends(get_db)):
     for prx in proxies:
         _refresh_status(db, prx)
     return proxies
+
+
+@router.put(
+    "/{proxy_id}",
+    response_model=schemas.Proxy,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
+async def update_proxy(
+    election_id: int,
+    proxy_id: int,
+    request: Request,
+    data: str = Form(...),
+    pdf: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    proxy = (
+        db.query(models.Proxy)
+        .filter_by(id=proxy_id, election_id=election_id)
+        .first()
+    )
+    if not proxy:
+        raise HTTPException(status_code=404, detail="proxy not found")
+
+    proxy_data = schemas.ProxyCreate.model_validate_json(data)
+
+    enforce_registration_window(db, election_id, current_user)
+
+    if pdf is not None:
+        if pdf.content_type != "application/pdf":
+            raise HTTPException(status_code=400, detail="invalid file type")
+        content = await pdf.read()
+        if len(content) > MAX_PDF_SIZE:
+            raise HTTPException(status_code=400, detail="file too large")
+        storage_dir = Path("storage") / str(election_id)
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        file_path = storage_dir / f"{proxy.id}.pdf"
+        with open(file_path, "wb") as f:
+            f.write(content)
+        proxy.pdf_url = str(file_path)
+
+    if proxy_data.num_doc != proxy.num_doc:
+        existing = (
+            db.query(models.Proxy)
+            .filter_by(election_id=election_id, num_doc=proxy_data.num_doc)
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="proxy already exists")
+    proxy.proxy_person_id = proxy_data.proxy_person_id
+    proxy.tipo_doc = proxy_data.tipo_doc
+    proxy.num_doc = proxy_data.num_doc
+    proxy.fecha_otorg = proxy_data.fecha_otorg
+    proxy.fecha_vigencia = proxy_data.fecha_vigencia
+    proxy.status = proxy_data.status
+    proxy.mode = proxy_data.mode
+    proxy.present = proxy_data.present
+    proxy.marked_by = proxy_data.marked_by
+    proxy.marked_at = proxy_data.marked_at
+
+    db.query(models.ProxyAssignment).filter_by(proxy_id=proxy.id).delete()
+    assignments = []
+    seen = set()
+    for assignment in proxy_data.assignments or []:
+        if assignment.shareholder_id in seen:
+            raise HTTPException(status_code=400, detail="duplicate assignment")
+        seen.add(assignment.shareholder_id)
+        db_assignment = models.ProxyAssignment(proxy_id=proxy.id, **assignment.model_dump())
+        db.add(db_assignment)
+        assignments.append(db_assignment)
+
+    _log(db, election_id, current_user, "PROXY_UPDATE", request, {"proxy_id": proxy.id})
+    db.commit()
+    db.refresh(proxy)
+    proxy.assignments = assignments
+    return proxy
+
+
+@router.delete(
+    "/{proxy_id}",
+    status_code=204,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
+def delete_proxy(
+    election_id: int,
+    proxy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    proxy = (
+        db.query(models.Proxy)
+        .filter_by(id=proxy_id, election_id=election_id)
+        .first()
+    )
+    if not proxy:
+        raise HTTPException(status_code=404, detail="proxy not found")
+
+    enforce_registration_window(db, election_id, current_user)
+
+    file_path = Path(proxy.pdf_url)
+    if file_path.exists():
+        file_path.unlink()
+
+    db.query(models.ProxyAssignment).filter_by(proxy_id=proxy.id).delete()
+    db.delete(proxy)
+
+    _log(db, election_id, current_user, "PROXY_DELETE", request, {"proxy_id": proxy.id})
+    db.commit()
 
 
 @router.post(
@@ -167,8 +288,10 @@ def mark_proxy(
     _log(db, election_id, current_user, "PROXY_MARK", request, {"proxy_id": proxy.id, "mode": payload.mode.value})
     db.commit()
     db.refresh(proxy)
-
-    anyio.from_thread.run(manager.broadcast, {"summary": compute_summary(db, election_id)})
+    summary = compute_summary(db, election_id)
+    for assignment in proxy.assignments:
+        row = observer_row(db, election_id, assignment.shareholder_id)
+        anyio.from_thread.run(manager.broadcast, {"summary": summary, "row": row})
     return proxy
 
 
@@ -199,8 +322,10 @@ def invalidate_proxy(
     _log(db, election_id, current_user, "PROXY_INVALIDATE", request, {"proxy_id": proxy.id})
     db.commit()
     db.refresh(proxy)
-
-    anyio.from_thread.run(manager.broadcast, {"summary": compute_summary(db, election_id)})
+    summary = compute_summary(db, election_id)
+    for assignment in proxy.assignments:
+        row = observer_row(db, election_id, assignment.shareholder_id)
+        anyio.from_thread.run(manager.broadcast, {"summary": summary, "row": row})
     return proxy
 
 
@@ -217,3 +342,4 @@ def download_proxy_pdf(election_id: int, proxy_id: int, db: Session = Depends(ge
     if not proxy:
         raise HTTPException(status_code=404, detail="proxy not found")
     return FileResponse(proxy.pdf_url, media_type="application/pdf", filename=f"{proxy_id}.pdf")
+

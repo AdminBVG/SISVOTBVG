@@ -16,6 +16,14 @@ class ShareholderCreate(ShareholderBase):
     pass
 
 
+class ShareholderUpdate(BaseModel):
+    code: Optional[str] = None
+    name: Optional[str] = None
+    document: Optional[str] = None
+    email: Optional[EmailStr] = None
+    actions: Optional[float] = None
+
+
 class Shareholder(ShareholderBase):
     id: int
     status: str
@@ -214,9 +222,66 @@ class AttendeeBase(BaseModel):
     acciones: float
 
 
+class AttendeeUpdate(BaseModel):
+    identifier: Optional[str] = None
+    accionista: Optional[str] = None
+    representante: Optional[str] = None
+    apoderado: Optional[str] = None
+    acciones: Optional[float] = None
+
+
 class Attendee(AttendeeBase):
     id: int
     election_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BallotBase(BaseModel):
+    title: str
+
+
+class BallotCreate(BallotBase):
+    pass
+
+
+class Ballot(BallotBase):
+    id: int
+    election_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OptionBase(BaseModel):
+    text: str
+
+
+class OptionCreate(OptionBase):
+    pass
+
+
+class Option(OptionBase):
+    id: int
+    ballot_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VoteBase(BaseModel):
+    option_id: int
+
+
+class VoteCreate(VoteBase):
+    pass
+
+
+class Vote(VoteBase):
+    id: int
+    ballot_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OptionResult(Option):
+    votes: int
 

@@ -5,7 +5,7 @@ from typing import List
 import jwt
 from .. import models, schemas, database
 from ..security import SECRET_KEY, ALGORITHM, require_role
-from ..observer import manager, compute_summary
+from ..observer import manager, compute_summary, observer_row
 
 router = APIRouter(prefix="/elections/{election_id}/observer", tags=["observer"])
 
@@ -47,49 +47,8 @@ async def observer_ws(websocket: WebSocket, election_id: int):
 @router.get("", response_model=List[schemas.ObserverRow], dependencies=[require_role(["OBSERVADOR_BVG", "ADMIN_BVG", "REGISTRADOR_BVG"])])
 def observer_table(election_id: int, db: Session = Depends(get_db)):
     rows: List[schemas.ObserverRow] = []
-    results = (
-        db.query(models.Shareholder, models.Attendance, models.Person)
-        .outerjoin(
-            models.Attendance,
-            and_(
-                models.Attendance.shareholder_id == models.Shareholder.id,
-                models.Attendance.election_id == election_id,
-            ),
-        )
-        .outerjoin(
-            models.ProxyAssignment,
-            models.ProxyAssignment.shareholder_id == models.Shareholder.id,
-        )
-        .outerjoin(
-            models.Proxy,
-            and_(
-                models.Proxy.id == models.ProxyAssignment.proxy_id,
-                models.Proxy.election_id == election_id,
-                models.Proxy.status == models.ProxyStatus.VALID,
-                models.Proxy.present.is_(True),
-            ),
-        )
-        .outerjoin(
-            models.Person,
-            models.Person.id == models.Proxy.proxy_person_id,
-        )
-        .all()
-    )
-    for sh, attendance, person in results:
-        mode = attendance.mode if attendance else models.AttendanceMode.AUSENTE
-        apoderado = person.name if person else None
-        cuenta = 0.0
-        if apoderado or (attendance and attendance.present):
-            cuenta = float(sh.actions)
-        rows.append(
-            schemas.ObserverRow(
-                code=sh.code,
-                name=sh.name,
-                estado=mode,
-                apoderado=apoderado,
-                acciones_propias=float(sh.actions),
-                acciones_representadas=0.0,
-                total_quorum=cuenta,
-            )
-        )
+    shareholders = db.query(models.Shareholder.id).all()
+    for (sh_id,) in shareholders:
+        row = observer_row(db, election_id, sh_id)
+        rows.append(schemas.ObserverRow(**row))
     return rows
