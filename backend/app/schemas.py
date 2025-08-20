@@ -170,6 +170,8 @@ class ElectionUpdate(BaseModel):
     date: Optional[date] = None
     registration_start: Optional[datetime] = None
     registration_end: Optional[datetime] = None
+    attendance_registrars: Optional[List[int]] = None
+    vote_registrars: Optional[List[int]] = None
 
 
 class Election(ElectionBase):

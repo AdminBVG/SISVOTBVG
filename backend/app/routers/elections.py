@@ -123,3 +123,73 @@ def update_election(
     election = db.query(models.Election).filter_by(id=election_id).first()
     if not election:
         raise HTTPException(status_code=404, detail="Election not found")
+    if election.status != models.ElectionStatus.DRAFT:
+        raise HTTPException(
+            status_code=400, detail="Cannot edit election once opened"
+        )
+    data = payload.model_dump(
+        exclude_unset=True,
+        exclude={"attendance_registrars", "vote_registrars"},
+    )
+    for key, value in data.items():
+        setattr(election, key, value)
+    if (
+        payload.attendance_registrars is not None
+        or payload.vote_registrars is not None
+    ):
+        db.query(models.ElectionUserRole).filter_by(
+            election_id=election_id
+        ).delete()
+        for uid in payload.attendance_registrars or []:
+            db.add(
+                models.ElectionUserRole(
+                    election_id=election_id,
+                    user_id=uid,
+                    role=models.ElectionRole.ATTENDANCE,
+                )
+            )
+        for uid in payload.vote_registrars or []:
+            db.add(
+                models.ElectionUserRole(
+                    election_id=election_id,
+                    user_id=uid,
+                    role=models.ElectionRole.VOTE,
+                )
+            )
+    db.commit()
+    db.refresh(election)
+    return election
+
+
+@router.delete(
+    "/{election_id}",
+    status_code=204,
+    dependencies=[require_role(["ADMIN_BVG"])]
+)
+def delete_election(election_id: int, db: Session = Depends(get_db)):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    db.query(models.ElectionUserRole).filter_by(election_id=election_id).delete()
+    db.delete(election)
+    db.commit()
+    return None
+
+
+@router.patch(
+    "/{election_id}/status",
+    response_model=schemas.Election,
+    dependencies=[require_role(["ADMIN_BVG"])]
+)
+def update_election_status(
+    election_id: int,
+    payload: schemas.ElectionStatusUpdate,
+    db: Session = Depends(get_db),
+):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    election.status = payload.status
+    db.commit()
+    db.refresh(election)
+    return election
