@@ -23,6 +23,25 @@ def get_db():
         db.close()
 
 
+def _log(
+    db: Session,
+    election_id: int,
+    user,
+    action: str,
+    request: Request,
+    details: dict | None = None,
+):
+    log = models.AuditLog(
+        election_id=election_id,
+        username=user["username"],
+        action=action,
+        details=details,
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(log)
+
+
 def _refresh_status(db: Session, proxy: models.Proxy):
     if (
         proxy.status == models.ProxyStatus.VALID
@@ -34,7 +53,14 @@ def _refresh_status(db: Session, proxy: models.Proxy):
         db.commit()
         db.refresh(proxy)
 
-@@ -59,161 +60,286 @@ MAX_PDF_SIZE = 2 * 1024 * 1024
+
+MAX_PDF_SIZE = 2 * 1024 * 1024
+
+@router.post(
+    "",
+    response_model=schemas.Proxy,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
 async def create_proxy(
     election_id: int,
     request: Request,
