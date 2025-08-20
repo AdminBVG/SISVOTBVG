@@ -68,63 +68,62 @@ def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_
     return db_election
 
 
-@router.get(
-    "",
-    response_model=List[schemas.Election],
-    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])]
-)
+@router.get("", response_model=List[schemas.Election])
 def list_elections(
     db: Session = Depends(get_db), current_user=Depends(get_current_user)
 ):
     query = db.query(models.Election)
-    if current_user["role"] == "FUNCIONAL_BVG":
-        user = (
-            db.query(models.User)
-            .filter_by(username=current_user["username"])
-            .first()
-        )
-        query = (
-            query.join(models.ElectionUserRole)
-            .filter(models.ElectionUserRole.user_id == user.id)
-        )
+    # Administrators can view all elections without filtering
+    if current_user["role"] == "ADMIN_BVG":
         elections = query.all()
-        roles = (
-            db.query(models.ElectionUserRole)
-            .filter_by(user_id=user.id)
-            .all()
-        )
-        role_map = {}
-        for r in roles:
-            role_map.setdefault(r.election_id, []).append(r.role)
-        result = []
-        for e in elections:
-            perms = role_map.get(e.id, [])
-            result.append(
-                schemas.Election(
-                    id=e.id,
-                    name=e.name,
-                    date=e.date,
-                    status=e.status,
-                    registration_start=e.registration_start,
-                    registration_end=e.registration_end,
-                    can_manage_attendance=models.ElectionRole.ATTENDANCE in perms,
-                    can_manage_votes=models.ElectionRole.VOTE in perms,
-                    can_observe=models.ElectionRole.OBSERVER in perms,
-                )
+        return [
+            schemas.Election(
+                id=e.id,
+                name=e.name,
+                date=e.date,
+                status=e.status,
+                registration_start=e.registration_start,
+                registration_end=e.registration_end,
             )
-        return result
+            for e in elections
+        ]
+
+    # Non-admin users only see elections where they have an assigned role
+    user = (
+        db.query(models.User)
+        .filter_by(username=current_user["username"])
+        .first()
+    )
+    query = (
+        query.join(models.ElectionUserRole)
+        .filter(models.ElectionUserRole.user_id == user.id)
+    )
     elections = query.all()
-    return [
-        schemas.Election(
-            id=e.id,
-            name=e.name,
-            date=e.date,
-            status=e.status,
-            registration_start=e.registration_start,
-            registration_end=e.registration_end,
+    roles = (
+        db.query(models.ElectionUserRole)
+        .filter_by(user_id=user.id)
+        .all()
+    )
+    role_map: dict[int, list[models.ElectionRole]] = {}
+    for r in roles:
+        role_map.setdefault(r.election_id, []).append(r.role)
+    result: List[schemas.Election] = []
+    for e in elections:
+        perms = role_map.get(e.id, [])
+        result.append(
+            schemas.Election(
+                id=e.id,
+                name=e.name,
+                date=e.date,
+                status=e.status,
+                registration_start=e.registration_start,
+                registration_end=e.registration_end,
+                can_manage_attendance=models.ElectionRole.ATTENDANCE in perms,
+                can_manage_votes=models.ElectionRole.VOTE in perms,
+                can_observe=models.ElectionRole.OBSERVER in perms,
+            )
         )
-        for e in elections
-    ]
+    return result
 
 
 @router.get(

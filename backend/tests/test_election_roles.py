@@ -23,6 +23,26 @@ def setup_db():
     return reg1_id, reg2_id
 
 
+def setup_registrars_db():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    admin = models.User(
+        username="admin", hashed_password=hash_password("pass"), role="ADMIN_BVG"
+    )
+    att = models.User(
+        username="att", hashed_password=hash_password("pass"), role="REGISTRADOR_ASISTENCIA"
+    )
+    vote = models.User(
+        username="vote", hashed_password=hash_password("pass"), role="REGISTRADOR_VOTOS"
+    )
+    db.add_all([admin, att, vote])
+    db.commit()
+    att_id, vote_id = att.id, vote.id
+    db.close()
+    return att_id, vote_id
+
+
 def login(username: str):
     token = client.post("/auth/login", json={"username": username, "password": "pass"}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
@@ -100,3 +120,38 @@ def test_manage_election_user_roles():
     assert resp.status_code == 204
     resp = client.get(f"/elections/{election_id}/users", headers=admin_headers)
     assert resp.json() == []
+
+
+def test_registrar_users_see_assigned_election():
+    att_id, vote_id = setup_registrars_db()
+    admin_headers = login("admin")
+    resp = client.post(
+        "/elections",
+        json={
+            "name": "A",
+            "date": "2024-01-01",
+            "attendance_registrars": [att_id],
+        },
+        headers=admin_headers,
+    )
+    election1 = resp.json()["id"]
+    resp = client.post(
+        "/elections",
+        json={
+            "name": "B",
+            "date": "2024-01-01",
+            "vote_registrars": [vote_id],
+        },
+        headers=admin_headers,
+    )
+    election2 = resp.json()["id"]
+    att_headers = login("att")
+    resp = client.get("/elections", headers=att_headers)
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1
+    assert resp.json()[0]["id"] == election1
+    vote_headers = login("vote")
+    resp = client.get("/elections", headers=vote_headers)
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1
+    assert resp.json()[0]["id"] == election2
