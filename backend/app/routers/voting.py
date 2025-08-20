@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas, database
-from ..security import require_role
+from ..security import require_role, get_current_user
 
 router = APIRouter(prefix="", tags=["voting"])
 
@@ -53,10 +53,38 @@ def create_option(ballot_id: int, option: schemas.OptionCreate, db: Session = De
 @router.post(
     "/ballots/{ballot_id}/vote",
     response_model=schemas.Vote,
-    dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG"])]
 )
-def cast_vote(ballot_id: int, vote: schemas.VoteCreate, db: Session = Depends(get_db)):
-    option = db.query(models.BallotOption).filter_by(id=vote.option_id, ballot_id=ballot_id).first()
+def cast_vote(
+    ballot_id: int,
+    vote: schemas.VoteCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    ballot = db.query(models.Ballot).filter_by(id=ballot_id).first()
+    if not ballot:
+        raise HTTPException(status_code=404, detail="Ballot not found")
+    if current_user["role"] != "ADMIN_BVG":
+        user = (
+            db.query(models.User)
+            .filter_by(username=current_user["username"])
+            .first()
+        )
+        allowed = (
+            db.query(models.ElectionUserRole)
+            .filter_by(
+                election_id=ballot.election_id,
+                user_id=user.id,
+                role=models.ElectionRole.VOTE,
+            )
+            .first()
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No autorizado")
+    option = (
+        db.query(models.BallotOption)
+        .filter_by(id=vote.option_id, ballot_id=ballot_id)
+        .first()
+    )
     if not option:
         raise HTTPException(status_code=400, detail="Invalid option for ballot")
     db_vote = models.Vote(ballot_id=ballot_id, option_id=vote.option_id)

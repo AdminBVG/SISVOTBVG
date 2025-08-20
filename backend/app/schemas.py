@@ -161,6 +161,8 @@ class ElectionBase(BaseModel):
 
 class ElectionCreate(ElectionBase):
     status: ElectionStatus = ElectionStatus.DRAFT
+    attendance_registrars: List[int] = []
+    vote_registrars: List[int] = []
 
 
 class ElectionUpdate(BaseModel):

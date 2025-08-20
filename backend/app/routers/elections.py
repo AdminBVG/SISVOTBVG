@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from .. import schemas, models, database
-from ..security import require_role
+from ..security import require_role, get_current_user
 
 router = APIRouter(prefix="/elections", tags=["elections"])
 
@@ -17,10 +17,28 @@ def get_db():
 
 @router.post("", response_model=schemas.Election, dependencies=[require_role(["ADMIN_BVG"])])
 def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_db)):
-    db_election = models.Election(**election.model_dump())
+    data = election.model_dump(exclude={"attendance_registrars", "vote_registrars"})
+    db_election = models.Election(**data)
     db.add(db_election)
     db.commit()
     db.refresh(db_election)
+    for uid in election.attendance_registrars:
+        db.add(
+            models.ElectionUserRole(
+                election_id=db_election.id,
+                user_id=uid,
+                role=models.ElectionRole.ATTENDANCE,
+            )
+        )
+    for uid in election.vote_registrars:
+        db.add(
+            models.ElectionUserRole(
+                election_id=db_election.id,
+                user_id=uid,
+                role=models.ElectionRole.VOTE,
+            )
+        )
+    db.commit()
     return db_election
 
 
@@ -29,8 +47,21 @@ def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_
     response_model=List[schemas.Election],
     dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG", "OBSERVADOR_BVG"])]
 )
-def list_elections(db: Session = Depends(get_db)):
-    return db.query(models.Election).all()
+def list_elections(
+    db: Session = Depends(get_db), current_user=Depends(get_current_user)
+):
+    query = db.query(models.Election)
+    if current_user["role"] == "REGISTRADOR_BVG":
+        user = (
+            db.query(models.User)
+            .filter_by(username=current_user["username"])
+            .first()
+        )
+        query = (
+            query.join(models.ElectionUserRole)
+            .filter(models.ElectionUserRole.user_id == user.id)
+        )
+    return query.all()
 
 
 @router.get(
