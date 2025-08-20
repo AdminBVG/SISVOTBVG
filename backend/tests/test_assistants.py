@@ -1,6 +1,3 @@
-+101
--0
-
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import Base, engine, SessionLocal
@@ -102,3 +99,43 @@ def test_import_attendees_excel_missing_columns():
         headers=headers,
     )
     assert resp.status_code == 400
+
+
+def test_get_update_delete_attendee():
+    headers, election_id = setup_auth_and_election()
+    data = create_csv([["1", "Alice", "", "", 10]])
+    files = {"file": ("attendees.csv", data, "text/csv")}
+    resp = client.post(
+        f"/elections/{election_id}/assistants/import-excel",
+        files=files,
+        headers=headers,
+    )
+    attendee_id = resp.json()[0]["id"]
+
+    get_resp = client.get(
+        f"/elections/{election_id}/assistants/{attendee_id}",
+        headers=headers,
+    )
+    assert get_resp.status_code == 200
+    assert get_resp.json()["identifier"] == "1"
+
+    update_resp = client.put(
+        f"/elections/{election_id}/assistants/{attendee_id}",
+        json={"acciones": 20},
+        headers=headers,
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["acciones"] == 20
+
+    del_resp = client.delete(
+        f"/elections/{election_id}/assistants/{attendee_id}",
+        headers=headers,
+    )
+    assert del_resp.status_code == 204
+    list_resp = client.get(
+        f"/elections/{election_id}/assistants",
+        headers=headers,
+    )
+    assert list_resp.status_code == 200
+    assert list_resp.json() == []
+

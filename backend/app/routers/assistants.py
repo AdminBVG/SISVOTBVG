@@ -88,3 +88,58 @@ def import_attendees_excel(
 )
 def list_attendees(election_id: int, db: Session = Depends(get_db)):
     return db.query(models.Attendee).filter_by(election_id=election_id).all()
+
+
+@router.get(
+    "/{attendee_id}",
+    response_model=schemas.Attendee,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+)
+def get_attendee(
+    election_id: int,
+    attendee_id: int,
+    db: Session = Depends(get_db),
+):
+    attendee = db.query(models.Attendee).filter_by(id=attendee_id, election_id=election_id).first()
+    if not attendee:
+        raise HTTPException(status_code=404, detail="attendee not found")
+    return attendee
+
+
+@router.put(
+    "/{attendee_id}",
+    response_model=schemas.Attendee,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
+def update_attendee(
+    election_id: int,
+    attendee_id: int,
+    payload: schemas.AttendeeUpdate,
+    db: Session = Depends(get_db),
+):
+    attendee = db.query(models.Attendee).filter_by(id=attendee_id, election_id=election_id).first()
+    if not attendee:
+        raise HTTPException(status_code=404, detail="attendee not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(attendee, field, value)
+    db.commit()
+    db.refresh(attendee)
+    return attendee
+
+
+@router.delete(
+    "/{attendee_id}",
+    status_code=204,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
+def delete_attendee(
+    election_id: int,
+    attendee_id: int,
+    db: Session = Depends(get_db),
+):
+    attendee = db.query(models.Attendee).filter_by(id=attendee_id, election_id=election_id).first()
+    if not attendee:
+        raise HTTPException(status_code=404, detail="attendee not found")
+    db.delete(attendee)
+    db.commit()
+

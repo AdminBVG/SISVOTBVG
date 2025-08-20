@@ -86,3 +86,50 @@ def test_import_preview_and_confirm_shareholders_csv():
     )
     assert empty_resp.status_code == 200
     assert len(empty_resp.json()) == 0
+
+
+def test_get_update_delete_shareholder():
+    headers, election_id = setup_auth_and_election()
+    payload = [
+        {
+            "code": "SH1",
+            "name": "Alice",
+            "document": "D1",
+            "email": "a@example.com",
+            "actions": 10,
+        }
+    ]
+    resp = client.post(
+        f"/elections/{election_id}/shareholders/import",
+        json=payload,
+        headers=headers,
+    )
+    shareholder_id = resp.json()[0]["id"]
+
+    get_resp = client.get(
+        f"/elections/{election_id}/shareholders/{shareholder_id}",
+        headers=headers,
+    )
+    assert get_resp.status_code == 200
+    assert get_resp.json()["code"] == "SH1"
+
+    update_resp = client.put(
+        f"/elections/{election_id}/shareholders/{shareholder_id}",
+        json={"name": "Alice Updated"},
+        headers=headers,
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["name"] == "Alice Updated"
+
+    del_resp = client.delete(
+        f"/elections/{election_id}/shareholders/{shareholder_id}",
+        headers=headers,
+    )
+    assert del_resp.status_code == 204
+    list_resp = client.get(
+        f"/elections/{election_id}/shareholders",
+        headers=headers,
+    )
+    assert list_resp.status_code == 200
+    assert list_resp.json() == []
+
