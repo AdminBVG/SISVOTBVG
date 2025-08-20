@@ -13,7 +13,11 @@ const AuditLogs: React.FC = () => {
     <Card className="p-4">
       <h1 className="text-lg font-semibold mb-4">Auditoría</h1>
       {isLoading && <p>Cargando...</p>}
-      {error && <p className="text-red-600">Error al cargar auditoría</p>}
+      {error && (
+        <p role="alert" className="text-body">
+          Error al cargar auditoría
+        </p>
+      )}
       {!isLoading && !error && (
         <Table>
           <TableHeader>

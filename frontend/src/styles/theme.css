@@ -1,0 +1,80 @@
+:root {
+  --bvg-blue: #0d6efd; /* TODO: replace with actual BVG blue */
+  --bvg-blue-rgb: 13,110,253;
+  --bs-primary: var(--bvg-blue);
+  --bs-primary-rgb: var(--bvg-blue-rgb);
+  --bs-link-color: var(--bvg-blue);
+  --bs-link-hover-color: #0a58ca;
+  --bs-focus-ring-color: rgba(var(--bvg-blue-rgb), .25);
+  --bs-font-sans-serif: 'Poppins', system-ui, sans-serif;
+  --bs-border-radius: .5rem;
+  --bs-border-radius-sm: .375rem;
+  --bs-border-radius-lg: .75rem;
+  --bs-body-bg: #f8fafc;
+  --bs-body-color: #212529;
+  --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
+  --shadow-md: 0 .5rem 1rem rgba(0,0,0,.15);
+  --transition-base: 200ms ease-out;
+}
+
+[data-theme='dark'] {
+  --bs-body-bg: #0f172a;
+  --bs-body-color: #f1f5f9;
+  --bs-border-color: #334155;
+  --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.15);
+  --shadow-md: 0 .5rem 1rem rgba(0,0,0,.3);
+}
+
+body {
+  font-family: var(--bs-font-sans-serif);
+  line-height: 1.5;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+.btn,
+.nav-link,
+.form-control,
+.card,
+.alert,
+.badge,
+.list-group-item,
+.dropdown-menu,
+.modal-content,
+.offcanvas,
+.toast,
+.table {
+  transition: background-color var(--transition-base),
+    color var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--bvg-blue);
+  --bs-btn-border-color: var(--bvg-blue);
+  --bs-btn-hover-bg: #0b5ed7;
+  --bs-btn-hover-border-color: #0b5ed7;
+  --bs-btn-active-bg: #0a58ca;
+  --bs-btn-active-border-color: #0a58ca;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--bvg-blue);
+  --bs-btn-border-color: var(--bvg-blue);
+  --bs-btn-hover-bg: var(--bvg-blue);
+  --bs-btn-hover-border-color: var(--bvg-blue);
+  --bs-btn-active-bg: #0b5ed7;
+  --bs-btn-active-border-color: #0b5ed7;
+}
+
+:focus-visible {
+  outline: 2px solid var(--bvg-blue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+  }
+}

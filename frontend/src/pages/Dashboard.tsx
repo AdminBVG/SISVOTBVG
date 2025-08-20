@@ -9,36 +9,37 @@ const Dashboard: React.FC = () => {
   const { data, isLoading, error } = useDashboardStats(electionId);
 
   if (isLoading) return <p>Cargando...</p>;
-  if (error || !data) return <p className="text-red-600">Error al cargar estadísticas</p>;
+  if (error || !data)
+    return (
+      <p role="alert" className="text-body">
+        Error al cargar estadísticas
+      </p>
+    );
 
   const pieData = [
-    { name: 'Presencial', value: data.presencial, color: '#14532d' },
-    { name: 'Virtual', value: data.virtual, color: '#16a34a' },
-    { name: 'Ausente', value: data.ausente, color: '#9ca3af' },
+    { name: 'Presencial', value: data.presencial, color: 'var(--bvg-blue)' },
+    { name: 'Virtual', value: data.virtual, color: '#6c757d' },
+    { name: 'Ausente', value: data.ausente, color: '#ced4da' },
   ];
 
   const barData = [
-    { name: 'Directo', value: data.capital_presente_directo, color: '#14532d' },
-    { name: 'Representado', value: data.capital_presente_representado, color: '#16a34a' },
+    { name: 'Directo', value: data.capital_presente_directo, color: 'var(--bvg-blue)' },
+    { name: 'Representado', value: data.capital_presente_representado, color: '#6c757d' },
   ];
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-xl font-semibold mb-4">Dashboard</h1>
-      <div className="flex flex-col md:flex-row md:space-x-8">
-        <div className="mt-4" role="img" aria-label="Distribución de asistencia">
+    <div className="container py-4">
+      <h1 className="h4 mb-4">Dashboard</h1>
+      <div className="d-flex flex-column flex-md-row gap-4">
+        <div role="img" aria-label="Distribución de asistencia">
           <PieChart width={300} height={200} data={pieData} />
-          <p className="sr-only">
+          <p className="visually-hidden">
             Presencial {data.presencial}, Virtual {data.virtual}, Ausente {data.ausente}
           </p>
         </div>
-        <div
-          className="mt-6 md:mt-0"
-          role="img"
-          aria-label="Capital presente directo versus representado"
-        >
+        <div role="img" aria-label="Capital presente directo versus representado">
           <BarChart width={300} height={200} data={barData} />
-          <p className="sr-only">
+          <p className="visually-hidden">
             Directo {data.capital_presente_directo}, Representado {data.capital_presente_representado}
           </p>
         </div>

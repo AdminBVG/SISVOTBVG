@@ -41,19 +41,19 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="d-flex min-vh-100">
       <aside
-        className={`w-56 bg-gray-800 text-white p-4 ${menuOpen ? 'block' : 'hidden'} md:block`}
+        className={`bg-dark text-white p-4 shadow-sm ${menuOpen ? 'd-block' : 'd-none d-md-block'}`}
       >
-        <h2 className="text-xl font-semibold mb-4">BVG</h2>
-        <nav className="space-y-2">
+        <h2 className="h5 fw-semibold mb-4">BVG</h2>
+        <nav className="nav flex-column gap-2">
           {links.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
               onClick={() => setMenuOpen(false)}
               className={({ isActive }) =>
-                `block hover:underline ${isActive ? 'font-bold' : ''}`
+                `nav-link px-0 ${isActive ? 'active fw-semibold' : 'text-white-50'}`
               }
             >
               {l.label}
@@ -61,31 +61,31 @@ const Layout: React.FC = () => {
           ))}
         </nav>
       </aside>
-      <div className="flex-1 flex flex-col">
-        <header className="bg-gray-100 p-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
+      <div className="flex-grow-1 d-flex flex-column">
+        <header className="bg-light p-3 d-flex justify-content-between align-items-center shadow-sm">
+          <div className="d-flex align-items-center gap-2">
             <button
-              className="md:hidden p-2 border rounded"
+              className="btn btn-outline-secondary d-md-none"
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Toggle menu"
             >
               ☰
             </button>
-            <h1 className="font-semibold">Sistema de Asistentes BVG</h1>
+            <h1 className="h6 mb-0">Sistema de Asistentes BVG</h1>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="d-flex align-items-center gap-3">
             {username && role && (
-              <span className="text-sm text-gray-700">{role} - {username}</span>
+              <span className="small text-secondary">{role} - {username}</span>
             )}
             <button
               onClick={handleLogout}
-              className="flex items-center text-sm text-gray-700 hover:underline"
+              className="btn btn-link p-0 d-flex align-items-center text-secondary text-decoration-none"
             >
-              <LogOut className="w-4 h-4 mr-1" /> Cerrar sesión
+              <LogOut width={16} height={16} className="me-1" /> Cerrar sesión
             </button>
           </div>
         </header>
-        <main className="flex-1 p-4">
+        <main className="flex-grow-1 p-4">
           <Outlet />
         </main>
       </div>

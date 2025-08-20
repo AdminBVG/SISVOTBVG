@@ -44,7 +44,11 @@ const Asistencia: React.FC = () => {
           onChange={(e) => setSearch(e.target.value)}
         />
         {isLoading && <p>Cargando...</p>}
-        {error && <p className="text-red-600">Error al cargar accionistas</p>}
+        {error && (
+          <p role="alert" className="text-body">
+            Error al cargar accionistas
+          </p>
+        )}
         {!isLoading && !error && (
           <Table>
             <TableHeader>

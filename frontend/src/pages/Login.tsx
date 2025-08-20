@@ -39,13 +39,17 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
-      <Card className="p-8 w-full max-w-md bg-white/80 backdrop-blur-sm animate-fade-in">
-        <form onSubmit={onSubmit} className="space-y-4">
-          <h1 className="text-2xl font-semibold text-center">Ingreso</h1>
-          {error && <p className="text-red-600 text-center">{error}</p>}
+    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light p-4">
+      <Card className="p-4 w-100" style={{ maxWidth: '24rem' }}>
+        <form onSubmit={onSubmit} className="d-flex flex-column gap-3">
+          <h1 className="h4 text-center">Ingreso</h1>
+          {error && (
+            <p role="alert" className="text-primary text-center">
+              {error}
+            </p>
+          )}
           <div>
-            <label htmlFor="username" className="mb-1 block text-sm font-medium">
+            <label htmlFor="username" className="form-label">
               Usuario
             </label>
             <Input
@@ -58,7 +62,7 @@ const Login: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium">
+            <label htmlFor="password" className="form-label">
               Contraseña
             </label>
             <Input
@@ -70,7 +74,7 @@ const Login: React.FC = () => {
               autoComplete="current-password"
             />
           </div>
-          <Button type="submit" className="w-full" disabled={mutation.isLoading}>
+          <Button type="submit" className="w-100" disabled={mutation.isLoading}>
             {mutation.isLoading ? 'Ingresando…' : 'Ingresar'}
           </Button>
         </form>

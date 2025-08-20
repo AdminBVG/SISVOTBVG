@@ -126,7 +126,11 @@ const Votaciones: React.FC = () => {
       <Card className="p-4">
         <h2 className="text-lg font-semibold mb-4">Votaciones</h2>
         {isLoading && <p>Cargando...</p>}
-        {error && <p className="text-red-600">Error al cargar votaciones</p>}
+        {error && (
+          <p role="alert" className="text-body">
+            Error al cargar votaciones
+          </p>
+        )}
         {!isLoading && !error && (
           <Table>
             <TableHeader>
