@@ -33,6 +33,18 @@ def list_elections(db: Session = Depends(get_db)):
     return db.query(models.Election).all()
 
 
+@router.get(
+    "/{election_id}",
+    response_model=schemas.Election,
+    dependencies=[require_role(["ADMIN_BVG", "REGISTRADOR_BVG", "OBSERVADOR_BVG"])]
+)
+def get_election(election_id: int, db: Session = Depends(get_db)):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    return election
+
+
 @router.patch(
     "/{election_id}",
     response_model=schemas.Election,
@@ -90,3 +102,19 @@ def update_status(election_id: int, payload: schemas.ElectionStatusUpdate, db: S
     db.commit()
     db.refresh(election)
     return election
+
+
+@router.delete(
+    "/{election_id}",
+    status_code=204,
+    dependencies=[require_role(["ADMIN_BVG"])]
+)
+def delete_election(election_id: int, db: Session = Depends(get_db)):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    if election.status != models.ElectionStatus.DRAFT:
+        raise HTTPException(status_code=400, detail="Only draft elections can be deleted")
+    db.delete(election)
+    db.commit()
+    return None

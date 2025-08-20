@@ -220,3 +220,52 @@ class Attendee(AttendeeBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class BallotBase(BaseModel):
+    title: str
+
+
+class BallotCreate(BallotBase):
+    pass
+
+
+class Ballot(BallotBase):
+    id: int
+    election_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OptionBase(BaseModel):
+    text: str
+
+
+class OptionCreate(OptionBase):
+    pass
+
+
+class Option(OptionBase):
+    id: int
+    ballot_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VoteBase(BaseModel):
+    option_id: int
+
+
+class VoteCreate(VoteBase):
+    pass
+
+
+class Vote(VoteBase):
+    id: int
+    ballot_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OptionResult(Option):
+    votes: int
+
