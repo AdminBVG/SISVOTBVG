@@ -13,19 +13,16 @@ const Layout: React.FC = () => {
   let links: { to: string; label: string }[] = [];
   if (role === 'FUNCIONAL_BVG') {
     if (base) {
-      links = [
-        { to: `${base}/upload`, label: 'Carga de padrón' },
-        { to: `${base}/attendance`, label: 'Registro' },
-        { to: `${base}/proxies`, label: 'Apoderados' },
-      ];
+      links = [{ to: `${base}/attendance`, label: 'Registro' }];
     }
   } else if (role === 'ADMIN_BVG') {
     links = [{ to: '/votaciones', label: 'Votaciones' }];
     if (base) {
       links.push(
-        { to: `${base}/dashboard`, label: 'Dashboard' },
+        { to: `${base}/upload`, label: 'Carga de padrón' },
         { to: `${base}/attendance`, label: 'Registro de asistencia' },
         { to: `${base}/proxies`, label: 'Apoderados' },
+        { to: `${base}/dashboard`, label: 'Dashboard' },
       );
     }
     links.push({ to: '/users', label: 'Usuarios' });

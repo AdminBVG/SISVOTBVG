@@ -38,7 +38,7 @@ const Votaciones: React.FC = () => {
   const [editDate, setEditDate] = useState('');
 
   const { data: elections, isLoading, error, refetch } = useElections();
-  const { data: users } = useUsers();
+  const { data: users } = useUsers(role === 'ADMIN_BVG');
   const registrarUsers = users?.filter((u) => u.role === 'FUNCIONAL_BVG') || [];
   const { mutate, isLoading: creating } = useCreateElection(() => {
     toast('Votación creada');

@@ -27,23 +27,19 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}>
-                <Route element={<Layout />}> 
-                  <Route path="/votaciones" element={<Votaciones />} /> 
-                </Route> 
-              </Route> 
-              <Route element={<ProtectedRoute roles={["FUNCIONAL_BVG"]} />}>
-                <Route element={<Layout />}> 
-                  <Route path="/votaciones/:id/upload" element={<UploadShareholders />} /> 
-                </Route> 
-              </Route> 
+                <Route element={<Layout />}>
+                  <Route path="/votaciones" element={<Votaciones />} />
+                </Route>
+              </Route>
               <Route element={<ProtectedRoute roles={["FUNCIONAL_BVG", "ADMIN_BVG"]} />}>
-                <Route element={<Layout />}> 
-                  <Route path="/votaciones/:id/attendance" element={<Asistencia />} /> 
-                  <Route path="/votaciones/:id/proxies" element={<Proxies />} /> 
-                </Route> 
-              </Route> 
-              <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}> 
-                <Route element={<Layout />}> 
+                <Route element={<Layout />}>
+                  <Route path="/votaciones/:id/attendance" element={<Asistencia />} />
+                </Route>
+              </Route>
+              <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}>
+                <Route element={<Layout />}>
+                  <Route path="/votaciones/:id/upload" element={<UploadShareholders />} />
+                  <Route path="/votaciones/:id/proxies" element={<Proxies />} />
                   <Route path="/votaciones/:id/assistants" element={<ManageAssistants />} />
                   <Route path="/votaciones/:id/audit" element={<AuditLogs />} />
                   <Route path="/users" element={<ManageUsers />} />
