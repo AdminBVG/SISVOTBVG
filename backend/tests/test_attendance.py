@@ -71,6 +71,23 @@ def test_bulk_mark_attendance():
     assert all(r["mode"] == "PRESENCIAL" for r in result)
 
 
+def test_duplicate_mark_rejected():
+    headers, election_id = setup_env()
+    data = [{"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10}]
+    client.post(f"/elections/{election_id}/shareholders/import", json=data, headers=headers)
+    assert client.post(
+        f"/elections/{election_id}/attendance/SH1/mark",
+        json={"mode": "PRESENCIAL"},
+        headers=headers,
+    ).status_code == 200
+    resp = client.post(
+        f"/elections/{election_id}/attendance/SH1/mark",
+        json={"mode": "PRESENCIAL"},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
 def test_quorum_summary():
     headers, election_id = setup_env()
     data = [
@@ -237,3 +254,26 @@ def test_registration_window_blocks_marking():
         ).status_code
         == 200
     )
+
+
+def test_attendance_export():
+    headers, election_id = setup_env()
+    data = [
+        {"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10}
+    ]
+    client.post(
+        f"/elections/{election_id}/shareholders/import",
+        json=data,
+        headers=headers,
+    )
+    client.post(
+        f"/elections/{election_id}/attendance/SH1/mark",
+        json={"mode": "PRESENCIAL"},
+        headers=headers,
+    )
+    resp = client.get(f"/elections/{election_id}/attendance/export", headers=headers)
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+    lines = resp.text.strip().splitlines()
+    assert lines[0].startswith("code,name,mode,present")
+    assert any("SH1,Alice,PRESENCIAL,True" in line for line in lines[1:])

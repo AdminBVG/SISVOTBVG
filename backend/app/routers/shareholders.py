@@ -178,3 +178,81 @@ def list_shareholders(
             schemas.ShareholderWithAttendance(**data, attendance_mode=mode)
         )
     return result
+
+
+@router.get(
+    "/{shareholder_id}",
+    response_model=schemas.ShareholderWithAttendance,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG", "OBSERVADOR_BVG"])]
+)
+def get_shareholder(
+    election_id: int,
+    shareholder_id: int,
+    db: Session = Depends(get_db),
+):
+    row = (
+        db.query(models.Shareholder, models.Attendance.mode)
+        .outerjoin(
+            models.Attendance,
+            (models.Shareholder.id == models.Attendance.shareholder_id)
+            & (models.Attendance.election_id == election_id),
+        )
+        .filter(models.Shareholder.id == shareholder_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="shareholder not found")
+    sh, mode = row
+    data = schemas.Shareholder.model_validate(sh).model_dump()
+    return schemas.ShareholderWithAttendance(**data, attendance_mode=mode)
+
+
+@router.put(
+    "/{shareholder_id}",
+    response_model=schemas.Shareholder,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
+def update_shareholder(
+    election_id: int,
+    shareholder_id: int,
+    payload: schemas.ShareholderUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    shareholder = db.query(models.Shareholder).get(shareholder_id)
+    if not shareholder:
+        raise HTTPException(status_code=404, detail="shareholder not found")
+    enforce_registration_window(db, election_id, current_user)
+    data = payload.model_dump(exclude_unset=True)
+    if "code" in data and data["code"] != shareholder.code:
+        if db.query(models.Shareholder).filter_by(code=data["code"]).first():
+            raise HTTPException(status_code=400, detail="code already exists")
+    for field, value in data.items():
+        setattr(shareholder, field, value)
+    _log(db, election_id, current_user, "SHAREHOLDER_UPDATE", request, {"shareholder_id": shareholder.id})
+    db.commit()
+    db.refresh(shareholder)
+    return shareholder
+
+
+@router.delete(
+    "/{shareholder_id}",
+    status_code=204,
+    dependencies=[require_role(["REGISTRADOR_BVG", "ADMIN_BVG"])]
+)
+def delete_shareholder(
+    election_id: int,
+    shareholder_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    shareholder = db.query(models.Shareholder).get(shareholder_id)
+    if not shareholder:
+        raise HTTPException(status_code=404, detail="shareholder not found")
+    enforce_registration_window(db, election_id, current_user)
+    db.delete(shareholder)
+    _log(db, election_id, current_user, "SHAREHOLDER_DELETE", request, {"shareholder_id": shareholder.id})
+    db.commit()
+
