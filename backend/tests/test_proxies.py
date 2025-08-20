@@ -190,3 +190,66 @@ def test_proxy_pdf_type_validation():
         f"/elections/{election_id}/proxies", files=files, headers=headers
     )
     assert resp.status_code == 400
+
+
+def test_update_and_delete_proxy():
+    headers, election_id = setup_env()
+    person_id, shareholder_id = setup_entities()
+    create_payload = {
+        "election_id": election_id,
+        "proxy_person_id": person_id,
+        "tipo_doc": "ID",
+        "num_doc": "123",
+        "fecha_otorg": "2024-01-01",
+        "fecha_vigencia": "2030-01-01",
+        "assignments": [
+            {
+                "shareholder_id": shareholder_id,
+                "weight_actions_snapshot": 10,
+                "valid_from": None,
+                "valid_until": None,
+            }
+        ],
+    }
+    files = {
+        "pdf": ("power.pdf", b"%PDF-1.4 test", "application/pdf"),
+        "data": (None, json.dumps(create_payload), "application/json"),
+    }
+    resp = client.post(
+        f"/elections/{election_id}/proxies", files=files, headers=headers
+    )
+    proxy_id = resp.json()["id"]
+
+    update_payload = {
+        "election_id": election_id,
+        "proxy_person_id": person_id,
+        "tipo_doc": "ID",
+        "num_doc": "999",
+        "fecha_otorg": "2024-01-01",
+        "fecha_vigencia": "2030-01-01",
+        "assignments": [],
+    }
+    update_files = {
+        "data": (None, json.dumps(update_payload), "application/json"),
+    }
+    update_resp = client.put(
+        f"/elections/{election_id}/proxies/{proxy_id}",
+        files=update_files,
+        headers=headers,
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["num_doc"] == "999"
+    assert update_resp.json()["assignments"] == []
+
+    del_resp = client.delete(
+        f"/elections/{election_id}/proxies/{proxy_id}",
+        headers=headers,
+    )
+    assert del_resp.status_code == 204
+    list_resp = client.get(
+        f"/elections/{election_id}/proxies",
+        headers=headers,
+    )
+    assert list_resp.status_code == 200
+    assert list_resp.json() == []
+

@@ -16,6 +16,14 @@ class ShareholderCreate(ShareholderBase):
     pass
 
 
+class ShareholderUpdate(BaseModel):
+    code: Optional[str] = None
+    name: Optional[str] = None
+    document: Optional[str] = None
+    email: Optional[EmailStr] = None
+    actions: Optional[float] = None
+
+
 class Shareholder(ShareholderBase):
     id: int
     status: str
@@ -212,6 +220,14 @@ class AttendeeBase(BaseModel):
     representante: Optional[str] = None
     apoderado: Optional[str] = None
     acciones: float
+
+
+class AttendeeUpdate(BaseModel):
+    identifier: Optional[str] = None
+    accionista: Optional[str] = None
+    representante: Optional[str] = None
+    apoderado: Optional[str] = None
+    acciones: Optional[float] = None
 
 
 class Attendee(AttendeeBase):
