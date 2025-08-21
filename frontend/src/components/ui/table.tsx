@@ -1,11 +1,11 @@
 import React from 'react';
 
 export const Table: React.FC<React.TableHTMLAttributes<HTMLTableElement>> = ({ className = '', ...props }) => (
-  <table className={`table table-sm ${className}`} {...props} />
+  <table className={`table bvg-table ${className}`} {...props} />
 );
 
 export const TableHeader: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> = ({ className = '', ...props }) => (
-  <thead className={`table-light ${className}`} {...props} />
+  <thead className={className} {...props} />
 );
 
 export const TableBody: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> = ({ className = '', ...props }) => (
