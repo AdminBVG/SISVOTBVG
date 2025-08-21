@@ -118,6 +118,18 @@ const Votaciones: React.FC = () => {
                           >
                             Roles
                           </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`/votaciones/${e.id}/observer`)}
+                          >
+                            Observador
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`/votaciones/${e.id}/ballots`)}
+                          >
+                            Boletas
+                          </Button>
                           {!open && <span className="text-sm text-gray-500">Bloqueada</span>}
                           <Button
                             variant="outline"
@@ -147,6 +159,18 @@ const Votaciones: React.FC = () => {
                               Gestionar votos
                             </Button>
                           )}
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`/votaciones/${e.id}/observer`)}
+                          >
+                            Observador
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`/votaciones/${e.id}/ballots`)}
+                          >
+                            Boletas
+                          </Button>
                           {!open && <span className="text-sm text-gray-500">Bloqueada</span>}
                         </>
                       )}
