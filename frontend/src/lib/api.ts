@@ -6,8 +6,15 @@ export async function apiFetch<T = any>(path: string, init: RequestInit = {}): P
   const headers: HeadersInit = {
     ...(init.headers || {}),
   };
+  let body = init.body as any;
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(base + path, { ...init, headers });
+
+  if (body && !(body instanceof FormData) && typeof body === 'object') {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+    body = JSON.stringify(body);
+  }
+
+  const res = await fetch(base + path, { ...init, headers, body });
   if (!res.ok) {
     let message = res.statusText;
     try {

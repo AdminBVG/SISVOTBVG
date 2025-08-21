@@ -54,13 +54,10 @@ const CreateElectionWizard: React.FC = () => {
   // Step 4 - ballot
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
 
-  const { mutateAsync, isLoading } = useCreateElection(
-    () => {
-      toast('Votación creada');
-      navigate('/votaciones');
-    },
-    (err) => toast(err.message)
-  );
+  const { mutateAsync, isLoading } = useCreateElection(() => {
+    toast('Votación creada');
+    navigate('/votaciones');
+  });
 
   const filteredUsers = users?.filter((u) =>
     u.username.toLowerCase().includes(userSearch.toLowerCase())
@@ -98,7 +95,7 @@ const CreateElectionWizard: React.FC = () => {
 
   const prev = () => setStep(step - 1);
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     if (!validateStep()) return;
     try {
       const payload: any = {
@@ -122,7 +119,7 @@ const CreateElectionWizard: React.FC = () => {
         await shImport.upload(election.id);
       }
     } catch (e) {
-      // error handled in hook
+      // error handled in useMutation
     }
   };
 
@@ -302,7 +299,7 @@ const CreateElectionWizard: React.FC = () => {
             </Button>
           )}
           {step === 5 && (
-            <Button type="button" onClick={handleCreate} disabled={isLoading}>
+            <Button type="button" onClick={handleSubmit} disabled={isLoading}>
               {isLoading ? 'Creando…' : 'Crear votación'}
             </Button>
           )}
