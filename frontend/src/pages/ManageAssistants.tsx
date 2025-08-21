@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Card from '../components/ui/card';
 import Button from '../components/ui/button';
+import Input from '../components/ui/input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../components/ui/table';
 import { useToast } from '../components/ui/toast';
-import { useAssistants } from '../hooks/useAssistants';
+import { useAssistants, Assistant } from '../hooks/useAssistants';
 import { useImportAssistants } from '../hooks/useImportAssistants';
+import { useUpdateAssistant } from '../hooks/useUpdateAssistant';
+import { useDeleteAssistant } from '../hooks/useDeleteAssistant';
 
 const ManageAssistants: React.FC = () => {
   const { id } = useParams();
@@ -13,12 +16,63 @@ const ManageAssistants: React.FC = () => {
   const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
 
-  const { data: assistants } = useAssistants(electionId);
+  const { data: assistants, refetch } = useAssistants(electionId);
   const importMutation = useImportAssistants(
     electionId,
-    () => toast('Asistentes cargados'),
+    () => {
+      toast('Asistentes cargados');
+      refetch();
+    },
     (err) => toast(err.message),
   );
+  const updateMutation = useUpdateAssistant(
+    electionId,
+    () => {
+      toast('Asistente actualizado');
+      setEditingId(null);
+      refetch();
+    },
+    (err) => toast(err.message),
+  );
+  const deleteMutation = useDeleteAssistant(
+    electionId,
+    () => {
+      toast('Asistente eliminado');
+      refetch();
+    },
+    (err) => toast(err.message),
+  );
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<Partial<Assistant>>({});
+
+  const startEdit = (a: Assistant) => {
+    setEditingId(a.id);
+    setForm(a);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({});
+  };
+
+  const saveEdit = () => {
+    if (editingId === null) return;
+    updateMutation.mutate({
+      id: editingId,
+      identifier: form.identifier,
+      accionista: form.accionista,
+      representante: form.representante || null,
+      apoderado: form.apoderado || null,
+      acciones: form.acciones,
+    });
+  };
+
+  const handleDelete = (id: number) => {
+    if (confirm('¿Eliminar asistente?')) {
+      deleteMutation.mutate({ id });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,16 +108,107 @@ const ManageAssistants: React.FC = () => {
               <TableHead>Representante</TableHead>
               <TableHead>Apoderado</TableHead>
               <TableHead>Acciones</TableHead>
+              <TableHead>Gestión</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {assistants?.map((a) => (
               <TableRow key={a.id}>
-                <TableCell>{a.identifier}</TableCell>
-                <TableCell>{a.accionista}</TableCell>
-                <TableCell>{a.representante || '-'}</TableCell>
-                <TableCell>{a.apoderado || '-'}</TableCell>
-                <TableCell>{a.acciones}</TableCell>
+                <TableCell>
+                  {editingId === a.id ? (
+                    <Input
+                      value={form.identifier || ''}
+                      onChange={(e) =>
+                        setForm({ ...form, identifier: e.target.value })
+                      }
+                    />
+                  ) : (
+                    a.identifier
+                  )}
+                </TableCell>
+                <TableCell>
+                  {editingId === a.id ? (
+                    <Input
+                      value={form.accionista || ''}
+                      onChange={(e) =>
+                        setForm({ ...form, accionista: e.target.value })
+                      }
+                    />
+                  ) : (
+                    a.accionista
+                  )}
+                </TableCell>
+                <TableCell>
+                  {editingId === a.id ? (
+                    <Input
+                      value={form.representante || ''}
+                      onChange={(e) =>
+                        setForm({ ...form, representante: e.target.value })
+                      }
+                    />
+                  ) : (
+                    a.representante || '-'
+                  )}
+                </TableCell>
+                <TableCell>
+                  {editingId === a.id ? (
+                    <Input
+                      value={form.apoderado || ''}
+                      onChange={(e) =>
+                        setForm({ ...form, apoderado: e.target.value })
+                      }
+                    />
+                  ) : (
+                    a.apoderado || '-'
+                  )}
+                </TableCell>
+                <TableCell>
+                  {editingId === a.id ? (
+                    <Input
+                      type="number"
+                      value={form.acciones ?? ''}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          acciones: e.target.value
+                            ? Number(e.target.value)
+                            : undefined,
+                        })
+                      }
+                    />
+                  ) : (
+                    a.acciones
+                  )}
+                </TableCell>
+                <TableCell className="space-x-2">
+                  {editingId === a.id ? (
+                    <>
+                      <Button onClick={saveEdit} disabled={updateMutation.isLoading}>
+                        Guardar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={cancelEdit}
+                        disabled={updateMutation.isLoading}
+                      >
+                        Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="link" onClick={() => startEdit(a)}>
+                        Editar
+                      </Button>
+                      <Button
+                        variant="link"
+                        onClick={() => handleDelete(a.id)}
+                        disabled={deleteMutation.isLoading}
+                      >
+                        Eliminar
+                      </Button>
+                    </>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
