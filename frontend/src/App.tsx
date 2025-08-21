@@ -20,6 +20,8 @@ import ManageElectionUsers from './pages/ManageElectionUsers';
 import AuditLogs from './pages/AuditLogs';
 import EditElection from './pages/EditElection';
 import CreateElectionWizard from './pages/CreateElectionWizard';
+import Observer from './pages/Observer';
+import Ballots from './pages/Ballots';
 import { ToastProvider } from './components/ui/toast';
 
 const queryClient = new QueryClient();
@@ -38,8 +40,8 @@ const App: React.FC = () => {
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}> 
                 <Route element={<Layout />}> 
-                  <Route path="/votaciones" element={<Votaciones />} />
-                </Route>
+                  <Route path="/votaciones" element={<Votaciones />} /> 
+                </Route> 
               </Route>
               <Route element={<ProtectedRoute roles={["FUNCIONAL_BVG", "ADMIN_BVG"]} />}>
                 <Route element={<Layout />}>
@@ -58,10 +60,12 @@ const App: React.FC = () => {
                   <Route path="/votaciones/:id/edit" element={<EditElection />} />
                 </Route>
               </Route>
-              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}>
-                <Route element={<Layout />}>
-                  <Route path="/votaciones/:id/dashboard" element={<Dashboard />} />
-                </Route>
+              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}> 
+                <Route element={<Layout />}> 
+                  <Route path="/votaciones/:id/dashboard" element={<Dashboard />} /> 
+                  <Route path="/votaciones/:id/observer" element={<Observer />} />
+                  <Route path="/votaciones/:id/ballots" element={<Ballots />} />
+                </Route> 
               </Route>
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
