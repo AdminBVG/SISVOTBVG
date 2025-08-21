@@ -1,30 +1,21 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut } from '../lib/icons';
 
 const Layout: React.FC = () => {
   const { role, username, logout } = useAuth();
   const navigate = useNavigate();
-  const { id } = useParams();
-  const base = id ? `/votaciones/${id}` : '';
 
   let links: { to: string; label: string }[] = [];
-  if (role === 'FUNCIONAL_BVG') {
-    if (base) {
-      links = [{ to: `${base}/attendance`, label: 'Registro' }];
-    }
-  } else if (role === 'ADMIN_BVG') {
+  if (role === 'ADMIN_BVG') {
+    links = [
+      { to: '/votaciones', label: 'Votaciones' },
+      { to: '/users', label: 'Usuarios' },
+      { to: '/config', label: 'Configuración' },
+    ];
+  } else if (role === 'FUNCIONAL_BVG') {
     links = [{ to: '/votaciones', label: 'Votaciones' }];
-    if (base) {
-      links.push(
-        { to: `${base}/upload`, label: 'Carga de padrón' },
-        { to: `${base}/attendance`, label: 'Registro de asistencia' },
-        { to: `${base}/proxies`, label: 'Apoderados' },
-        { to: `${base}/dashboard`, label: 'Dashboard' },
-      );
-    }
-    links.push({ to: '/users', label: 'Usuarios' });
   }
 
   const handleLogout = () => {
@@ -33,13 +24,10 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="app-gradient min-vh-100 d-flex flex-column">
-      <div className="floating-shape shape-1" />
-      <div className="floating-shape shape-2" />
-      <div className="floating-shape shape-3" />
-      <nav className="navbar navbar-expand-md bvg-navbar fixed-top">
+    <div className="min-vh-100 d-flex flex-column">
+      <nav className="navbar navbar-expand-md bg-white border-bottom fixed-top">
         <div className="container-fluid">
-          <NavLink to="/votaciones" className="navbar-brand fw-bold text-white">
+          <NavLink to="/" className="navbar-brand fw-bold">
             BVG
           </NavLink>
           <button
@@ -67,7 +55,7 @@ const Layout: React.FC = () => {
               ))}
               {username && role && (
                 <li className="nav-item d-none d-md-block">
-                  <span className="nav-link disabled text-white-50 small">
+                  <span className="nav-link disabled text-body-secondary small">
                     {role} - {username}
                   </span>
                 </li>
@@ -87,7 +75,7 @@ const Layout: React.FC = () => {
       <main className="container py-4 mt-5 flex-grow-1">
         <Outlet />
       </main>
-      <footer className="bvg-footer text-center py-3 mt-auto">
+      <footer className="text-center py-3 border-top mt-auto bg-white">
         <small>&copy; BVG</small>
       </footer>
     </div>
