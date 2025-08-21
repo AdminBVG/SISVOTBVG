@@ -118,8 +118,8 @@ const CreateElectionWizard: React.FC = () => {
       if (shImport.file && shImport.previewData.length > 0) {
         await shImport.upload(election.id);
       }
-    } catch (e) {
       // error handled in useMutation
+    } catch (e) {
     }
   };
 
