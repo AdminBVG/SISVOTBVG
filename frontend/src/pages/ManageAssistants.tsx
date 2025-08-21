@@ -9,6 +9,8 @@ import { useAssistants, Assistant } from '../hooks/useAssistants';
 import { useImportAssistants } from '../hooks/useImportAssistants';
 import { useUpdateAssistant } from '../hooks/useUpdateAssistant';
 import { useDeleteAssistant } from '../hooks/useDeleteAssistant';
+import { useUploadApoderadoPdf } from '../hooks/useUploadApoderadoPdf';
+import { getItem } from '../lib/storage';
 
 const ManageAssistants: React.FC = () => {
   const { id } = useParams();
@@ -43,8 +45,18 @@ const ManageAssistants: React.FC = () => {
     (err) => toast(err.message),
   );
 
+  const uploadMutation = useUploadApoderadoPdf(
+    electionId,
+    () => {
+      toast('Documento cargado');
+      refetch();
+    },
+    (err) => toast(err.message),
+  );
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<Partial<Assistant>>({});
+  const [uploadFiles, setUploadFiles] = useState<Record<number, File | null>>({});
 
   const startEdit = (a: Assistant) => {
     setEditingId(a.id);
@@ -74,6 +86,37 @@ const ManageAssistants: React.FC = () => {
     }
   };
 
+  const handleFileChange = (id: number, f: File | null) => {
+    setUploadFiles((prev) => ({ ...prev, [id]: f }));
+  };
+
+  const handleUploadPdf = (id: number) => {
+    const f = uploadFiles[id];
+    if (f) {
+      uploadMutation.mutate({ id, file: f });
+    }
+  };
+
+  const downloadTemplate = async (format: 'csv' | 'xlsx') => {
+    const base = import.meta.env.VITE_API_URL || '/api';
+    const token = getItem('token');
+    const res = await fetch(
+      `${base}/elections/${electionId}/assistants/template?format=${format}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    );
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `padron_template.${format === 'xlsx' ? 'xlsx' : 'csv'}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (file) {
@@ -86,6 +129,22 @@ const ManageAssistants: React.FC = () => {
     <div className="space-y-6">
       <Card className="p-4">
         <h1 className="text-lg font-semibold mb-4">Gestión de asistentes</h1>
+        <div className="flex space-x-2 mb-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => downloadTemplate('csv')}
+          >
+            Descargar CSV
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => downloadTemplate('xlsx')}
+          >
+            Descargar Excel
+          </Button>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="file"
@@ -108,6 +167,7 @@ const ManageAssistants: React.FC = () => {
               <TableHead>Representante</TableHead>
               <TableHead>Apoderado</TableHead>
               <TableHead>Acciones</TableHead>
+              <TableHead>Documento</TableHead>
               <TableHead>Gestión</TableHead>
             </TableRow>
           </TableHeader>
@@ -178,6 +238,33 @@ const ManageAssistants: React.FC = () => {
                     />
                   ) : (
                     a.acciones
+                  )}
+                </TableCell>
+                <TableCell>
+                  {a.requires_document ? (
+                    a.document_uploaded ? (
+                      <span className="text-green-600">Cargado</span>
+                    ) : (
+                      <div className="space-y-2">
+                        <span className="text-red-600">Pendiente</span>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) =>
+                            handleFileChange(a.id, e.target.files?.[0] || null)
+                          }
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => handleUploadPdf(a.id)}
+                          disabled={!uploadFiles[a.id] || uploadMutation.isLoading}
+                        >
+                          Subir PDF
+                        </Button>
+                      </div>
+                    )
+                  ) : (
+                    '-'
                   )}
                 </TableCell>
                 <TableCell className="space-x-2">

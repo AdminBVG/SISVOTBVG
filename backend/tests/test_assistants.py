@@ -34,7 +34,7 @@ def setup_auth_and_election():
 
 
 def create_csv(rows):
-    lines = ["id,accionista,representante,apoderado,acciones\n"]
+    lines = ["id,accionista,representante_legal,apoderado,acciones\n"]
     for r in rows:
         lines.append(",".join(map(str, r)) + "\n")
     return "".join(lines)
@@ -43,7 +43,7 @@ def create_csv(rows):
 def create_xlsx(rows):
     wb = Workbook()
     ws = wb.active
-    ws.append(["id", "accionista", "representante", "apoderado", "acciones"])
+    ws.append(["id", "accionista", "representante_legal", "apoderado", "acciones"])
     for r in rows:
         ws.append(r)
     bio = BytesIO()
@@ -180,4 +180,92 @@ def test_import_attendees_creates_shareholders():
     data = share_resp.json()
     assert len(data) == 1
     assert data[0]["code"] == "1"
+
+
+def test_export_template():
+    headers, election_id = setup_auth_and_election()
+    resp = client.get(f"/elections/{election_id}/assistants/template", headers=headers)
+    assert resp.status_code == 200
+    assert "id,accionista,representante_legal,apoderado,acciones" in resp.text
+    resp_xlsx = client.get(
+        f"/elections/{election_id}/assistants/template",
+        headers=headers,
+        params={"format": "xlsx"},
+    )
+    assert resp_xlsx.status_code == 200
+
+
+def test_import_validations():
+    headers, election_id = setup_auth_and_election()
+    # missing id
+    data = create_csv([["", "Alice", "", "", 10]])
+    files = {"file": ("attendees.csv", data, "text/csv")}
+    resp = client.post(
+        f"/elections/{election_id}/assistants/import-excel",
+        files=files,
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    # duplicate id
+    data = create_csv([["1", "Alice", "", "", 10], ["1", "Bob", "", "", 5]])
+    files = {"file": ("attendees.csv", data, "text/csv")}
+    resp = client.post(
+        f"/elections/{election_id}/assistants/import-excel",
+        files=files,
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    # acciones negative
+    data = create_csv([["2", "Charlie", "", "", -5]])
+    files = {"file": ("attendees.csv", data, "text/csv")}
+    resp = client.post(
+        f"/elections/{election_id}/assistants/import-excel",
+        files=files,
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_upload_apoderado_pdf():
+    headers, election_id = setup_auth_and_election()
+    data = create_csv([["1", "Alice", "", "Bob", 10]])
+    files = {"file": ("attendees.csv", data, "text/csv")}
+    resp = client.post(
+        f"/elections/{election_id}/assistants/import-excel",
+        files=files,
+        headers=headers,
+    )
+    attendee_id = resp.json()[0]["id"]
+    pdf_content = b"%PDF-1.4\n%test\n"
+    upload_files = {"file": ("doc.pdf", pdf_content, "application/pdf")}
+    up_resp = client.post(
+        f"/elections/{election_id}/assistants/{attendee_id}/apoderado-pdf",
+        files=upload_files,
+        headers=headers,
+    )
+    assert up_resp.status_code == 200
+    data = up_resp.json()
+    assert data["document_uploaded"] is True
+    # duplicate upload not allowed
+    up_resp2 = client.post(
+        f"/elections/{election_id}/assistants/{attendee_id}/apoderado-pdf",
+        files=upload_files,
+        headers=headers,
+    )
+    assert up_resp2.status_code == 400
+    # attendee without apoderado
+    data2 = create_csv([["2", "Carol", "", "", 5]])
+    files2 = {"file": ("attendees.csv", data2, "text/csv")}
+    resp2 = client.post(
+        f"/elections/{election_id}/assistants/import-excel",
+        files=files2,
+        headers=headers,
+    )
+    att2 = resp2.json()[0]["id"]
+    up_resp3 = client.post(
+        f"/elections/{election_id}/assistants/{att2}/apoderado-pdf",
+        files=upload_files,
+        headers=headers,
+    )
+    assert up_resp3.status_code == 400
 

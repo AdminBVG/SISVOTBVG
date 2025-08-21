@@ -289,6 +289,9 @@ class AttendeeUpdate(BaseModel):
 class Attendee(AttendeeBase):
     id: int
     election_id: int
+    apoderado_pdf_url: Optional[str] = None
+    requires_document: bool = False
+    document_uploaded: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
