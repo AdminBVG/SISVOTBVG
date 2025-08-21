@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/card';
 import Button from '../components/ui/button';
-import Input from '../components/ui/input';
-import UserRoleSelector from '../components/UserRoleSelector';
-import QuestionBuilder, { QuestionDraft } from '../components/QuestionBuilder';
 import {
   Table,
   TableHeader,
@@ -15,61 +12,18 @@ import {
 } from '../components/ui/table';
 import { useToast } from '../components/ui/toast';
 import { useElections } from '../hooks/useElections';
-import { useCreateElection } from '../hooks/useCreateElection';
 import { useUpdateElectionStatus } from '../hooks/useUpdateElectionStatus';
-import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, List } from '../lib/icons';
 
 const Votaciones: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { role } = useAuth();
-  const [name, setName] = useState('');
-  const [date, setDate] = useState('');
-  const [registrationStart, setRegistrationStart] = useState('');
-  const [registrationEnd, setRegistrationEnd] = useState('');
-  const [attendanceRegs, setAttendanceRegs] = useState<number[]>([]);
-  const [voteRegs, setVoteRegs] = useState<number[]>([]);
-  const [questions, setQuestions] = useState<QuestionDraft[]>([]);
   const { data: elections, isLoading, error, refetch } = useElections();
-  const { data: users } = useUsers(role === 'ADMIN_BVG');
-  const registrarUsers = users?.filter((u) => u.role === 'FUNCIONAL_BVG') || [];
-  const { mutate, isLoading: creating } = useCreateElection(() => {
-    toast('Votación creada');
-    setName('');
-    setDate('');
-    setRegistrationStart('');
-    setRegistrationEnd('');
-    refetch();
-  }, (err) => toast(err.message));
   const { mutate: updateStatus } = useUpdateElectionStatus(() => {
     toast('Estado actualizado');
     refetch();
   }, (err) => toast(err.message));
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    mutate({
-      name,
-      date,
-      ...(registrationStart
-        ? { registration_start: new Date(registrationStart).toISOString() }
-        : {}),
-      ...(registrationEnd
-        ? { registration_end: new Date(registrationEnd).toISOString() }
-        : {}),
-      attendance_registrars: attendanceRegs,
-      vote_registrars: voteRegs,
-      questions: questions.map((q, i) => ({
-        text: q.text,
-        type: q.type,
-        required: q.required,
-        order: i,
-        options: q.options.map((o, oi) => ({ text: o, value: String(oi) })),
-      })),
-    });
-  };
 
   const statusLabel = (status: string) => {
     switch (status) {
@@ -95,52 +49,7 @@ const Votaciones: React.FC = () => {
   return (
     <div className="space-y-6">
       {role === 'ADMIN_BVG' && (
-        <Card className="p-4">
-          <h1 className="text-lg font-semibold mb-4 flex items-center"><List className="w-4 h-4 mr-2" />Nueva votación</h1>
-          <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-            <div>
-              <label className="block text-sm mb-1">Nombre de la votación</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div>
-              <label className="block text-sm mb-1 flex items-center">
-                <Calendar className="w-4 h-4 mr-1" />Fecha de la asamblea
-              </label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Inicio de registro</label>
-              <Input
-                type="datetime-local"
-                value={registrationStart}
-                onChange={(e) => setRegistrationStart(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Fin de registro</label>
-              <Input
-                type="datetime-local"
-                value={registrationEnd}
-                onChange={(e) => setRegistrationEnd(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Usuarios y roles</label>
-              <UserRoleSelector
-                users={registrarUsers}
-                attendance={attendanceRegs}
-                vote={voteRegs}
-                setAttendance={setAttendanceRegs}
-                setVote={setVoteRegs}
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Preguntas</label>
-              <QuestionBuilder questions={questions} setQuestions={setQuestions} />
-            </div>
-            <Button type="submit" disabled={creating}>Crear votación</Button>
-          </form>
-        </Card>
+        <Button onClick={() => navigate('/votaciones/create')}>Nueva votación</Button>
       )}
 
       <Card className="p-4">

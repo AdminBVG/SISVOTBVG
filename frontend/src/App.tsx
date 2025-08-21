@@ -19,6 +19,7 @@ import ManageUsers from './pages/ManageUsers';
 import ManageElectionUsers from './pages/ManageElectionUsers';
 import AuditLogs from './pages/AuditLogs';
 import EditElection from './pages/EditElection';
+import CreateElectionWizard from './pages/CreateElectionWizard';
 import { ToastProvider } from './components/ui/toast';
 
 const queryClient = new QueryClient();
@@ -46,7 +47,8 @@ const App: React.FC = () => {
                 </Route>
               </Route>
               <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}> 
-                <Route element={<Layout />}> 
+                <Route element={<Layout />}>
+                  <Route path="/votaciones/create" element={<CreateElectionWizard />} />
                   <Route path="/votaciones/:id/upload" element={<UploadShareholders />} />
                   <Route path="/votaciones/:id/proxies" element={<Proxies />} />
                   <Route path="/votaciones/:id/assistants" element={<ManageAssistants />} />

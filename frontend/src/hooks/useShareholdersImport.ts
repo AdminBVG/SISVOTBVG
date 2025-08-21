@@ -29,6 +29,8 @@ export const useShareholdersImport = () => {
   const validateRows = (rows: any[]) => {
     const errs: string[] = [];
     const valid: Shareholder[] = [];
+    const codes = new Set<string>();
+    const documents = new Set<string>();
 
     rows.forEach((row, idx) => {
       const missing = REQUIRED_COLUMNS.filter(
@@ -39,6 +41,20 @@ export const useShareholdersImport = () => {
         return;
       }
 
+      const code = String(row.code);
+      if (codes.has(code)) {
+        errs.push(`Fila ${idx + 1}: código duplicado`);
+        return;
+      }
+      codes.add(code);
+
+      const document = String(row.document);
+      if (documents.has(document)) {
+        errs.push(`Fila ${idx + 1}: documento duplicado`);
+        return;
+      }
+      documents.add(document);
+
       const actions = Number(row.actions);
       if (Number.isNaN(actions) || actions < 0) {
         errs.push(`Fila ${idx + 1}: acciones inválidas`);
@@ -46,9 +62,9 @@ export const useShareholdersImport = () => {
       }
 
       valid.push({
-        code: String(row.code),
+        code,
         name: String(row.name),
-        document: String(row.document),
+        document,
         email: String(row.email || ''),
         actions,
       });
