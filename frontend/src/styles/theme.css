@@ -212,7 +212,7 @@ a:hover {
   animation: float-bg 30s ease-in-out infinite;
 }
 
-.bg-gradient {
+.login-gradient {
   background: linear-gradient(135deg,
     var(--bvg-blue) 0%,
     var(--bvg-blue-light) 40%,
@@ -406,7 +406,7 @@ a:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bg-gradient,
+  .login-gradient,
   .floating-shape,
   .slide-in,
   .pulse-bg,
