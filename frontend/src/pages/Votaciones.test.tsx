@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '../lib/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '../components/ui/toast';
@@ -31,6 +31,7 @@ const renderPage = () => {
 describe('Votaciones', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    cleanup();
   });
 
   it('oculta el formulario de creación para registradores', async () => {
@@ -58,7 +59,7 @@ describe('Votaciones', () => {
       },
     ]);
     renderPage();
-    await screen.findByRole('button', { name: /Gestionar asistentes/i });
-    expect(screen.getByText('Bloqueada')).toBeTruthy();
+    const btn = await screen.findByRole('button', { name: /Gestionar asistentes/i });
+    expect((btn as HTMLButtonElement).disabled).toBe(true);
   });
 });
