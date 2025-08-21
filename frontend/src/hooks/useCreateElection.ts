@@ -27,8 +27,7 @@ export const useCreateElection = (
     mutationFn: (payload) =>
       apiFetch('/elections', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: payload,
       }),
     onSuccess: () => {
       onSuccess?.();

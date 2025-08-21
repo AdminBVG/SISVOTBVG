@@ -52,15 +52,17 @@ export const useMutation = <TData = any, TVariables = any>(config: MutationConfi
       setLoading(true);
       const data = await config.mutationFn(vars);
       config.onSuccess?.(data);
+      return data;
     } catch (err: any) {
       toast(err.message || 'Error');
       config.onError?.(err);
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  return { mutate, isLoading };
+  return { mutate, mutateAsync: mutate, isLoading };
 };
 
 interface QueryConfig<TData> {
