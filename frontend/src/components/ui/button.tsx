@@ -5,7 +5,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const Button: React.FC<ButtonProps> = ({ variant = 'default', className = '', ...props }) => {
-  let base = 'btn btn-primary';
+  let base = 'btn bvg-btn-gradient';
   if (variant === 'outline') base = 'btn btn-outline-primary';
   if (variant === 'link') base = 'btn btn-link';
   return <button className={`${base} ${className}`} {...props} />;

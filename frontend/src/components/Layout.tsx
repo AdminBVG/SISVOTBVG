@@ -36,7 +36,7 @@ const Layout: React.FC = () => {
   return (
     <div className="d-flex min-vh-100">
       <aside
-        className={`bg-dark text-white p-4 shadow-sm ${menuOpen ? 'd-block' : 'd-none d-md-block'}`}
+        className={`bvg-sidebar p-4 ${menuOpen ? 'd-block' : 'd-none d-md-block'}`}
       >
         <h2 className="h5 fw-semibold mb-4">BVG</h2>
         <nav className="nav flex-column gap-2">
@@ -55,7 +55,7 @@ const Layout: React.FC = () => {
         </nav>
       </aside>
       <div className="flex-grow-1 d-flex flex-column">
-        <header className="bg-light p-3 d-flex justify-content-between align-items-center shadow-sm">
+        <header className="bvg-navbar d-flex justify-content-between align-items-center shadow-sm">
           <div className="d-flex align-items-center gap-2">
             <button
               className="btn btn-outline-secondary d-md-none"
@@ -68,11 +68,11 @@ const Layout: React.FC = () => {
           </div>
           <div className="d-flex align-items-center gap-3">
             {username && role && (
-              <span className="small text-secondary">{role} - {username}</span>
+              <span className="small text-white-50">{role} - {username}</span>
             )}
             <button
               onClick={handleLogout}
-              className="btn btn-link p-0 d-flex align-items-center text-secondary text-decoration-none"
+              className="btn btn-link p-0 d-flex align-items-center text-white text-decoration-none"
             >
               <LogOut width={16} height={16} className="me-1" /> Cerrar sesión
             </button>
@@ -87,4 +87,3 @@ const Layout: React.FC = () => {
 };
 
 export default Layout;
-
