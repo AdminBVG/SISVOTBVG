@@ -1,17 +1,19 @@
-export function getItem(key: string): string | null {
+export function getItem<T = string>(key: string): T | null {
   const raw = localStorage.getItem(key);
   if (raw === null) return null;
   try {
-    return JSON.parse(raw);
+    return JSON.parse(raw) as T;
   } catch {
-    return raw;
+    return raw as T;
   }
 }
 
-export function setItem(key: string, value: string) {
+export function setItem<T>(key: string, value: T) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const stored = typeof value === 'string' ? value : JSON.stringify(value);
+    localStorage.setItem(key, stored);
   } catch {
-    localStorage.setItem(key, value);
+    // Fallback to default string conversion to avoid crashing
+    localStorage.setItem(key, String(value));
   }
 }
