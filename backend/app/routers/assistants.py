@@ -24,7 +24,7 @@ def get_db():
 
 
 @router.get("/template", dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])] )
-def export_template(format: str = "csv"):
+def export_template(election_id: int, format: str = "csv"):
     headers = ["id", "accionista", "representante_legal", "apoderado", "acciones"]
     if format == "xlsx":
         wb = Workbook()

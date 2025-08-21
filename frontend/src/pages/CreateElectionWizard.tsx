@@ -8,6 +8,7 @@ import QuestionBuilder, { QuestionDraft } from '../components/QuestionBuilder';
 import { useUsers } from '../hooks/useUsers';
 import { useCreateElection } from '../hooks/useCreateElection';
 import { useShareholdersImport } from '../hooks/useShareholdersImport';
+import { getItem } from '../lib/storage';
 import { useToast } from '../components/ui/toast';
 
 const CreateElectionWizard: React.FC = () => {
@@ -30,6 +31,25 @@ const CreateElectionWizard: React.FC = () => {
 
   // Step 3 - shareholders
   const shImport = useShareholdersImport();
+  const downloadTemplate = async (format: 'csv' | 'xlsx') => {
+    const base = import.meta.env.VITE_API_URL || '/api';
+    const token = getItem('token');
+    const res = await fetch(
+      `${base}/elections/0/assistants/template?format=${format}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    );
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `padron_template.${format === 'xlsx' ? 'xlsx' : 'csv'}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
 
   // Step 4 - ballot
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
@@ -167,6 +187,22 @@ const CreateElectionWizard: React.FC = () => {
 
         {step === 3 && (
           <div className="space-y-4">
+            <div className="flex space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => downloadTemplate('csv')}
+              >
+                Descargar CSV
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => downloadTemplate('xlsx')}
+              >
+                Descargar Excel
+              </Button>
+            </div>
             <div>
               <label className="block text-sm mb-1">Archivo de padrón</label>
               <Input
@@ -192,21 +228,21 @@ const CreateElectionWizard: React.FC = () => {
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr>
-                      <th className="px-2">Código</th>
-                      <th className="px-2">Nombre</th>
-                      <th className="px-2">Documento</th>
-                      <th className="px-2">Email</th>
+                      <th className="px-2">ID</th>
+                      <th className="px-2">Accionista</th>
+                      <th className="px-2">Representante Legal</th>
+                      <th className="px-2">Apoderado</th>
                       <th className="px-2">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {shImport.previewData.map((row, i) => (
                       <tr key={i}>
-                        <td className="px-2">{row.code}</td>
-                        <td className="px-2">{row.name}</td>
-                        <td className="px-2">{row.document}</td>
-                        <td className="px-2">{row.email}</td>
-                        <td className="px-2">{row.actions}</td>
+                        <td className="px-2">{row.id}</td>
+                        <td className="px-2">{row.accionista}</td>
+                        <td className="px-2">{row.representante_legal}</td>
+                        <td className="px-2">{row.apoderado}</td>
+                        <td className="px-2">{row.acciones}</td>
                       </tr>
                     ))}
                   </tbody>

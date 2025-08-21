@@ -32,13 +32,13 @@ const UploadShareholders: React.FC = () => {
     <div className="max-w-4xl mx-auto p-4">
       <div className="bg-white shadow rounded p-6">
         <h1 className="text-2xl font-semibold mb-6">
-          Cargar Padrón de Accionistas
+          Cargar padrón
         </h1>
 
         {/* File Input */}
         <div className="mb-4">
           <label htmlFor="shareholders_file" className="block mb-1 text-sm">
-            Archivo de accionistas
+            Archivo de padrón
           </label>
           <Input
             id="shareholders_file"
@@ -66,21 +66,21 @@ const UploadShareholders: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500">Código</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500">Nombre</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500">Documento</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500">Email</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">ID</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">Accionista</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">Representante Legal</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">Apoderado</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-500">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {previewData.map((row, i) => (
                   <tr key={i}>
-                    <td className="px-4 py-2">{row.code}</td>
-                    <td className="px-4 py-2">{row.name}</td>
-                    <td className="px-4 py-2">{row.document}</td>
-                    <td className="px-4 py-2">{row.email}</td>
-                    <td className="px-4 py-2">{row.actions}</td>
+                    <td className="px-4 py-2">{row.id}</td>
+                    <td className="px-4 py-2">{row.accionista}</td>
+                    <td className="px-4 py-2">{row.representante_legal}</td>
+                    <td className="px-4 py-2">{row.apoderado}</td>
+                    <td className="px-4 py-2">{row.acciones}</td>
                   </tr>
                 ))}
               </tbody>
