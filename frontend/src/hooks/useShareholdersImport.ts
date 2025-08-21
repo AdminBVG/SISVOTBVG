@@ -3,12 +3,12 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { apiFetch } from '../lib/api';
 
-export interface Shareholder {
-  code: string;
-  name: string;
-  document: string;
-  email: string;
-  actions: number;
+export interface PadronEntry {
+  id: string;
+  accionista: string;
+  representante_legal?: string;
+  apoderado?: string;
+  acciones: number;
 }
 
 export interface ImportResult {
@@ -17,56 +17,59 @@ export interface ImportResult {
   errors: number;
 }
 
-const REQUIRED_COLUMNS = ['code', 'name', 'document', 'actions'];
+const EXPECTED_HEADERS = [
+  'id',
+  'accionista',
+  'representante_legal',
+  'apoderado',
+  'acciones',
+];
 
 export const useShareholdersImport = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [previewData, setPreviewData] = useState<Shareholder[]>([]);
+  const [previewData, setPreviewData] = useState<PadronEntry[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
 
   const validateRows = (rows: any[]) => {
     const errs: string[] = [];
-    const valid: Shareholder[] = [];
-    const codes = new Set<string>();
-    const documents = new Set<string>();
+    const valid: PadronEntry[] = [];
+    const ids = new Set<string>();
 
     rows.forEach((row, idx) => {
-      const missing = REQUIRED_COLUMNS.filter(
-        (c) => row[c] === undefined || row[c] === '',
-      );
+      const missing: string[] = [];
+      if (row.id === undefined || row.id === '') missing.push('id');
+      if (row.accionista === undefined || row.accionista === '')
+        missing.push('accionista');
+      if (row.acciones === undefined || row.acciones === '')
+        missing.push('acciones');
       if (missing.length) {
         errs.push(`Fila ${idx + 1}: faltan columnas (${missing.join(', ')})`);
         return;
       }
 
-      const code = String(row.code);
-      if (codes.has(code)) {
-        errs.push(`Fila ${idx + 1}: código duplicado`);
+      const id = String(row.id);
+      if (ids.has(id)) {
+        errs.push(`Fila ${idx + 1}: id duplicado`);
         return;
       }
-      codes.add(code);
+      ids.add(id);
 
-      const document = String(row.document);
-      if (documents.has(document)) {
-        errs.push(`Fila ${idx + 1}: documento duplicado`);
-        return;
-      }
-      documents.add(document);
-
-      const actions = Number(row.actions);
-      if (Number.isNaN(actions) || actions < 0) {
+      const acciones = Number(row.acciones);
+      if (Number.isNaN(acciones) || acciones <= 0) {
         errs.push(`Fila ${idx + 1}: acciones inválidas`);
         return;
       }
 
       valid.push({
-        code,
-        name: String(row.name),
-        document,
-        email: String(row.email || ''),
-        actions,
+        id,
+        accionista: String(row.accionista),
+        representante_legal: row.representante_legal
+          ? String(row.representante_legal)
+          : '',
+        apoderado: row.apoderado ? String(row.apoderado) : '',
+        acciones,
       });
     });
 
@@ -86,14 +89,31 @@ export const useShareholdersImport = () => {
       if (!data) return;
 
       if (ext === 'csv') {
-        const parsed = Papa.parse(data as string, { header: true, skipEmptyLines: true });
+        const parsed = Papa.parse(data as string, {
+          header: true,
+          skipEmptyLines: true,
+        });
+        const headers = parsed.meta.fields || [];
+        const missing = EXPECTED_HEADERS.filter((h) => !headers.includes(h));
+        if (missing.length) {
+          setErrors([`Faltan columnas (${missing.join(', ')})`]);
+          setPreviewData([]);
+          return;
+        }
         const { valid, errs } = validateRows(parsed.data as any[]);
         setPreviewData(valid);
         setErrors(errs);
       } else if (ext === 'xls' || ext === 'xlsx') {
         const wb = XLSX.read(data, { type: 'binary' });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(ws);
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const headers = Object.keys(json[0] || {});
+        const missing = EXPECTED_HEADERS.filter((h) => !headers.includes(h));
+        if (missing.length) {
+          setErrors([`Faltan columnas (${missing.join(', ')})`]);
+          setPreviewData([]);
+          return;
+        }
         const { valid, errs } = validateRows(json as any[]);
         setPreviewData(valid);
         setErrors(errs);
@@ -116,7 +136,7 @@ export const useShareholdersImport = () => {
       form.append('file', file);
 
       const data = await apiFetch<any>(
-        `/elections/${electionId}/shareholders/import-file?preview=false`,
+        `/elections/${electionId}/assistants/import-excel`,
         {
           method: 'POST',
           body: form,
