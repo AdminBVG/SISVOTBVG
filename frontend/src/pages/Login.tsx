@@ -36,7 +36,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient">
+    <div className="login-gradient">
       {/* Background floating shapes */}
       <div className="floating-shape pulse-bg shape-1" />
       <div className="floating-shape pulse-bg shape-2" />
