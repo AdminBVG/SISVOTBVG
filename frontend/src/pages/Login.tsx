@@ -68,7 +68,7 @@ const Login: React.FC = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              className="modern-input"
+              className="bvg-input"
               placeholder="Tu nombre de usuario"
             />
           </div>
@@ -85,7 +85,7 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="modern-input pe-5"
+                className="bvg-input pe-5"
                 placeholder="Tu contraseña"
               />
               <button
@@ -102,7 +102,7 @@ const Login: React.FC = () => {
           <button
             onClick={handleSubmit}
             disabled={mutation.isLoading}
-            className="bvg-btn-gradient"
+            className="bvg-btn"
           >
             {mutation.isLoading ? (
               <>

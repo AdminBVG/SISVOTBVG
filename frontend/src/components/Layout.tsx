@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut } from '../lib/icons';
@@ -8,7 +8,6 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const base = id ? `/votaciones/${id}` : '';
-  const [menuOpen, setMenuOpen] = useState(false);
 
   let links: { to: string; label: string }[] = [];
   if (role === 'FUNCIONAL_BVG') {
@@ -34,54 +33,63 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="d-flex min-vh-100">
-      <aside
-        className={`bvg-sidebar p-4 ${menuOpen ? 'd-block' : 'd-none d-md-block'}`}
-      >
-        <h2 className="h5 fw-semibold mb-4">BVG</h2>
-        <nav className="nav flex-column gap-2">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `nav-link px-0 ${isActive ? 'active fw-semibold' : 'text-white-50'}`
-              }
-            >
-              {l.label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-      <div className="flex-grow-1 d-flex flex-column">
-        <header className="bvg-navbar d-flex justify-content-between align-items-center shadow-sm">
-          <div className="d-flex align-items-center gap-2">
-            <button
-              className="btn btn-outline-secondary d-md-none"
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-label="Toggle menu"
-            >
-              ☰
-            </button>
-            <h1 className="h6 mb-0">Sistema de Asistentes BVG</h1>
+    <div className="app-gradient min-vh-100 d-flex flex-column">
+      <div className="floating-shape shape-1" />
+      <div className="floating-shape shape-2" />
+      <div className="floating-shape shape-3" />
+      <nav className="navbar navbar-expand-md bvg-navbar fixed-top">
+        <div className="container-fluid">
+          <NavLink to="/votaciones" className="navbar-brand fw-bold text-white">
+            BVG
+          </NavLink>
+          <button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#mainNav"
+            aria-controls="mainNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+          <div className="collapse navbar-collapse justify-content-end" id="mainNav">
+            <ul className="navbar-nav align-items-center gap-2">
+              {links.map((l) => (
+                <li key={l.to} className="nav-item">
+                  <NavLink
+                    to={l.to}
+                    className={({ isActive }) => `nav-link ${isActive ? 'active fw-semibold' : ''}`}
+                  >
+                    {l.label}
+                  </NavLink>
+                </li>
+              ))}
+              {username && role && (
+                <li className="nav-item d-none d-md-block">
+                  <span className="nav-link disabled text-white-50 small">
+                    {role} - {username}
+                  </span>
+                </li>
+              )}
+              <li className="nav-item">
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-link nav-link p-0 d-flex align-items-center"
+                >
+                  <LogOut width={16} height={16} className="me-1" /> Cerrar sesión
+                </button>
+              </li>
+            </ul>
           </div>
-          <div className="d-flex align-items-center gap-3">
-            {username && role && (
-              <span className="small text-white-50">{role} - {username}</span>
-            )}
-            <button
-              onClick={handleLogout}
-              className="btn btn-link p-0 d-flex align-items-center text-white text-decoration-none"
-            >
-              <LogOut width={16} height={16} className="me-1" /> Cerrar sesión
-            </button>
-          </div>
-        </header>
-        <main className="flex-grow-1 p-4">
-          <Outlet />
-        </main>
-      </div>
+        </div>
+      </nav>
+      <main className="container py-4 mt-5 flex-grow-1">
+        <Outlet />
+      </main>
+      <footer className="bvg-footer text-center py-3 mt-auto">
+        <small>&copy; BVG</small>
+      </footer>
     </div>
   );
 };
