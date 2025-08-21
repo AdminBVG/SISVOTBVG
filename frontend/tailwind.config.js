@@ -3,12 +3,12 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Coolvetica', 'system-ui', 'sans-serif'],
+        sans: ['Poppins', 'system-ui', 'sans-serif'],
       },
       colors: {
-        'bvg-blue': '#10069F',
-        'bvg-blue-light': '#005EB8',
-        'bvg-celeste': '#00AEEF',
+        'bvg-blue': 'var(--bvg-blue)',
+        'bvg-blue-light': 'var(--bvg-blue-light)',
+        'bvg-celeste': 'var(--bvg-celeste)',
       },
     },
   },
