@@ -22,7 +22,7 @@ const Login: React.FC = () => {
     },
     onSuccess: (data) => {
       login(data.access_token, data.role, data.username);
-      navigate('/votaciones');
+      navigate('/');
     },
     onError: (err: any) => {
       setError(err.message);
