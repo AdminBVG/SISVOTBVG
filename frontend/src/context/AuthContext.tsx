@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { getItem, setItem } from '../lib/storage';
+import { getItem, setItem, removeItem } from '../lib/storage';
 
 interface AuthContextValue {
   token: string | null;
@@ -28,9 +28,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('username');
+    removeItem('token');
+    removeItem('role');
+    removeItem('username');
     setToken(null);
     setRole(null);
     setUsername(null);

@@ -62,6 +62,7 @@ const Register: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="new-password"
             />
           </div>
           <Button type="submit" className="w-100" disabled={mutation.isLoading}>

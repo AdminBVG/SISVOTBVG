@@ -17,3 +17,7 @@ export function setItem<T>(key: string, value: T) {
     localStorage.setItem(key, String(value));
   }
 }
+
+export function removeItem(key: string) {
+  localStorage.removeItem(key);
+}

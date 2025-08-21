@@ -52,7 +52,13 @@ const ManageUsers: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm mb-1">Contraseña</label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+            />
           </div>
           <div>
             <label className="block text-sm mb-1">Rol</label>
