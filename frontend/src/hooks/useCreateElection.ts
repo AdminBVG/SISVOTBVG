@@ -4,6 +4,7 @@ import { Election } from './useElections';
 
 interface Payload {
   name: string;
+  description?: string;
   date: string;
   registration_start?: string;
   registration_end?: string;

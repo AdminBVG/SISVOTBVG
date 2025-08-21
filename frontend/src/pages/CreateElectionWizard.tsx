@@ -103,6 +103,7 @@ const CreateElectionWizard: React.FC = () => {
     try {
       const payload: any = {
         name,
+        description,
         date,
         ...(openDate ? { registration_start: new Date(openDate).toISOString() } : {}),
         ...(closeDate ? { registration_end: new Date(closeDate).toISOString() } : {}),
