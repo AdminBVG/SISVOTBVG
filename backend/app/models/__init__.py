@@ -177,6 +177,9 @@ class AuditLog(Base):
 
 class Attendee(Base):
     __tablename__ = "attendees"
+    __table_args__ = (
+        UniqueConstraint("election_id", "identifier", name="uix_attendee_identifier"),
+    )
     id = Column(Integer, primary_key=True)
     election_id = Column(Integer, index=True, nullable=False)
     identifier = Column(String, nullable=False)
@@ -184,6 +187,7 @@ class Attendee(Base):
     representante = Column(String)
     apoderado = Column(String)
     acciones = Column(DECIMAL, nullable=False, default=0)
+    apoderado_pdf_url = Column(String)
 
 
 class QuestionType(str, enum.Enum):
