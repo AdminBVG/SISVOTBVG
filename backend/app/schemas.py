@@ -204,6 +204,7 @@ class ElectionUpdate(BaseModel):
     registration_end: Optional[datetime] = None
     attendance_registrars: Optional[List[int]] = None
     vote_registrars: Optional[List[int]] = None
+    questions: Optional[List["QuestionCreate"]] = None
 
 
 class Election(ElectionBase):

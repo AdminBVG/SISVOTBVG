@@ -16,7 +16,6 @@ import {
 import { useToast } from '../components/ui/toast';
 import { useElections } from '../hooks/useElections';
 import { useCreateElection } from '../hooks/useCreateElection';
-import { useUpdateElection } from '../hooks/useUpdateElection';
 import { useUpdateElectionStatus } from '../hooks/useUpdateElectionStatus';
 import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../context/AuthContext';
@@ -33,10 +32,6 @@ const Votaciones: React.FC = () => {
   const [attendanceRegs, setAttendanceRegs] = useState<number[]>([]);
   const [voteRegs, setVoteRegs] = useState<number[]>([]);
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editDate, setEditDate] = useState('');
-
   const { data: elections, isLoading, error, refetch } = useElections();
   const { data: users } = useUsers(role === 'ADMIN_BVG');
   const registrarUsers = users?.filter((u) => u.role === 'FUNCIONAL_BVG') || [];
@@ -46,11 +41,6 @@ const Votaciones: React.FC = () => {
     setDate('');
     setRegistrationStart('');
     setRegistrationEnd('');
-    refetch();
-  }, (err) => toast(err.message));
-  const { mutate: updateElection } = useUpdateElection(() => {
-    toast('Votación actualizada');
-    setEditingId(null);
     refetch();
   }, (err) => toast(err.message));
   const { mutate: updateStatus } = useUpdateElectionStatus(() => {
@@ -80,19 +70,6 @@ const Votaciones: React.FC = () => {
       })),
     });
   };
-
-  const startEdit = (election: any) => {
-    setEditingId(election.id);
-    setEditName(election.name);
-    setEditDate(election.date.slice(0, 10));
-  };
-
-  const saveEdit = () => {
-    if (editingId == null) return;
-    updateElection({ id: editingId, name: editName, date: editDate });
-  };
-
-  const cancelEdit = () => setEditingId(null);
 
   const statusLabel = (status: string) => {
     switch (status) {
@@ -189,99 +166,82 @@ const Votaciones: React.FC = () => {
                 const open = isRegistrationOpen(e);
                 return (
                   <TableRow key={e.id}>
-                    {editingId === e.id ? (
-                      <>
-                        <TableCell>
-                          <Input value={editName} onChange={(ev) => setEditName(ev.target.value)} />
-                        </TableCell>
-                        <TableCell>
-                          <Input type="date" value={editDate} onChange={(ev) => setEditDate(ev.target.value)} />
-                        </TableCell>
-                        <TableCell>{statusLabel(e.status)}</TableCell>
-                        <TableCell className="space-x-2">
-                          <Button onClick={saveEdit}>Guardar</Button>
-                          <Button variant="outline" onClick={cancelEdit}>
-                            Cancelar
+                    <TableCell>{e.name}</TableCell>
+                    <TableCell>{new Date(e.date).toLocaleDateString('es-EC')}</TableCell>
+                    <TableCell>{statusLabel(e.status)}</TableCell>
+                    <TableCell className="space-x-2">
+                      {role === 'ADMIN_BVG' && (
+                        <>
+                          {e.status === 'DRAFT' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                onClick={() => navigate(`/votaciones/${e.id}/edit`)}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => updateStatus({ id: e.id, status: 'OPEN' })}
+                              >
+                                Abrir
+                              </Button>
+                            </>
+                          )}
+                          {e.status === 'OPEN' && (
+                            <Button
+                              variant="outline"
+                              onClick={() => updateStatus({ id: e.id, status: 'CLOSED' })}
+                            >
+                              Cerrar
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            disabled={!open}
+                            onClick={() => navigate(`/votaciones/${e.id}/assistants`)}
+                          >
+                            Gestionar asistentes
                           </Button>
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell>{e.name}</TableCell>
-                        <TableCell>{new Date(e.date).toLocaleDateString('es-EC')}</TableCell>
-                        <TableCell>{statusLabel(e.status)}</TableCell>
-                        <TableCell className="space-x-2">
-                          {role === 'ADMIN_BVG' && (
-                            <>
-                              {e.status === 'DRAFT' && (
-                                <>
-                                  <Button variant="outline" onClick={() => startEdit(e)}>
-                                    Editar
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => updateStatus({ id: e.id, status: 'OPEN' })}
-                                  >
-                                    Abrir
-                                  </Button>
-                                </>
-                              )}
-                              {e.status === 'OPEN' && (
-                                <Button
-                                  variant="outline"
-                                  onClick={() => updateStatus({ id: e.id, status: 'CLOSED' })}
-                                >
-                                  Cerrar
-                                </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                disabled={!open}
-                                onClick={() => navigate(`/votaciones/${e.id}/assistants`)}
-                              >
-                                Gestionar asistentes
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => navigate(`/votaciones/${e.id}/users`)}
-                              >
-                                Roles
-                              </Button>
-                              {!open && <span className="text-sm text-gray-500">Bloqueada</span>}
-                              <Button
-                                variant="outline"
-                                onClick={() => navigate(`/votaciones/${e.id}/audit`)}
-                              >
-                                Auditoría
-                              </Button>
-                            </>
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`/votaciones/${e.id}/users`)}
+                          >
+                            Roles
+                          </Button>
+                          {!open && <span className="text-sm text-gray-500">Bloqueada</span>}
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`/votaciones/${e.id}/audit`)}
+                          >
+                            Auditoría
+                          </Button>
+                        </>
+                      )}
+                      {role === 'FUNCIONAL_BVG' && (
+                        <>
+                          {e.can_manage_attendance && (
+                            <Button
+                              variant="outline"
+                              disabled={!open}
+                              onClick={() => navigate(`/votaciones/${e.id}/attendance`)}
+                            >
+                              Gestionar asistentes
+                            </Button>
                           )}
-                          {role === 'FUNCIONAL_BVG' && (
-                            <>
-                              {e.can_manage_attendance && (
-                                <Button
-                                  variant="outline"
-                                  disabled={!open}
-                                  onClick={() => navigate(`/votaciones/${e.id}/attendance`)}
-                                >
-                                  Gestionar asistentes
-                                </Button>
-                              )}
-                              {e.can_manage_votes && (
-                                <Button
-                                  variant="outline"
-                                  disabled={!open}
-                                  onClick={() => navigate(`/votaciones/${e.id}/proxies`)}
-                                >
-                                  Gestionar votos
-                                </Button>
-                              )}
-                              {!open && <span className="text-sm text-gray-500">Bloqueada</span>}
-                            </>
+                          {e.can_manage_votes && (
+                            <Button
+                              variant="outline"
+                              disabled={!open}
+                              onClick={() => navigate(`/votaciones/${e.id}/proxies`)}
+                            >
+                              Gestionar votos
+                            </Button>
                           )}
-                        </TableCell>
-                      </>
-                    )}
+                          {!open && <span className="text-sm text-gray-500">Bloqueada</span>}
+                        </>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })}

@@ -9,11 +9,16 @@ import Asistencia from './pages/Asistencia';
 import Proxies from './pages/Proxies';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import Verify from './pages/Verify';
+import RequestReset from './pages/RequestReset';
+import ResetPassword from './pages/ResetPassword';
 import Votaciones from './pages/Votaciones';
 import ManageAssistants from './pages/ManageAssistants';
 import ManageUsers from './pages/ManageUsers';
 import ManageElectionUsers from './pages/ManageElectionUsers';
 import AuditLogs from './pages/AuditLogs';
+import EditElection from './pages/EditElection';
 import { ToastProvider } from './components/ui/toast';
 
 const queryClient = new QueryClient();
@@ -26,8 +31,12 @@ const App: React.FC = () => {
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}>
-                <Route element={<Layout />}>
+              <Route path="/register" element={<Register />} />
+              <Route path="/verify" element={<Verify />} />
+              <Route path="/reset-password" element={<RequestReset />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
+              <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}> 
+                <Route element={<Layout />}> 
                   <Route path="/votaciones" element={<Votaciones />} />
                 </Route>
               </Route>
@@ -36,14 +45,15 @@ const App: React.FC = () => {
                   <Route path="/votaciones/:id/attendance" element={<Asistencia />} />
                 </Route>
               </Route>
-              <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}>
-                <Route element={<Layout />}>
+              <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}> 
+                <Route element={<Layout />}> 
                   <Route path="/votaciones/:id/upload" element={<UploadShareholders />} />
                   <Route path="/votaciones/:id/proxies" element={<Proxies />} />
                   <Route path="/votaciones/:id/assistants" element={<ManageAssistants />} />
                   <Route path="/votaciones/:id/audit" element={<AuditLogs />} />
                   <Route path="/users" element={<ManageUsers />} />
                   <Route path="/votaciones/:id/users" element={<ManageElectionUsers />} />
+                  <Route path="/votaciones/:id/edit" element={<EditElection />} />
                 </Route>
               </Route>
               <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}>
