@@ -6,6 +6,6 @@ import App from './App';
 describe('App', () => {
   it('muestra la pantalla de login', () => {
     render(<App />);
-    expect(screen.getByText(/Ingreso/)).toBeTruthy();
+    expect(screen.getByText(/Ingresa a tu cuenta/)).toBeTruthy();
   });
 });
