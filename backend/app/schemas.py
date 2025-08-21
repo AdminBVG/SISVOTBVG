@@ -40,6 +40,10 @@ class Shareholder(ShareholderBase):
 
 class ShareholderWithAttendance(Shareholder):
     attendance_mode: Optional[AttendanceMode] = None
+    representante: Optional[str] = None
+    apoderado: Optional[str] = None
+    attendee_id: Optional[int] = None
+    apoderado_pdf: bool = False
 
 
 class AttendanceBase(BaseModel):

@@ -180,11 +180,23 @@ def list_shareholders(
     db: Session = Depends(get_db),
 ):
     query = (
-        db.query(models.Shareholder, models.Attendance.mode)
+        db.query(
+            models.Shareholder,
+            models.Attendance.mode,
+            models.Attendee.representante,
+            models.Attendee.apoderado,
+            models.Attendee.id.label("attendee_id"),
+            models.Attendee.apoderado_pdf_url,
+        )
         .join(
             models.Attendance,
             (models.Shareholder.id == models.Attendance.shareholder_id)
             & (models.Attendance.election_id == election_id),
+        )
+        .outerjoin(
+            models.Attendee,
+            (models.Attendee.identifier == models.Shareholder.code)
+            & (models.Attendee.election_id == election_id),
         )
         .filter(models.Attendance.election_id == election_id)
     )
@@ -198,10 +210,17 @@ def list_shareholders(
         )
     rows = query.all()
     result: List[schemas.ShareholderWithAttendance] = []
-    for sh, mode in rows:
+    for sh, mode, rep, apo, att_id, apo_pdf in rows:
         data = schemas.Shareholder.model_validate(sh).model_dump()
         result.append(
-            schemas.ShareholderWithAttendance(**data, attendance_mode=mode)
+            schemas.ShareholderWithAttendance(
+                **data,
+                attendance_mode=mode,
+                representante=rep,
+                apoderado=apo,
+                attendee_id=att_id,
+                apoderado_pdf=bool(apo_pdf),
+            )
         )
     return result
 
@@ -217,20 +236,42 @@ def get_shareholder(
     db: Session = Depends(get_db),
 ):
     row = (
-        db.query(models.Shareholder, models.Attendance.mode)
+        db.query(
+            models.Shareholder,
+            models.Attendance.mode,
+            models.Attendee.representante,
+            models.Attendee.apoderado,
+            models.Attendee.id.label("attendee_id"),
+            models.Attendee.apoderado_pdf_url,
+        )
         .join(
             models.Attendance,
             (models.Shareholder.id == models.Attendance.shareholder_id)
             & (models.Attendance.election_id == election_id),
         )
-        .filter(models.Shareholder.id == shareholder_id, models.Attendance.election_id == election_id)
+        .outerjoin(
+            models.Attendee,
+            (models.Attendee.identifier == models.Shareholder.code)
+            & (models.Attendee.election_id == election_id),
+        )
+        .filter(
+            models.Shareholder.id == shareholder_id,
+            models.Attendance.election_id == election_id,
+        )
         .first()
     )
     if not row:
         raise HTTPException(status_code=404, detail="shareholder not found")
-    sh, mode = row
+    sh, mode, rep, apo, att_id, apo_pdf = row
     data = schemas.Shareholder.model_validate(sh).model_dump()
-    return schemas.ShareholderWithAttendance(**data, attendance_mode=mode)
+    return schemas.ShareholderWithAttendance(
+        **data,
+        attendance_mode=mode,
+        representante=rep,
+        apoderado=apo,
+        attendee_id=att_id,
+        apoderado_pdf=bool(apo_pdf),
+    )
 
 
 @router.put(
