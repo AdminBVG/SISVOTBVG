@@ -10,7 +10,7 @@ import { useMarkAttendance } from '../hooks/useMarkAttendance';
 import { useBulkMarkAttendance } from '../hooks/useBulkMarkAttendance';
 import { useAttendanceHistory } from '../hooks/useAttendanceHistory';
 import { getItem } from '../lib/storage';
-import { User, Check } from '../lib/icons';
+import { User } from '../lib/icons';
 
 const Asistencia: React.FC = () => {
   const { id } = useParams();
@@ -52,7 +52,7 @@ const Asistencia: React.FC = () => {
     () => {
       toast('Asistencia registrada');
       refetch();
-      setBulkCodes('');
+      setSelected({});
     },
     (err) => {
       if (err.status === 403) {
@@ -62,21 +62,34 @@ const Asistencia: React.FC = () => {
       }
     },
   );
-  const [bulkCodes, setBulkCodes] = useState('');
   const [bulkMode, setBulkMode] = useState('PRESENCIAL');
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
 
   const handleMark = (code: string, mode: string) => {
     markAttendance.mutate({ code, mode });
   };
 
-  const handleBulkSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const codes = bulkCodes
-      .split(/\s+/)
-      .map((c) => c.trim())
-      .filter(Boolean);
-    if (codes.length) {
-      bulkMark.mutate({ codes, mode: bulkMode });
+  const toggleSelect = (code: string) => {
+    setSelected((prev) => ({ ...prev, [code]: !prev[code] }));
+  };
+
+  const selectedCodes = Object.keys(selected).filter((c) => selected[c]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const all: Record<string, boolean> = {};
+      shareholders?.forEach((s) => {
+        all[s.code] = true;
+      });
+      setSelected(all);
+    } else {
+      setSelected({});
+    }
+  };
+
+  const applyBulk = () => {
+    if (selectedCodes.length) {
+      bulkMark.mutate({ codes: selectedCodes, mode: bulkMode });
     }
   };
 
@@ -129,17 +142,11 @@ const Asistencia: React.FC = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <Card className="p-4 space-y-2">
-          <h2 className="text-lg font-semibold">Registro masivo</h2>
-          <form onSubmit={handleBulkSubmit} className="space-y-2">
-            <textarea
-              className="w-full border p-2"
-              placeholder="Códigos separados por espacio o línea"
-              value={bulkCodes}
-              onChange={(e) => setBulkCodes(e.target.value)}
-            />
+        {selectedCodes.length > 0 && (
+          <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
+            <span>{selectedCodes.length} seleccionados</span>
             <select
-              className="border p-2"
+              className="border p-1"
               value={bulkMode}
               onChange={(e) => setBulkMode(e.target.value)}
             >
@@ -147,11 +154,15 @@ const Asistencia: React.FC = () => {
               <option value="VIRTUAL">Virtual</option>
               <option value="AUSENTE">Ausente</option>
             </select>
-            <Button type="submit" disabled={blocked || bulkMark.isLoading}>
-              Marcar en bloque
+            <Button
+              type="button"
+              onClick={applyBulk}
+              disabled={blocked || bulkMark.isLoading}
+            >
+              Aplicar
             </Button>
-          </form>
-        </Card>
+          </div>
+        )}
         {isLoading && <p>Cargando...</p>}
         {error && (
           <p role="alert" className="text-body">
@@ -162,11 +173,23 @@ const Asistencia: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    checked={
+                      shareholders?.length > 0 &&
+                      selectedCodes.length === shareholders.length
+                    }
+                  />
+                </TableHead>
                 <TableHead>Código</TableHead>
-                <TableHead>Nombre</TableHead>
+                <TableHead>Accionista</TableHead>
+                <TableHead>Representante Legal</TableHead>
+                <TableHead>Apoderado</TableHead>
                 <TableHead>Acciones</TableHead>
-                <TableHead>Marcar</TableHead>
-                <TableHead>Estado</TableHead>
+                <TableHead>Asistencia</TableHead>
                 <TableHead>Historial</TableHead>
               </TableRow>
             </TableHeader>
@@ -174,21 +197,48 @@ const Asistencia: React.FC = () => {
               {shareholders?.map((s) => (
                 <React.Fragment key={s.id}>
                   <TableRow>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={!!selected[s.code]}
+                        onChange={() => toggleSelect(s.code)}
+                      />
+                    </TableCell>
                     <TableCell>{s.code}</TableCell>
                     <TableCell>{s.name}</TableCell>
-                    <TableCell>{s.actions}</TableCell>
-                    <TableCell className="space-x-2">
-                      <Button disabled={blocked} onClick={() => handleMark(s.code, 'PRESENCIAL')}>
-                        <Check className="w-4 h-4 inline mr-1" />Presencial
-                      </Button>
-                      <Button disabled={blocked} onClick={() => handleMark(s.code, 'VIRTUAL')}>
-                        <Check className="w-4 h-4 inline mr-1" />Virtual
-                      </Button>
-                      <Button disabled={blocked} onClick={() => handleMark(s.code, 'AUSENTE')}>
-                        <Check className="w-4 h-4 inline mr-1" />Ausente
-                      </Button>
+                    <TableCell>{s.representante || '-'}</TableCell>
+                    <TableCell>
+                      {s.apoderado ? (
+                        s.apoderado_pdf && s.attendee_id ? (
+                          <a
+                            href={`${import.meta.env.VITE_API_URL || '/api'}/elections/${electionId}/assistants/${s.attendee_id}/apoderado-pdf`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 underline"
+                          >
+                            {s.apoderado}
+                          </a>
+                        ) : (
+                          s.apoderado
+                        )
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
-                    <TableCell>{s.attendance_mode || 'AUSENTE'}</TableCell>
+                    <TableCell>{s.actions}</TableCell>
+                    <TableCell>
+                      <select
+                        className="border p-1"
+                        disabled={blocked}
+                        value={s.attendance_mode || 'AUSENTE'}
+                        onChange={(e) => handleMark(s.code, e.target.value)}
+                      >
+                        <option value="PRESENCIAL">Presencial</option>
+                        <option value="VIRTUAL">Virtual</option>
+                        <option value="AUSENTE">Ausente</option>
+                      </select>
+                    </TableCell>
                     <TableCell>
                       <Button variant="link" onClick={() => toggleHistory(s.code)}>
                         {historyCode === s.code ? 'Ocultar' : 'Ver'}
@@ -197,7 +247,7 @@ const Asistencia: React.FC = () => {
                   </TableRow>
                   {historyCode === s.code && history && (
                     <TableRow>
-                      <TableCell colSpan={6}>
+                      <TableCell colSpan={8}>
                         <Table>
                           <TableHeader>
                             <TableRow>
