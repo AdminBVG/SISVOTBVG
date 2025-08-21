@@ -47,6 +47,45 @@ def test_create_list_and_update_election():
     assert resp.status_code == 200
     assert resp.json()["name"] == "Demo Updated"
 
+    resp = client.patch(
+        f"/elections/{election_id}",
+        json={
+            "questions": [
+                {
+                    "text": "Q1",
+                    "type": "short_text",
+                    "required": False,
+                    "order": 0,
+                    "options": [],
+                }
+            ]
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    resp = client.get(f"/elections/{election_id}/questions", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()[0]["text"] == "Q1"
+
+    resp = client.patch(
+        f"/elections/{election_id}",
+        json={
+            "questions": [
+                {
+                    "text": "Q2",
+                    "type": "short_text",
+                    "required": True,
+                    "order": 0,
+                    "options": [],
+                }
+            ]
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    resp = client.get(f"/elections/{election_id}/questions", headers=headers)
+    assert resp.json()[0]["text"] == "Q2"
+
     # open election
     resp = client.patch(
         f"/elections/{election_id}/status",

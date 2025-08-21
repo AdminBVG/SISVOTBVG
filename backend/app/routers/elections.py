@@ -155,7 +155,7 @@ def update_election(
         )
     data = payload.model_dump(
         exclude_unset=True,
-        exclude={"attendance_registrars", "vote_registrars", "observers"},
+        exclude={"attendance_registrars", "vote_registrars", "observers", "questions"},
     )
     for key, value in data.items():
         setattr(election, key, value)
@@ -191,6 +191,29 @@ def update_election(
                     role=models.ElectionRole.OBSERVER,
                 )
             )
+    if payload.questions is not None:
+        db.query(models.QuestionOption).filter(
+            models.QuestionOption.question_id.in_(
+                db.query(models.Question.id).filter_by(election_id=election_id)
+            )
+        ).delete(synchronize_session=False)
+        db.query(models.Question).filter_by(election_id=election_id).delete()
+        for idx, q in enumerate(payload.questions):
+            question = models.Question(
+                election_id=election_id,
+                text=q.text,
+                type=q.type,
+                required=q.required,
+                order=q.order if q.order is not None else idx,
+            )
+            db.add(question)
+            db.flush()
+            for opt in q.options:
+                db.add(
+                    models.QuestionOption(
+                        question_id=question.id, text=opt.text, value=opt.value
+                    )
+                )
     db.commit()
     db.refresh(election)
     return election
