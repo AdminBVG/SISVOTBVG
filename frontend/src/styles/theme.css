@@ -229,11 +229,33 @@ a:hover {
   overflow: hidden;
 }
 
+.app-gradient {
+  background: linear-gradient(135deg,
+    var(--bvg-blue) 0%,
+    var(--bvg-blue-light) 60%,
+    var(--bvg-celeste) 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 20s ease infinite;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-gradient > nav,
+.app-gradient > main,
+.app-gradient > footer {
+  position: relative;
+  z-index: 1;
+}
+
 .floating-shape {
   animation: float 6s ease-in-out infinite;
   position: absolute;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .shape-1 { width: 200px; height: 200px; top: 10%; left: 10%; animation-delay: 0s; }
@@ -252,7 +274,7 @@ a:hover {
 .slide-in { animation: slideIn 0.6s ease-out forwards; }
 .pulse-bg { animation: pulse 4s ease-in-out infinite; }
 
-.modern-input {
+.bvg-input {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -264,11 +286,11 @@ a:hover {
   transition: all 0.3s ease;
 }
 
-.modern-input::placeholder {
+.bvg-input::placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.modern-input:focus {
+.bvg-input:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(0, 94, 184, 0.4);
   border-color: var(--bvg-blue-light);
@@ -276,7 +298,7 @@ a:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.bvg-btn-gradient {
+.bvg-btn {
   background: linear-gradient(45deg, var(--bvg-blue), var(--bvg-blue-light), var(--bvg-celeste));
   background-size: 300% 300%;
   color: var(--bvg-white);
@@ -287,12 +309,12 @@ a:hover {
   transition: background-position 0.5s ease, transform 0.2s ease;
 }
 
-.bvg-btn-gradient:hover {
+.bvg-btn:hover {
   background-position: 100% 0;
   transform: translateY(-2px);
 }
 
-.bvg-btn-gradient:active {
+.bvg-btn:active {
   transform: scale(0.98);
 }
 
@@ -317,20 +339,36 @@ a:hover {
   font-weight: 600;
 }
 
-.bvg-navbar {
-  background: rgba(16, 6, 159, 0.6);
-  backdrop-filter: blur(12px);
+.bvg-footer {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--glass-border);
   color: var(--bvg-white);
-  padding: 1rem 2rem;
 }
 
-.bvg-sidebar {
-  background: rgba(0, 94, 184, 0.6);
-  backdrop-filter: blur(15px);
-  padding: 1rem;
-  height: 100vh;
+.bvg-navbar {
+  background: linear-gradient(90deg, var(--bvg-blue), var(--bvg-blue-light), var(--bvg-celeste));
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--bvg-white);
+  box-shadow: var(--shadow-sm);
 }
+
+.bvg-navbar .nav-link {
+  color: var(--bvg-white);
+  font-weight: 500;
+  transition: color var(--transition-base), text-shadow var(--transition-base);
+}
+
+.bvg-navbar .nav-link:hover,
+.bvg-navbar .nav-link.active {
+  color: var(--bvg-white);
+  text-shadow: 0 0 6px currentColor;
+}
+
 
 .link-glow {
   color: var(--bvg-white);
@@ -343,6 +381,11 @@ a:hover {
 .link-glow:hover {
   text-shadow: 0 0 8px currentColor;
   transform: scale(1.05);
+}
+
+.bvg-modal .modal-content,
+.bvg-toast {
+  border: 1px solid var(--bvg-blue-light);
 }
 
 .alert {
@@ -407,6 +450,7 @@ a:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .login-gradient,
+  .app-gradient,
   .floating-shape,
   .slide-in,
   .pulse-bg,
