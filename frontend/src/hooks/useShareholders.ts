@@ -10,6 +10,10 @@ export interface Shareholder {
   actions: number;
   status: string;
   attendance_mode?: string | null;
+  representante?: string | null;
+  apoderado?: string | null;
+  attendee_id?: number | null;
+  apoderado_pdf?: boolean;
 }
 
 export const useShareholders = (

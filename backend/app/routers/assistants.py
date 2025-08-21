@@ -7,10 +7,10 @@ from pathlib import Path
 from openpyxl import load_workbook, Workbook
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 
 from .. import models, schemas, database
-from ..security import get_current_user, require_role
+from ..security import get_current_user, require_role, require_election_role
 
 router = APIRouter(prefix="/elections/{election_id}/assistants", tags=["assistants"])
 
@@ -284,3 +284,18 @@ async def upload_apoderado_pdf(
     data["requires_document"] = True
     data["document_uploaded"] = True
     return schemas.Attendee(**data)
+
+
+@router.get(
+    "/{attendee_id}/apoderado-pdf",
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])],
+)
+def get_apoderado_pdf(
+    election_id: int,
+    attendee_id: int,
+    db: Session = Depends(get_db),
+):
+    attendee = db.query(models.Attendee).filter_by(id=attendee_id, election_id=election_id).first()
+    if not attendee or not attendee.apoderado_pdf_url:
+        raise HTTPException(status_code=404, detail="document not found")
+    return FileResponse(attendee.apoderado_pdf_url, media_type="application/pdf")
