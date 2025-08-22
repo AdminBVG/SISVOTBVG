@@ -129,3 +129,19 @@ def test_get_and_delete_election():
 
     resp = client.get(f"/elections/{election_id}", headers=headers)
     assert resp.status_code == 404
+
+
+def test_open_requires_quorum():
+    headers = auth_headers()
+    resp = client.post(
+        "/elections",
+        json={"name": "Q", "date": "2024-01-01", "min_quorum": 0.5},
+        headers=headers,
+    )
+    eid = resp.json()["id"]
+    resp = client.patch(
+        f"/elections/{eid}/status",
+        json={"status": "OPEN"},
+        headers=headers,
+    )
+    assert resp.status_code == 400

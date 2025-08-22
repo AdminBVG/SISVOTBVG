@@ -10,6 +10,7 @@ export interface Election {
   registration_end?: string;
   can_manage_attendance?: boolean;
   can_manage_votes?: boolean;
+  min_quorum?: number;
 }
 
 export const useElections = () => {

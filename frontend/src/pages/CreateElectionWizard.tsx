@@ -22,6 +22,7 @@ const CreateElectionWizard: React.FC = () => {
   const [date, setDate] = useState('');
   const [openDate, setOpenDate] = useState('');
   const [closeDate, setCloseDate] = useState('');
+  const [quorum, setQuorum] = useState('');
 
   // Step 2 - participants
   const { data: users } = useUsers(true);
@@ -104,6 +105,7 @@ const CreateElectionWizard: React.FC = () => {
         date,
         ...(openDate ? { registration_start: new Date(openDate).toISOString() } : {}),
         ...(closeDate ? { registration_end: new Date(closeDate).toISOString() } : {}),
+        ...(quorum ? { min_quorum: Number(quorum) / 100 } : {}),
         attendance_registrars: attendanceRegs,
         vote_registrars: voteRegs,
         questions: questions.map((q, i) => ({
@@ -161,6 +163,14 @@ const CreateElectionWizard: React.FC = () => {
                 type="datetime-local"
                 value={closeDate}
                 onChange={(e) => setCloseDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Quórum mínimo (%)</label>
+              <Input
+                type="number"
+                value={quorum}
+                onChange={(e) => setQuorum(e.target.value)}
               />
             </div>
           </div>

@@ -17,6 +17,7 @@ interface Payload {
     order: number;
     options: { text: string; value: string }[];
   }[];
+  min_quorum?: number;
 }
 
 export const useUpdateElection = (

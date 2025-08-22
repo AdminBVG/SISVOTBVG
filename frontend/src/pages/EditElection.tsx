@@ -15,12 +15,14 @@ const EditElection: React.FC = () => {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
+  const [quorum, setQuorum] = useState('');
 
   useEffect(() => {
     if (!id) return;
     apiFetch<any>(`/elections/${id}`).then((e) => {
       setName(e.name);
       setDate(e.date.slice(0, 10));
+      setQuorum(e.min_quorum ? String(e.min_quorum * 100) : '');
     });
     apiFetch<any[]>(`/elections/${id}/questions`).then((qs) => {
       setQuestions(
@@ -48,6 +50,7 @@ const EditElection: React.FC = () => {
       id: Number(id),
       name,
       date,
+      ...(quorum ? { min_quorum: Number(quorum) / 100 } : {}),
       questions: questions.map((q, i) => ({
         text: q.text,
         type: q.type,
@@ -70,6 +73,14 @@ const EditElection: React.FC = () => {
           <div>
             <label className="block text-sm mb-1">Fecha</label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Quórum mínimo (%)</label>
+            <Input
+              type="number"
+              value={quorum}
+              onChange={(e) => setQuorum(e.target.value)}
+            />
           </div>
           <div>
             <label className="block text-sm mb-1">Preguntas</label>
