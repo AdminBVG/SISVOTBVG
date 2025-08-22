@@ -246,13 +246,14 @@ def test_upload_apoderado_pdf():
     assert up_resp.status_code == 200
     data = up_resp.json()
     assert data["document_uploaded"] is True
-    # duplicate upload not allowed
+    # duplicate upload replaces existing file
     up_resp2 = client.post(
         f"/elections/{election_id}/assistants/{attendee_id}/apoderado-pdf",
         files=upload_files,
         headers=headers,
     )
-    assert up_resp2.status_code == 400
+    assert up_resp2.status_code == 200
+    assert up_resp2.json()["document_uploaded"] is True
     # attendee without apoderado
     data2 = create_csv([["2", "Carol", "", "", 5]])
     files2 = {"file": ("attendees.csv", data2, "text/csv")}

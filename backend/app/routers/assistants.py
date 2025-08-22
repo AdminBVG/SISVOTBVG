@@ -5,6 +5,7 @@ import csv
 from io import StringIO, BytesIO
 from pathlib import Path
 from openpyxl import load_workbook, Workbook
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import Response, FileResponse
@@ -267,14 +268,17 @@ async def upload_apoderado_pdf(
         raise HTTPException(status_code=404, detail="attendee not found")
     if not attendee.apoderado:
         raise HTTPException(status_code=400, detail="attendee has no apoderado")
-    if attendee.apoderado_pdf_url:
-        raise HTTPException(status_code=400, detail="document already uploaded")
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="invalid file type")
     content = await file.read()
     storage_dir = Path("storage") / str(election_id) / "apoderados"
     storage_dir.mkdir(parents=True, exist_ok=True)
     file_path = storage_dir / f"{attendee.id}.pdf"
+    if attendee.apoderado_pdf_url:
+        try:
+            os.remove(attendee.apoderado_pdf_url)
+        except OSError:
+            pass
     with open(file_path, "wb") as f:
         f.write(content)
     attendee.apoderado_pdf_url = str(file_path)
