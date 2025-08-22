@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import schemas, models, database
 from ..security import require_role, get_current_user
+from ..observer import compute_summary
 
 router = APIRouter(prefix="/elections", tags=["elections"])
 
@@ -84,6 +85,7 @@ def list_elections(
                 status=e.status,
                 registration_start=e.registration_start,
                 registration_end=e.registration_end,
+                min_quorum=e.min_quorum,
             )
             for e in elections
         ]
@@ -118,6 +120,7 @@ def list_elections(
                 status=e.status,
                 registration_start=e.registration_start,
                 registration_end=e.registration_end,
+                min_quorum=e.min_quorum,
                 can_manage_attendance=models.ElectionRole.ATTENDANCE in perms,
                 can_manage_votes=models.ElectionRole.VOTE in perms,
                 can_observe=models.ElectionRole.OBSERVER in perms,
@@ -247,6 +250,13 @@ def update_election_status(
     election = db.query(models.Election).filter_by(id=election_id).first()
     if not election:
         raise HTTPException(status_code=404, detail="Election not found")
+    if (
+        payload.status == models.ElectionStatus.OPEN
+        and election.min_quorum is not None
+    ):
+        summary = compute_summary(db, election_id)
+        if summary["porcentaje_quorum"] < election.min_quorum:
+            raise HTTPException(status_code=400, detail="quorum not met")
     election.status = payload.status
     db.commit()
     db.refresh(election)

@@ -7,6 +7,7 @@ from sqlalchemy import (
     Boolean,
     Enum,
     DECIMAL,
+    Float,
     ForeignKey,
     JSON,
     UniqueConstraint,
@@ -126,6 +127,7 @@ class Election(Base):
     )
     registration_start = Column(DateTime(timezone=True))
     registration_end = Column(DateTime(timezone=True))
+    min_quorum = Column(Float, nullable=True)
 
 
 class User(Base):

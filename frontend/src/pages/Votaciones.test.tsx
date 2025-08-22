@@ -62,4 +62,14 @@ describe('Votaciones', () => {
     const btn = await screen.findByRole('button', { name: /Gestionar asistentes/i });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it('permite gestionar asistentes como admin en borrador', async () => {
+    mockRole = 'ADMIN_BVG';
+    vi.spyOn(api, 'apiFetch').mockResolvedValue([
+      { id: 3, name: 'Elec3', date: '2024-01-01', status: 'DRAFT' },
+    ]);
+    renderPage();
+    const btn = await screen.findByRole('button', { name: /Gestionar asistentes/i });
+    expect((btn as HTMLButtonElement).disabled).toBe(false);
+  });
 });
