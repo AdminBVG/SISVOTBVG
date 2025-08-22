@@ -76,8 +76,8 @@ describe('ManageAssistants', () => {
 
   it('muestra estados de documento', async () => {
     renderPage();
-    expect(await screen.findByText('Pendiente')).toBeTruthy();
-    expect(await screen.findByText('Cargado')).toBeTruthy();
+    expect(await screen.findByText('Subir')).toBeTruthy();
+    expect(await screen.findByText('Ver')).toBeTruthy();
   });
 });
 

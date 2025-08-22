@@ -106,6 +106,23 @@ const ManageAssistants: React.FC = () => {
     }
   };
 
+  const handleViewPdf = async (id: number) => {
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const token = getItem('token');
+      const res = await fetch(
+        `${base}/elections/${electionId}/assistants/${id}/apoderado-pdf`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast(err.message || 'No se pudo obtener el documento');
+    }
+  };
+
   const downloadTemplate = async (format: 'csv' | 'xlsx') => {
     const base = import.meta.env.VITE_API_URL || '/api';
     const token = getItem('token');
@@ -323,24 +340,44 @@ const ManageAssistants: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     {a.requires_document ? (
-                      a.document_uploaded ? (
-                        <span className="text-green-600">Cargado</span>
-                      ) : (
-                        <div className="space-y-2">
-                          <span className="text-red-600">Pendiente</span>
-                          <input
-                            id={`pdf-${a.id}`}
-                            type="file"
-                            accept="application/pdf"
-                            className="hidden"
-                            onChange={(e) =>
-                              handlePdfSelected(
-                                a.id,
-                                e.target.files?.[0] || null,
-                              )
-                            }
-                          />
+                      <>
+                        <input
+                          id={`pdf-${a.id}`}
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          onChange={(e) =>
+                            handlePdfSelected(
+                              a.id,
+                              e.target.files?.[0] || null,
+                            )
+                          }
+                        />
+                        {a.document_uploaded ? (
+                          <div className="space-x-2">
+                            <Button
+                              variant="link"
+                              type="button"
+                              onClick={() => handleViewPdf(a.id)}
+                            >
+                              Ver
+                            </Button>
+                            <Button
+                              variant="link"
+                              type="button"
+                              onClick={() =>
+                                document
+                                  .getElementById(`pdf-${a.id}`)
+                                  ?.click()
+                              }
+                              disabled={uploadMutation.isLoading}
+                            >
+                              Reemplazar
+                            </Button>
+                          </div>
+                        ) : (
                           <Button
+                            variant="link"
                             type="button"
                             onClick={() =>
                               document
@@ -349,10 +386,10 @@ const ManageAssistants: React.FC = () => {
                             }
                             disabled={uploadMutation.isLoading}
                           >
-                            Subir PDF
+                            Subir
                           </Button>
-                        </div>
-                      )
+                        )}
+                      </>
                     ) : (
                       '-'
                     )}
