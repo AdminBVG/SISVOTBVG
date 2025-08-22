@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import Card from '../components/ui/card';
 import Button from '../components/ui/button';
@@ -12,11 +12,28 @@ import { useDeleteAssistant } from '../hooks/useDeleteAssistant';
 import { useUploadApoderadoPdf } from '../hooks/useUploadApoderadoPdf';
 import { getItem } from '../lib/storage';
 
+const EditIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16 3l5 5L8 21H3v-5L16 3z" />
+  </svg>
+);
+
+const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4h8v2m2 0v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6h12z" />
+  </svg>
+);
+
 const ManageAssistants: React.FC = () => {
   const { id } = useParams();
   const electionId = Number(id);
   const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
+  const [search, setSearch] = useState('');
+  const [sortConfig, setSortConfig] = useState<
+    { key: keyof Assistant; direction: 'asc' | 'desc' } | null
+  >(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { data: assistants, refetch } = useAssistants(electionId);
   const importMutation = useImportAssistants(
@@ -56,7 +73,6 @@ const ManageAssistants: React.FC = () => {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<Partial<Assistant>>({});
-  const [uploadFiles, setUploadFiles] = useState<Record<number, File | null>>({});
 
   const startEdit = (a: Assistant) => {
     setEditingId(a.id);
@@ -81,19 +97,12 @@ const ManageAssistants: React.FC = () => {
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('¿Eliminar asistente?')) {
-      deleteMutation.mutate({ id });
-    }
+    deleteMutation.mutate({ id });
   };
 
-  const handleFileChange = (id: number, f: File | null) => {
-    setUploadFiles((prev) => ({ ...prev, [id]: f }));
-  };
-
-  const handleUploadPdf = (id: number) => {
-    const f = uploadFiles[id];
-    if (f) {
-      uploadMutation.mutate({ id, file: f });
+  const handlePdfSelected = (id: number, file: File | null) => {
+    if (file) {
+      uploadMutation.mutate({ id, file });
     }
   };
 
@@ -123,6 +132,36 @@ const ManageAssistants: React.FC = () => {
       importMutation.mutate(file);
       setFile(null);
     }
+  };
+
+  const filteredAssistants = useMemo(() => {
+    if (!assistants) return [];
+    const term = search.toLowerCase();
+    return assistants.filter((a) =>
+      [a.identifier, a.accionista, a.representante || '', a.apoderado || ''].some((field) =>
+        field.toLowerCase().includes(term),
+      ),
+    );
+  }, [assistants, search]);
+
+  const sortedAssistants = useMemo(() => {
+    if (!sortConfig) return filteredAssistants;
+    return [...filteredAssistants].sort((a, b) => {
+      const key = sortConfig.key;
+      const aVal = (a[key] ?? '') as string | number;
+      const bVal = (b[key] ?? '') as string | number;
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredAssistants, sortConfig]);
+
+  const requestSort = (key: keyof Assistant) => {
+    setSortConfig((prev) =>
+      prev && prev.key === key
+        ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' },
+    );
   };
 
   return (
@@ -159,148 +198,227 @@ const ManageAssistants: React.FC = () => {
       </Card>
       <Card className="p-4">
         <h2 className="text-lg font-semibold mb-4">Lista de asistentes</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Accionista</TableHead>
-              <TableHead>Representante</TableHead>
-              <TableHead>Apoderado</TableHead>
-              <TableHead>Acciones</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>Gestión</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assistants?.map((a) => (
-              <TableRow key={a.id}>
-                <TableCell>
-                  {editingId === a.id ? (
-                    <Input
-                      value={form.identifier || ''}
-                      onChange={(e) =>
-                        setForm({ ...form, identifier: e.target.value })
-                      }
-                    />
-                  ) : (
-                    a.identifier
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === a.id ? (
-                    <Input
-                      value={form.accionista || ''}
-                      onChange={(e) =>
-                        setForm({ ...form, accionista: e.target.value })
-                      }
-                    />
-                  ) : (
-                    a.accionista
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === a.id ? (
-                    <Input
-                      value={form.representante || ''}
-                      onChange={(e) =>
-                        setForm({ ...form, representante: e.target.value })
-                      }
-                    />
-                  ) : (
-                    a.representante || '-'
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === a.id ? (
-                    <Input
-                      value={form.apoderado || ''}
-                      onChange={(e) =>
-                        setForm({ ...form, apoderado: e.target.value })
-                      }
-                    />
-                  ) : (
-                    a.apoderado || '-'
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === a.id ? (
-                    <Input
-                      type="number"
-                      value={form.acciones ?? ''}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          acciones: e.target.value
-                            ? Number(e.target.value)
-                            : undefined,
-                        })
-                      }
-                    />
-                  ) : (
-                    a.acciones
-                  )}
-                </TableCell>
-                <TableCell>
-                  {a.requires_document ? (
-                    a.document_uploaded ? (
-                      <span className="text-green-600">Cargado</span>
-                    ) : (
-                      <div className="space-y-2">
-                        <span className="text-red-600">Pendiente</span>
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          onChange={(e) =>
-                            handleFileChange(a.id, e.target.files?.[0] || null)
-                          }
-                        />
-                        <Button
-                          type="button"
-                          onClick={() => handleUploadPdf(a.id)}
-                          disabled={!uploadFiles[a.id] || uploadMutation.isLoading}
-                        >
-                          Subir PDF
-                        </Button>
-                      </div>
-                    )
-                  ) : (
-                    '-'
-                  )}
-                </TableCell>
-                <TableCell className="space-x-2">
-                  {editingId === a.id ? (
-                    <>
-                      <Button onClick={saveEdit} disabled={updateMutation.isLoading}>
-                        Guardar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={cancelEdit}
-                        disabled={updateMutation.isLoading}
-                      >
-                        Cancelar
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="link" onClick={() => startEdit(a)}>
-                        Editar
-                      </Button>
-                      <Button
-                        variant="link"
-                        onClick={() => handleDelete(a.id)}
-                        disabled={deleteMutation.isLoading}
-                      >
-                        Eliminar
-                      </Button>
-                    </>
-                  )}
-                </TableCell>
+        <Input
+          placeholder="Buscar..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="mb-4"
+        />
+        <div className="overflow-auto max-h-96">
+          <Table className="min-w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead
+                  onClick={() => requestSort('identifier')}
+                  className="cursor-pointer"
+                >
+                  ID
+                  {sortConfig?.key === 'identifier' &&
+                    (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
+                </TableHead>
+                <TableHead
+                  onClick={() => requestSort('accionista')}
+                  className="cursor-pointer"
+                >
+                  Accionista
+                  {sortConfig?.key === 'accionista' &&
+                    (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
+                </TableHead>
+                <TableHead
+                  onClick={() => requestSort('representante')}
+                  className="cursor-pointer"
+                >
+                  Representante
+                  {sortConfig?.key === 'representante' &&
+                    (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
+                </TableHead>
+                <TableHead
+                  onClick={() => requestSort('apoderado')}
+                  className="cursor-pointer"
+                >
+                  Apoderado
+                  {sortConfig?.key === 'apoderado' &&
+                    (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
+                </TableHead>
+                <TableHead
+                  onClick={() => requestSort('acciones')}
+                  className="cursor-pointer"
+                >
+                  Acciones
+                  {sortConfig?.key === 'acciones' &&
+                    (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
+                </TableHead>
+                <TableHead>Documento</TableHead>
+                <TableHead>Gestión</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {sortedAssistants.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell>
+                    {editingId === a.id ? (
+                      <Input
+                        value={form.identifier || ''}
+                        onChange={(e) =>
+                          setForm({ ...form, identifier: e.target.value })
+                        }
+                      />
+                    ) : (
+                      a.identifier
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === a.id ? (
+                      <Input
+                        value={form.accionista || ''}
+                        onChange={(e) =>
+                          setForm({ ...form, accionista: e.target.value })
+                        }
+                      />
+                    ) : (
+                      a.accionista
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === a.id ? (
+                      <Input
+                        value={form.representante || ''}
+                        onChange={(e) =>
+                          setForm({ ...form, representante: e.target.value })
+                        }
+                      />
+                    ) : (
+                      a.representante || '-'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === a.id ? (
+                      <Input
+                        value={form.apoderado || ''}
+                        onChange={(e) =>
+                          setForm({ ...form, apoderado: e.target.value })
+                        }
+                      />
+                    ) : (
+                      a.apoderado || '-'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === a.id ? (
+                      <Input
+                        type="number"
+                        value={form.acciones ?? ''}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            acciones: e.target.value
+                              ? Number(e.target.value)
+                              : undefined,
+                          })
+                        }
+                      />
+                    ) : (
+                      a.acciones
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {a.requires_document ? (
+                      a.document_uploaded ? (
+                        <span className="text-green-600">Cargado</span>
+                      ) : (
+                        <div className="space-y-2">
+                          <span className="text-red-600">Pendiente</span>
+                          <input
+                            id={`pdf-${a.id}`}
+                            type="file"
+                            accept="application/pdf"
+                            className="hidden"
+                            onChange={(e) =>
+                              handlePdfSelected(
+                                a.id,
+                                e.target.files?.[0] || null,
+                              )
+                            }
+                          />
+                          <Button
+                            type="button"
+                            onClick={() =>
+                              document
+                                .getElementById(`pdf-${a.id}`)
+                                ?.click()
+                            }
+                            disabled={uploadMutation.isLoading}
+                          >
+                            Subir PDF
+                          </Button>
+                        </div>
+                      )
+                    ) : (
+                      '-'
+                    )}
+                  </TableCell>
+                  <TableCell className="space-x-2">
+                    {editingId === a.id ? (
+                      <>
+                        <Button onClick={saveEdit} disabled={updateMutation.isLoading}>
+                          Guardar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={cancelEdit}
+                          disabled={updateMutation.isLoading}
+                        >
+                          Cancelar
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="link"
+                          onClick={() => startEdit(a)}
+                          aria-label="Editar"
+                          title="Editar"
+                        >
+                          <EditIcon className="w-5 h-5" />
+                        </Button>
+                        <Button
+                          variant="link"
+                          onClick={() => setDeleteId(a.id)}
+                          disabled={deleteMutation.isLoading}
+                          aria-label="Eliminar"
+                          title="Eliminar"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </Button>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
+      {deleteId !== null && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-md shadow-md space-y-4">
+            <p>¿Eliminar asistente?</p>
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={() => {
+                  handleDelete(deleteId);
+                  setDeleteId(null);
+                }}
+              >
+                Eliminar
+              </Button>
+              <Button variant="outline" onClick={() => setDeleteId(null)}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
