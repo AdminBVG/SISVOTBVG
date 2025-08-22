@@ -1,3 +1,25 @@
+@import './styles/theme.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .bvg-btn {
+    @apply px-4 py-2 rounded-md bg-bvg-blue text-white transition-colors hover:bg-bvg-blue-light focus:outline-none focus:ring-2 focus:ring-bvg-celeste;
+  }
+  .bvg-btn-outline {
+    @apply px-4 py-2 rounded-md border border-bvg-blue text-bvg-blue transition-colors hover:bg-bvg-blue hover:text-white focus:outline-none focus:ring-2 focus:ring-bvg-celeste;
+  }
+  .bvg-btn-link {
+    @apply text-bvg-blue hover:text-bvg-blue-light underline-offset-2 hover:underline focus:outline-none;
+  }
+  .bvg-input {
+    @apply border border-gray-300 rounded-md px-3 py-2 focus:border-bvg-blue-light focus:ring-2 focus:ring-bvg-celeste;
+  }
+  .bvg-card {
+    @apply bg-white rounded-md shadow-sm;
+  }
+  .bvg-table {
+    @apply w-full text-left border-collapse;
+  }
+}

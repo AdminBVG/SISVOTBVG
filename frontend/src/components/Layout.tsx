@@ -35,7 +35,7 @@ const Layout: React.FC = () => {
               key={l.to}
               to={l.to}
               className={({ isActive }) =>
-                `text-sm hover:text-blue-600 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-600'}`
+                `text-sm transition-colors hover:text-bvg-blue-light focus:text-bvg-celeste ${isActive ? 'text-bvg-blue' : 'text-gray-600'}`
               }
             >
               {l.label}
