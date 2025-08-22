@@ -32,3 +32,6 @@ htmlcov/
 
 # Others
 .env.local
+
+# Assets
+frontend/public/logo.png

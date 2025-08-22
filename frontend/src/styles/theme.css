@@ -212,21 +212,13 @@ a:hover {
   animation: float-bg 30s ease-in-out infinite;
 }
 
-.login-gradient {
-  background: linear-gradient(135deg,
-    var(--bvg-blue) 0%,
-    var(--bvg-blue-light) 40%,
-    var(--bvg-celeste) 100%
-  );
-  background-size: 300% 300%;
-  animation: gradientShift 8s ease infinite;
+.login-bg {
+  background-color: var(--bvg-gray);
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  position: relative;
-  overflow: hidden;
 }
 
 .app-gradient {
@@ -449,7 +441,7 @@ a:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-gradient,
+  .login-bg,
   .app-gradient,
   .floating-shape,
   .slide-in,

@@ -2,6 +2,8 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut } from '../lib/icons';
+import MenuBar from './MenuBar';
+import Breadcrumbs from './Breadcrumbs';
 
 const Layout: React.FC = () => {
   const { role, username, logout } = useAuth();
@@ -25,9 +27,9 @@ const Layout: React.FC = () => {
 
   return (
     <div className="min-vh-100 d-flex flex-column">
-      <nav className="navbar navbar-expand-md bg-white border-bottom fixed-top">
+      <nav className="navbar navbar-expand-md bvg-navbar">
         <div className="container-fluid">
-          <NavLink to="/" className="navbar-brand fw-bold">
+          <NavLink to="/" className="navbar-brand">
             BVG
           </NavLink>
           <button
@@ -72,7 +74,9 @@ const Layout: React.FC = () => {
           </div>
         </div>
       </nav>
-      <main className="container py-4 mt-5 flex-grow-1">
+      <MenuBar />
+      <main className="container py-4 flex-grow-1">
+        <Breadcrumbs />
         <Outlet />
       </main>
       <footer className="text-center py-3 border-top mt-auto bg-white">

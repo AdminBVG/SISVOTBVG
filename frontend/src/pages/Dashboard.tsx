@@ -18,13 +18,13 @@ const Dashboard: React.FC = () => {
 
   const pieData = [
     { name: 'Presencial', value: data.presencial, color: 'var(--bvg-blue)' },
-    { name: 'Virtual', value: data.virtual, color: '#6c757d' },
-    { name: 'Ausente', value: data.ausente, color: '#ced4da' },
+    { name: 'Virtual', value: data.virtual, color: 'var(--bvg-blue-light)' },
+    { name: 'Ausente', value: data.ausente, color: 'var(--bvg-gray)' },
   ];
 
   const barData = [
     { name: 'Directo', value: data.capital_presente_directo, color: 'var(--bvg-blue)' },
-    { name: 'Representado', value: data.capital_presente_representado, color: '#6c757d' },
+    { name: 'Representado', value: data.capital_presente_representado, color: 'var(--bvg-blue-light)' },
   ];
 
   return (
