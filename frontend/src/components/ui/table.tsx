@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const Table: React.FC<React.TableHTMLAttributes<HTMLTableElement>> = ({ className = '', ...props }) => (
-  <table className={`table bvg-table ${className}`} {...props} />
+  <table className={`bvg-table ${className}`} {...props} />
 );
 
 export const TableHeader: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> = ({ className = '', ...props }) => (
@@ -17,7 +17,7 @@ export const TableRow: React.FC<React.HTMLAttributes<HTMLTableRowElement>> = ({ 
 );
 
 export const TableHead: React.FC<React.ThHTMLAttributes<HTMLTableCellElement>> = ({ className = '', ...props }) => (
-  <th className={`fw-semibold ${className}`} scope="col" {...props} />
+  <th className={`font-semibold ${className}`} scope="col" {...props} />
 );
 
 export const TableCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> = ({ className = '', ...props }) => (

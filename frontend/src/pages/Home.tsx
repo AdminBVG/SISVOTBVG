@@ -40,18 +40,16 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="container py-4">
-      <h1 className="h4 mb-4">Inicio</h1>
-      <div className="row g-3">
+    <div className="max-w-5xl mx-auto py-4 px-4">
+      <h1 className="text-xl font-semibold mb-4">Inicio</h1>
+      <div className="grid gap-4 md:grid-cols-3">
         {sections.map((s) => (
-          <div key={s.to} className="col-md-4">
-            <div className="border rounded p-4 h-100 bg-white">
-              <h2 className="h5 mb-2">{s.title}</h2>
-              <p className="mb-3 text-body-secondary">{s.description}</p>
-              <Link to={s.to} className="btn btn-primary">
-                Ingresar
-              </Link>
-            </div>
+          <div key={s.to} className="bvg-card p-4 flex flex-col">
+            <h2 className="text-lg font-medium mb-2">{s.title}</h2>
+            <p className="mb-3 text-gray-600 flex-1">{s.description}</p>
+            <Link to={s.to} className="bvg-btn mt-auto">
+              Ingresar
+            </Link>
           </div>
         ))}
       </div>
