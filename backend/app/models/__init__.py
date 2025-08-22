@@ -221,11 +221,18 @@ class QuestionOption(Base):
     question = relationship("Question", back_populates="options")
 
 
+class BallotStatus(str, enum.Enum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
+
+
 class Ballot(Base):
     __tablename__ = "ballots"
     id = Column(Integer, primary_key=True, index=True)
     election_id = Column(Integer, ForeignKey("elections.id"), nullable=False)
     title = Column(String, nullable=False)
+    order = Column(Integer, nullable=False, default=0)
+    status = Column(Enum(BallotStatus), nullable=False, default=BallotStatus.OPEN)
     options = relationship("BallotOption", back_populates="ballot")
     votes = relationship("Vote", back_populates="ballot")
 
@@ -244,5 +251,12 @@ class Vote(Base):
     id = Column(Integer, primary_key=True, index=True)
     ballot_id = Column(Integer, ForeignKey("ballots.id"), nullable=False)
     option_id = Column(Integer, ForeignKey("ballot_options.id"), nullable=False)
+    attendee_id = Column(Integer, ForeignKey("attendees.id"), nullable=False)
+    weight = Column(DECIMAL, nullable=False, default=0)
+    created_by = Column(String)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     ballot = relationship("Ballot", back_populates="votes")
     option = relationship("BallotOption", back_populates="votes")
+    attendee = relationship("Attendee")

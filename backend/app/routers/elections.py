@@ -129,6 +129,43 @@ def list_elections(
     return result
 
 
+@router.post(
+    "/{election_id}/close",
+    response_model=schemas.Election,
+)
+def close_election(
+    election_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    if election.status == models.ElectionStatus.CLOSED:
+        return election
+    if current_user["role"] != "ADMIN_BVG":
+        user = (
+            db.query(models.User)
+            .filter_by(username=current_user["username"])
+            .first()
+        )
+        allowed = (
+            db.query(models.ElectionUserRole)
+            .filter(
+                models.ElectionUserRole.election_id == election_id,
+                models.ElectionUserRole.user_id == user.id,
+                models.ElectionUserRole.role == models.ElectionRole.VOTE,
+            )
+            .first()
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No autorizado")
+    election.status = models.ElectionStatus.CLOSED
+    db.commit()
+    db.refresh(election)
+    return election
+
+
 @router.get(
     "/{election_id}",
     response_model=schemas.Election,
