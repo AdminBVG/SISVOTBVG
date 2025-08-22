@@ -32,5 +32,20 @@ Aplicación React + TypeScript que consume la API de asambleas BVG.
 4. Para detener la pila:
    ```powershell
    Ctrl+C
-   docker compose down
-   ```
+  docker compose down
+  ```
+
+## Tokens de diseño
+
+Los estilos del proyecto utilizan variables definidas en `src/styles/theme.css`.
+Estas funcionan como _tokens_ para mantener consistencia visual:
+
+- `--bvg-blue`: color primario.
+- `--bvg-blue-light`: color secundario.
+- `--bvg-celeste`: color de acento.
+- `--bvg-gray`: fondo neutro.
+- `--bvg-dark`: texto principal.
+
+Al crear componentes procura usar estas variables mediante `var(--token)` o las
+clases de Bootstrap ya sobreescritas. Evita declarar códigos de color fijos
+directamente en los estilos.
