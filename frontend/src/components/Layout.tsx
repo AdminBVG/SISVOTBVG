@@ -2,8 +2,6 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut } from '../lib/icons';
-import MenuBar from './MenuBar';
-import Breadcrumbs from './Breadcrumbs';
 
 const Layout: React.FC = () => {
   const { role, username, logout } = useAuth();
@@ -26,61 +24,41 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="min-vh-100 d-flex flex-column">
-      <nav className="navbar navbar-expand-md bvg-navbar">
-        <div className="container-fluid">
-          <NavLink to="/" className="navbar-brand">
-            BVG
-          </NavLink>
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
+      <header className="flex items-center justify-between px-6 py-4 border-b bg-white">
+        <NavLink to="/" className="text-lg font-semibold">
+          BVG
+        </NavLink>
+        <nav className="flex items-center gap-6">
+          {links.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              className={({ isActive }) =>
+                `text-sm hover:text-blue-600 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-600'}`
+              }
+            >
+              {l.label}
+            </NavLink>
+          ))}
+          {username && role && (
+            <span className="text-xs text-gray-400">
+              {role} - {username}
+            </span>
+          )}
           <button
-            className="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#mainNav"
-            aria-controls="mainNav"
-            aria-expanded="false"
-            aria-label="Toggle navigation"
+            onClick={handleLogout}
+            className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
           >
-            <span className="navbar-toggler-icon"></span>
+            <LogOut width={16} height={16} /> Cerrar sesión
           </button>
-          <div className="collapse navbar-collapse justify-content-end" id="mainNav">
-            <ul className="navbar-nav align-items-center gap-2">
-              {links.map((l) => (
-                <li key={l.to} className="nav-item">
-                  <NavLink
-                    to={l.to}
-                    className={({ isActive }) => `nav-link ${isActive ? 'active fw-semibold' : ''}`}
-                  >
-                    {l.label}
-                  </NavLink>
-                </li>
-              ))}
-              {username && role && (
-                <li className="nav-item d-none d-md-block">
-                  <span className="nav-link disabled text-body-secondary small">
-                    {role} - {username}
-                  </span>
-                </li>
-              )}
-              <li className="nav-item">
-                <button
-                  onClick={handleLogout}
-                  className="btn btn-link nav-link p-0 d-flex align-items-center"
-                >
-                  <LogOut width={16} height={16} className="me-1" /> Cerrar sesión
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-      <MenuBar />
-      <main className="container py-4 flex-grow-1">
-        <Breadcrumbs />
+        </nav>
+      </header>
+      <main className="flex-1 px-6 py-8">
         <Outlet />
       </main>
-      <footer className="text-center py-3 border-top mt-auto bg-white">
-        <small>&copy; BVG</small>
+      <footer className="text-center text-xs text-gray-500 py-4 border-t">
+        &copy; BVG
       </footer>
     </div>
   );
