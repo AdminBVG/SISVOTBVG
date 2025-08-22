@@ -28,26 +28,25 @@ const Login: React.FC = () => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     mutation.mutate({ username, password });
   };
 
   return (
-    <div className="login-bg">
-      <div className="card p-4" style={{ maxWidth: '400px', width: '100%' }}>
-        <div className="text-center mb-4">
-          <h1 className="h4 mb-1">Inicio de sesión</h1>
-          <p className="text-body-secondary">Ingresa a tu cuenta</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm bg-white p-6 rounded-md shadow"
+      >
+        <div className="text-center mb-6">
+          <h1 className="text-xl font-semibold mb-1">Inicio de sesión</h1>
+          <p className="text-sm text-gray-500">Ingresa a tu cuenta</p>
         </div>
-        {error && (
-          <div className="alert alert-danger" role="alert">
-            {error}
-          </div>
-        )}
-        <div className="mb-3">
-          <label htmlFor="username" className="form-label">
+        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+        <div className="mb-4">
+          <label htmlFor="username" className="block text-sm font-medium mb-1">
             Usuario
           </label>
           <input
@@ -56,12 +55,12 @@ const Login: React.FC = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            className="form-control"
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Tu nombre de usuario"
           />
         </div>
-        <div className="mb-4">
-          <label htmlFor="password" className="form-label">
+        <div className="mb-6">
+          <label htmlFor="password" className="block text-sm font-medium mb-1">
             Contraseña
           </label>
           <input
@@ -70,31 +69,27 @@ const Login: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="form-control"
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Tu contraseña"
           />
         </div>
-        <div className="d-grid mb-3">
-          <button
-            onClick={handleSubmit}
-            disabled={mutation.isLoading}
-            className="btn btn-primary"
-          >
-            {mutation.isLoading ? 'Ingresando...' : 'Ingresar'}
-          </button>
+        <button
+          type="submit"
+          disabled={mutation.isLoading}
+          className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          {mutation.isLoading ? 'Ingresando...' : 'Ingresar'}
+        </button>
+        <div className="text-center mt-4 text-sm">
+          <Link to="/register" className="text-blue-600 hover:underline">
+            Registrarse
+          </Link>
+          <span className="mx-2 text-gray-400">|</span>
+          <Link to="/reset-password" className="text-blue-600 hover:underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
         </div>
-        <div className="text-center">
-          <div className="d-flex justify-content-center flex-wrap gap-3">
-            <Link to="/register" className="link-glow">
-              Registrarse
-            </Link>
-            <span className="text-body-secondary">|</span>
-            <Link to="/reset-password" className="link-glow">
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
-        </div>
-      </div>
+      </form>
     </div>
   );
 };
