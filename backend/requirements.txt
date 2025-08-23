@@ -10,3 +10,4 @@ httpx
 PyJWT
 python-dotenv
 openpyxl
+reportlab

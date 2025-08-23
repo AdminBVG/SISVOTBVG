@@ -87,7 +87,12 @@ def upgrade():
         sa.Column('min_quorum', sa.Float(), nullable=True),
         sa.Column('description', sa.String(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('closed_at', sa.DateTime(timezone=True), nullable=True)
+        sa.Column('closed_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('voting_open', sa.Boolean(), nullable=False, server_default=sa.text('false')),
+        sa.Column('voting_opened_by', sa.String(), nullable=True),
+        sa.Column('voting_opened_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('voting_closed_by', sa.String(), nullable=True),
+        sa.Column('voting_closed_at', sa.DateTime(timezone=True), nullable=True)
     )
     op.create_table(
         'users',
@@ -111,8 +116,14 @@ def upgrade():
         sa.Column('user_agent', sa.String(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False)
     )
+    op.create_table(
+        'settings',
+        sa.Column('key', sa.String(), primary_key=True),
+        sa.Column('value', sa.String(), nullable=True)
+    )
 
 def downgrade():
+    op.drop_table('settings')
     op.drop_table('proxy_assignments')
     op.drop_table('proxies')
     op.drop_table('persons')

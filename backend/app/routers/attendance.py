@@ -13,6 +13,12 @@ import io
 import csv
 import smtplib
 from email.message import EmailMessage
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+except Exception:  # pragma: no cover - reportlab optional
+    letter = None  # type: ignore
+    canvas = None  # type: ignore
 
 router = APIRouter(prefix="/elections/{election_id}/attendance", tags=["attendance"])
 
@@ -42,33 +48,49 @@ def _smtp_settings(db: Session) -> dict:
     return {s.key: s.value for s in db.query(models.Setting).all()}
 
 
-def _build_pdf(text: str) -> bytes:
-    content = f"BT /F1 12 Tf 50 750 Td ({text}) Tj ET"
-    pdf_lines = [
-        "%PDF-1.4",
-        "1 0 obj<<>>endobj",
-        "2 0 obj<< /Type /Page /Parent 3 0 R /Resources<< /Font<< /F1 4 0 R >> >> /MediaBox[0 0 612 792] /Contents 5 0 R>>endobj",
-        "3 0 obj<< /Type /Pages /Kids[2 0 R] /Count 1>>endobj",
-        "4 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica>>endobj",
-        f"5 0 obj<< /Length {len(content)}>>stream",
-        content,
-        "endstream endobj",
-        "6 0 obj<< /Type /Catalog /Pages 3 0 R>>endobj",
-        "xref",
-        "0 7",
-        "0000000000 65535 f ",
-        "0000000010 00000 n ",
-        "0000000053 00000 n ",
-        "0000000120 00000 n ",
-        "0000000174 00000 n ",
-        "0000000241 00000 n ",
-        "0000000350 00000 n ",
-        "trailer<< /Size 7 /Root 6 0 R>>",
-        "startxref",
-        "432",
-        "%%EOF",
-    ]
-    return ("\n".join(pdf_lines)).encode("latin-1")
+def _build_pdf(election: models.Election, rows: List[tuple]) -> bytes:
+    if canvas is None:
+        lines = [f"Informe de asistencia - {election.name}"]
+        lines.append(f"Fecha: {election.date.isoformat()}")
+        lines.append("Código    Nombre    Modo")
+        for attendance, shareholder in rows:
+            lines.append(f"{shareholder.code}    {shareholder.name}    {attendance.mode.value}")
+        content = "\n".join(lines)
+        return content.encode("utf-8")
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    y = height - 50
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, y, f"Informe de asistencia - {election.name}")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    c.drawString(50, y, f"Fecha: {election.date.isoformat()}")
+    y -= 40
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Código")
+    c.drawString(150, y, "Nombre")
+    c.drawString(400, y, "Modo")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    for attendance, shareholder in rows:
+        if y < 50:
+            c.showPage()
+            y = height - 50
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(50, y, "Código")
+            c.drawString(150, y, "Nombre")
+            c.drawString(400, y, "Modo")
+            y -= 20
+            c.setFont("Helvetica", 12)
+        c.drawString(50, y, shareholder.code)
+        c.drawString(150, y, shareholder.name)
+        c.drawString(400, y, attendance.mode.value)
+        y -= 20
+    c.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
 
 
 
@@ -275,10 +297,7 @@ def send_attendance_report(
         .filter(models.Attendance.election_id == election_id)
         .all()
     )
-    lines = ["Informe de asistencia - {0}".format(election.name)]
-    for attendance, shareholder in rows:
-        lines.append(f"{shareholder.code} {shareholder.name} {attendance.mode.value}")
-    pdf_bytes = _build_pdf("\\n".join(lines))
+    pdf_bytes = _build_pdf(election, rows)
     settings = _smtp_settings(db)
     host = settings.get("smtp_host")
     if host:
