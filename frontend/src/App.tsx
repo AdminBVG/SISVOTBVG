@@ -26,6 +26,7 @@ import Vote from './pages/Vote';
 import Home from './pages/Home';
 import Configuracion from './pages/Configuracion';
 import { ToastProvider } from './components/ui/toast';
+import DesignPreview from './pages/DesignPreview';
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App: React.FC = () => {
                 <Route path="/verify" element={<Verify />} />
                 <Route path="/reset-password" element={<RequestReset />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/design-preview" element={<DesignPreview />} />
                 <Route element={<ProtectedRoute roles={["ADMIN_BVG", "FUNCIONAL_BVG"]} />}> 
                   <Route element={<Layout />}>
                     <Route path="/" element={<Home />} />
