@@ -21,6 +21,7 @@ from .routers import (
     users,
     voting,
     election_users,
+    settings,
 )
 from .database import Base, engine
 
@@ -55,6 +56,7 @@ app.include_router(assistants.router)
 app.include_router(users.router)
 app.include_router(voting.router)
 app.include_router(election_users.router)
+app.include_router(settings.router)
 
 @app.get("/")
 def read_root():

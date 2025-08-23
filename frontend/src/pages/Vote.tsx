@@ -7,9 +7,12 @@ import {
   useVoteAll,
   useCloseBallot,
   useCloseElection,
+  useStartVoting,
+  useCloseVoting,
 } from '../hooks/useBallots';
 import { useAssistants } from '../hooks/useAssistants';
 import { useElection } from '../hooks/useElection';
+import { useDashboardStats } from '../hooks/useDashboardStats';
 import Button from '../components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../components/ui/table';
 import { useToast } from '../components/ui/toast';
@@ -20,6 +23,7 @@ const Vote: React.FC = () => {
   const { data: election } = useElection(electionId);
   const { data: ballots } = usePendingBallots(electionId);
   const { data: assistants } = useAssistants(electionId);
+  const { data: stats } = useDashboardStats(electionId);
   const [index, setIndex] = useState(0);
   const current = ballots?.[index];
   const { data: options } = useBallotResults(current?.id || 0, !!current);
@@ -34,6 +38,8 @@ const Vote: React.FC = () => {
   const voteAll = useVoteAll(current?.id || 0, () => toast('Votos registrados'));
   const closeBallot = useCloseBallot(current?.id || 0, () => setIndex((i) => i + 1));
   const closeElection = useCloseElection(electionId, () => toast('Votación cerrada'));
+  const startVoting = useStartVoting(electionId);
+  const closeVoting = useCloseVoting(electionId, () => closeElection.mutate());
 
   const handleVote = (attId: number, optionId: number) => {
     setVotes((v) => ({ ...v, [attId]: optionId }));
@@ -51,6 +57,9 @@ const Vote: React.FC = () => {
 
   const done = ballots && index >= ballots.length;
   const closed = election?.status === 'CLOSED';
+  const quorum = stats?.porcentaje_quorum || 0;
+  const min = election?.min_quorum || 0;
+  const canStart = !election?.voting_open && quorum >= min;
 
   if (closed) {
     return (
@@ -64,7 +73,15 @@ const Vote: React.FC = () => {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Registrador de Votación</h1>
-      {current && options && (
+      {!election?.voting_open && (
+        <div className="space-y-2">
+          <p>Quórum actual: {quorum.toFixed(2)}%</p>
+          <Button onClick={() => startVoting.mutate()} disabled={!canStart}>
+            Abrir registro de votación
+          </Button>
+        </div>
+      )}
+      {election?.voting_open && current && options && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Button
@@ -136,8 +153,8 @@ const Vote: React.FC = () => {
           )}
         </div>
       )}
-      {done && (
-        <Button onClick={() => closeElection.mutate()}>Cerrar votación</Button>
+      {election?.voting_open && done && (
+        <Button onClick={() => closeVoting.mutate()}>Cerrar votación</Button>
       )}
     </div>
   );

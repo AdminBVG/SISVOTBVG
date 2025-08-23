@@ -11,6 +11,14 @@ from ..utils import enforce_registration_window
 import anyio
 import io
 import csv
+import smtplib
+from email.message import EmailMessage
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+except Exception:  # pragma: no cover - reportlab optional
+    letter = None  # type: ignore
+    canvas = None  # type: ignore
 
 router = APIRouter(prefix="/elections/{election_id}/attendance", tags=["attendance"])
 
@@ -34,6 +42,55 @@ def _has_active_proxy(db: Session, election_id: int, shareholder_id: int) -> boo
         .first()
         is not None
     )
+
+
+def _smtp_settings(db: Session) -> dict:
+    return {s.key: s.value for s in db.query(models.Setting).all()}
+
+
+def _build_pdf(election: models.Election, rows: List[tuple]) -> bytes:
+    if canvas is None:
+        lines = [f"Informe de asistencia - {election.name}"]
+        lines.append(f"Fecha: {election.date.isoformat()}")
+        lines.append("Código    Nombre    Modo")
+        for attendance, shareholder in rows:
+            lines.append(f"{shareholder.code}    {shareholder.name}    {attendance.mode.value}")
+        content = "\n".join(lines)
+        return content.encode("utf-8")
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    y = height - 50
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, y, f"Informe de asistencia - {election.name}")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    c.drawString(50, y, f"Fecha: {election.date.isoformat()}")
+    y -= 40
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Código")
+    c.drawString(150, y, "Nombre")
+    c.drawString(400, y, "Modo")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    for attendance, shareholder in rows:
+        if y < 50:
+            c.showPage()
+            y = height - 50
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(50, y, "Código")
+            c.drawString(150, y, "Nombre")
+            c.drawString(400, y, "Modo")
+            y -= 20
+            c.setFont("Helvetica", 12)
+        c.drawString(50, y, shareholder.code)
+        c.drawString(150, y, shareholder.name)
+        c.drawString(400, y, attendance.mode.value)
+        y -= 20
+    c.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
 
 
 
@@ -220,3 +277,41 @@ def export_attendance(election_id: int, db: Session = Depends(get_db)):
             attendance.marked_at.isoformat() if attendance.marked_at else "",
         ])
     return Response(content=output.getvalue(), media_type="text/csv")
+
+
+@router.post(
+    "/report",
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])],
+)
+def send_attendance_report(
+    election_id: int,
+    payload: schemas.AttendanceReportRequest,
+    db: Session = Depends(get_db),
+):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="election not found")
+    rows = (
+        db.query(models.Attendance, models.Shareholder)
+        .join(models.Shareholder, models.Shareholder.id == models.Attendance.shareholder_id)
+        .filter(models.Attendance.election_id == election_id)
+        .all()
+    )
+    pdf_bytes = _build_pdf(election, rows)
+    settings = _smtp_settings(db)
+    host = settings.get("smtp_host")
+    if host:
+        msg = EmailMessage()
+        msg["Subject"] = f"Informe de asistencia - {election.name}"
+        msg["From"] = settings.get("smtp_from", "")
+        msg["To"] = ", ".join(payload.recipients)
+        msg.set_content("Adjunto informe de asistencia")
+        msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="attendance.pdf")
+        try:
+            with smtplib.SMTP(host, int(settings.get("smtp_port", 25))) as smtp:
+                if settings.get("smtp_user"):
+                    smtp.login(settings.get("smtp_user"), settings.get("smtp_password"))
+                smtp.send_message(msg)
+        except Exception:
+            raise HTTPException(status_code=500, detail="failed to send email")
+    return {"status": "sent"}

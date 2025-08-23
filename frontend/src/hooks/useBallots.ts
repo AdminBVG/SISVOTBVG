@@ -110,3 +110,25 @@ export const useCloseElection = (electionId: number, onSuccess?: () => void) => 
   });
 };
 
+export const useStartVoting = (electionId: number, onSuccess?: () => void) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch(`/elections/${electionId}/start-voting`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['election', electionId] });
+      onSuccess?.();
+    },
+  });
+};
+
+export const useCloseVoting = (electionId: number, onSuccess?: () => void) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch(`/elections/${electionId}/close-voting`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['election', electionId] });
+      onSuccess?.();
+    },
+  });
+};
+
