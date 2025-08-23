@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/card';
 import Button from '../components/ui/button';
@@ -20,6 +20,7 @@ const Votaciones: React.FC = () => {
   const toast = useToast();
   const { role } = useAuth();
   const { data: elections, isLoading, error, refetch } = useElections();
+  const [search, setSearch] = useState('');
   const { mutate: updateStatus } = useUpdateElectionStatus(() => {
     toast('Estado actualizado');
     refetch();
@@ -61,7 +62,15 @@ const Votaciones: React.FC = () => {
           </p>
         )}
         {!isLoading && !error && (
-          <Table>
+          <>
+            <input
+              type="text"
+              placeholder="Buscar"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mb-2 border p-1"
+            />
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
@@ -71,13 +80,17 @@ const Votaciones: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {elections?.map((e) => {
-                const open = isRegistrationOpen(e);
-                return (
-                  <TableRow key={e.id}>
-                    <TableCell>{e.name}</TableCell>
-                    <TableCell>{new Date(e.date).toLocaleDateString('es-EC')}</TableCell>
-                    <TableCell>{statusLabel(e.status)}</TableCell>
+              {elections
+                ?.filter((e) =>
+                  e.name.toLowerCase().includes(search.toLowerCase())
+                )
+                .map((e) => {
+                  const open = isRegistrationOpen(e);
+                  return (
+                    <TableRow key={e.id}>
+                      <TableCell>{e.name}</TableCell>
+                      <TableCell>{new Date(e.date).toLocaleDateString('es-EC')}</TableCell>
+                      <TableCell>{statusLabel(e.status)}</TableCell>
                     <TableCell className="space-x-2">
                       {role === 'ADMIN_BVG' && (
                         <>
@@ -176,9 +189,10 @@ const Votaciones: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 );
-              })}
+                })}
             </TableBody>
           </Table>
+          </>
         )}
       </Card>
     </div>
