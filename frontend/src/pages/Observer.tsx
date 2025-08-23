@@ -19,6 +19,7 @@ const Observer: React.FC = () => {
   const [ballots, setBallots] = useState<
     Record<number, { id: number; title: string; results: { id: number; text: string; votes: number }[] }>
   >({});
+  const [wsError, setWsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialRows) setRows(initialRows);
@@ -43,6 +44,10 @@ const Observer: React.FC = () => {
         setBallots((b) => ({ ...b, [msg.ballot.id]: msg.ballot }));
       }
     };
+    ws.onerror = () => setWsError('No se pudo conectar al observador');
+    ws.onclose = () => {
+      setWsError('Conexión de observador cerrada');
+    };
     return () => ws.close();
   }, [electionId]);
 
@@ -53,6 +58,11 @@ const Observer: React.FC = () => {
       {error && (
         <p role="alert" className="text-body">
           Error al cargar observación
+        </p>
+      )}
+      {wsError && (
+        <p role="alert" className="text-body">
+          {wsError}
         </p>
       )}
       {rows && (

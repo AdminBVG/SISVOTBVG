@@ -155,6 +155,14 @@ const Asistencia: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 space-y-4">
           <h1 className="text-xl font-semibold flex items-center"><User className="w-5 h-5 mr-2" />Registro de asistencia</h1>
+          {blocked && (
+            <p
+              role="alert"
+              className="p-2 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded"
+            >
+              Registro de asistencia no habilitado
+            </p>
+          )}
           <Input
             placeholder="Buscar por nombre o código"
             value={search}
@@ -173,13 +181,14 @@ const Asistencia: React.FC = () => {
               Exportar CSV
             </Button>
           </div>
-        {selectedCodes.length > 0 && (
+        {selectedCodes.length > 0 && !blocked && (
           <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
             <span>{selectedCodes.length} seleccionados</span>
             <select
               className="border p-1"
               value={bulkMode}
               onChange={(e) => setBulkMode(e.target.value)}
+              disabled={blocked}
             >
               <option value="PRESENCIAL">Presencial</option>
               <option value="VIRTUAL">Virtual</option>
@@ -213,6 +222,7 @@ const Asistencia: React.FC = () => {
                       shareholders?.length > 0 &&
                       selectedCodes.length === shareholders.length
                     }
+                    disabled={blocked}
                   />
                 </TableHead>
                 <TableHead>Código</TableHead>
@@ -234,6 +244,7 @@ const Asistencia: React.FC = () => {
                         className="h-4 w-4"
                         checked={!!selected[s.code]}
                         onChange={() => toggleSelect(s.code)}
+                        disabled={blocked}
                       />
                     </TableCell>
                     <TableCell>{s.code}</TableCell>

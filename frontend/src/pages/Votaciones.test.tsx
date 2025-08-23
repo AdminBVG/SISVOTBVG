@@ -56,11 +56,30 @@ describe('Votaciones', () => {
         registration_start: past,
         registration_end: past,
         can_manage_attendance: true,
+        can_observe: true,
       },
     ]);
     renderPage();
     const btn = await screen.findByRole('button', { name: /Gestionar asistentes/i });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
+    expect(btn.getAttribute('title')).toBe('Registro de asistencia no habilitado');
+  });
+
+  it('oculta observador cuando no tiene permiso', async () => {
+    mockRole = 'FUNCIONAL_BVG';
+    vi.spyOn(api, 'apiFetch').mockResolvedValue([
+      {
+        id: 4,
+        name: 'Elec4',
+        date: '2024-01-01',
+        status: 'OPEN',
+        can_manage_attendance: true,
+        can_observe: false,
+      },
+    ]);
+    renderPage();
+    expect(await screen.findByText('Elec4')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Observador/i })).toBeNull();
   });
 
   it('permite gestionar asistentes como admin en borrador', async () => {
