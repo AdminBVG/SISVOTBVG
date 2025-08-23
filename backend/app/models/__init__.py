@@ -121,6 +121,7 @@ class Election(Base):
     __tablename__ = "elections"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    description = Column(String)
     date = Column(Date, nullable=False)
     status = Column(
         Enum(ElectionStatus), default=ElectionStatus.DRAFT, nullable=False
@@ -128,6 +129,10 @@ class Election(Base):
     registration_start = Column(DateTime(timezone=True))
     registration_end = Column(DateTime(timezone=True))
     min_quorum = Column(Float, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    closed_at = Column(DateTime(timezone=True))
 
 
 class User(Base):

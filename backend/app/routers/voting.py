@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from datetime import datetime, timezone
 import anyio
 from .. import models, schemas, database
 from ..security import require_role, get_current_user
-from ..observer import manager
+from ..observer import manager, compute_summary
 
 router = APIRouter(prefix="", tags=["voting"])
 
@@ -65,10 +66,17 @@ def _ballot_results(db: Session, ballot_id: int) -> List[schemas.OptionResult]:
     options = db.query(models.BallotOption).filter_by(ballot_id=ballot_id).all()
     results: List[schemas.OptionResult] = []
     for opt in options:
-        count = db.query(models.Vote).filter_by(option_id=opt.id).count()
+        total = (
+            db.query(func.coalesce(func.sum(models.Vote.weight), 0))
+            .filter_by(option_id=opt.id)
+            .scalar()
+        )
         results.append(
             schemas.OptionResult(
-                id=opt.id, ballot_id=opt.ballot_id, text=opt.text, votes=count
+                id=opt.id,
+                ballot_id=opt.ballot_id,
+                text=opt.text,
+                votes=float(total),
             )
         )
     return results
@@ -102,6 +110,13 @@ def cast_vote(
         raise HTTPException(status_code=404, detail="Ballot not found")
     if ballot.status != models.BallotStatus.OPEN:
         raise HTTPException(status_code=400, detail="Ballot closed")
+    election = db.query(models.Election).filter_by(id=ballot.election_id).first()
+    if not election or election.status != models.ElectionStatus.OPEN:
+        raise HTTPException(status_code=400, detail="Election closed")
+    if election.min_quorum is not None:
+        summary = compute_summary(db, election.id)
+        if summary["porcentaje_quorum"] < election.min_quorum:
+            raise HTTPException(status_code=400, detail="quorum not met")
     if current_user["role"] != "ADMIN_BVG":
         user = (
             db.query(models.User)
@@ -179,6 +194,13 @@ def vote_all(
         raise HTTPException(status_code=404, detail="Ballot not found")
     if ballot.status != models.BallotStatus.OPEN:
         raise HTTPException(status_code=400, detail="Ballot closed")
+    election = db.query(models.Election).filter_by(id=ballot.election_id).first()
+    if not election or election.status != models.ElectionStatus.OPEN:
+        raise HTTPException(status_code=400, detail="Election closed")
+    if election.min_quorum is not None:
+        summary = compute_summary(db, election.id)
+        if summary["porcentaje_quorum"] < election.min_quorum:
+            raise HTTPException(status_code=400, detail="quorum not met")
     if current_user["role"] != "ADMIN_BVG":
         user = (
             db.query(models.User)

@@ -189,6 +189,7 @@ class Question(QuestionCreate):
 class ElectionBase(BaseModel):
     name: str
     date: date
+    description: Optional[str] = None
     registration_start: Optional[datetime] = None
     registration_end: Optional[datetime] = None
     min_quorum: Optional[float] = None
@@ -205,6 +206,7 @@ class ElectionCreate(ElectionBase):
 class ElectionUpdate(BaseModel):
     name: Optional[str] = None
     date: Optional[date] = None
+    description: Optional[str] = None
     observers: Optional[List[int]] = None
     registration_start: Optional[datetime] = None
     registration_end: Optional[datetime] = None
@@ -220,6 +222,8 @@ class Election(ElectionBase):
     can_manage_attendance: bool = False
     can_manage_votes: bool = False
     can_observe: bool = False
+    created_at: datetime
+    closed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -363,5 +367,5 @@ class Vote(VoteBase):
 
 
 class OptionResult(Option):
-    votes: int
+    votes: float
 

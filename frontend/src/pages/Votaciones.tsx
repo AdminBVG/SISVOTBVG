@@ -153,7 +153,7 @@ const Votaciones: React.FC = () => {
                             <Button
                               variant="outline"
                               disabled={!open}
-                              onClick={() => navigate(`/votaciones/${e.id}/proxies`)}
+                              onClick={() => navigate(`/votaciones/${e.id}/vote`)}
                             >
                               Gestionar votos
                             </Button>
