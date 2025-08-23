@@ -99,3 +99,39 @@ def test_observer_table_shows_represented_actions():
     row = table[0]
     assert row["acciones_representadas"] == 10.0
     assert row["acciones_propias"] == 0.0
+
+
+def test_observer_receives_ballot_progress():
+    election_id, admin_headers, reg_headers, obs_headers, obs_token = setup_env()
+    db = SessionLocal()
+    db.add(
+        models.Attendee(
+            election_id=election_id, identifier="1", accionista="A1", acciones=10
+        )
+    )
+    db.commit()
+    db.close()
+    ballot = client.post(
+        f"/elections/{election_id}/ballots",
+        json={"title": "Q1", "order": 1},
+        headers=admin_headers,
+    ).json()
+    opt_yes = client.post(
+        f"/ballots/{ballot['id']}/options", json={"text": "Si"}, headers=admin_headers
+    ).json()
+    client.post(
+        f"/ballots/{ballot['id']}/options", json={"text": "No"}, headers=admin_headers
+    )
+    with client.websocket_connect(
+        f"/elections/{election_id}/observer/ws?token={obs_token}"
+    ) as ws:
+        ws.receive_json()
+        client.post(
+            f"/ballots/{ballot['id']}/vote-all",
+            json={"option_id": opt_yes["id"]},
+            headers=admin_headers,
+        )
+        msg = ws.receive_json()
+        assert msg["ballot"]["id"] == ballot["id"]
+        counts = {r["id"]: r["votes"] for r in msg["ballot"]["results"]}
+        assert counts[opt_yes["id"]] == 1
