@@ -9,6 +9,7 @@ import { useShareholders } from '../hooks/useShareholders';
 import { useMarkAttendance } from '../hooks/useMarkAttendance';
 import { useBulkMarkAttendance } from '../hooks/useBulkMarkAttendance';
 import { useAttendanceHistory } from '../hooks/useAttendanceHistory';
+import { useSendAttendanceReport } from '../hooks/useSendAttendanceReport';
 import { getItem } from '../lib/storage';
 import { User } from '../lib/icons';
 
@@ -18,6 +19,7 @@ const Asistencia: React.FC = () => {
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [blocked, setBlocked] = useState(false);
+  const [emails, setEmails] = useState('');
 
   const handleForbidden = (err: any) => {
     toast(err.message);
@@ -123,6 +125,22 @@ const Asistencia: React.FC = () => {
     }
   };
 
+  const sendReport = useSendAttendanceReport(
+    electionId,
+    () => toast('Informe enviado'),
+    (err) => toast(err.message),
+  );
+
+  const handleSendReport = () => {
+    const recipients = emails
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
+    if (recipients.length) {
+      sendReport.mutate({ recipients });
+    }
+  };
+
   const capitalSuscrito =
     shareholders?.reduce((acc, sh) => acc + (sh.actions || 0), 0) || 0;
   const capitalPresente =
@@ -134,14 +152,27 @@ const Asistencia: React.FC = () => {
     : '0';
 
   return (
-    <div className="flex flex-col md:flex-row gap-4">
-      <div className="flex-1 space-y-4">
-        <h1 className="text-xl font-semibold flex items-center"><User className="w-5 h-5 mr-2" />Registro de asistencia</h1>
-        <Input
-          placeholder="Buscar por nombre o código"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1 space-y-4">
+          <h1 className="text-xl font-semibold flex items-center"><User className="w-5 h-5 mr-2" />Registro de asistencia</h1>
+          <Input
+            placeholder="Buscar por nombre o código"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <Input
+              placeholder="Correos separados por coma"
+              value={emails}
+              onChange={(e) => setEmails(e.target.value)}
+            />
+            <Button onClick={handleSendReport} disabled={sendReport.isLoading}>
+              Enviar informe
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
+              Exportar CSV
+            </Button>
+          </div>
         {selectedCodes.length > 0 && (
           <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
             <span>{selectedCodes.length} seleccionados</span>
@@ -286,7 +317,6 @@ const Asistencia: React.FC = () => {
         <p>Capital suscrito: {capitalSuscrito}</p>
         <p>Capital presente: {capitalPresente}</p>
         <p>% de quórum: {quorum}%</p>
-        <Button onClick={handleExport}>Exportar CSV</Button>
       </Card>
     </div>
   );

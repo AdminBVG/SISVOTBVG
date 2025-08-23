@@ -11,6 +11,8 @@ from ..utils import enforce_registration_window
 import anyio
 import io
 import csv
+import smtplib
+from email.message import EmailMessage
 
 router = APIRouter(prefix="/elections/{election_id}/attendance", tags=["attendance"])
 
@@ -34,6 +36,39 @@ def _has_active_proxy(db: Session, election_id: int, shareholder_id: int) -> boo
         .first()
         is not None
     )
+
+
+def _smtp_settings(db: Session) -> dict:
+    return {s.key: s.value for s in db.query(models.Setting).all()}
+
+
+def _build_pdf(text: str) -> bytes:
+    content = f"BT /F1 12 Tf 50 750 Td ({text}) Tj ET"
+    pdf_lines = [
+        "%PDF-1.4",
+        "1 0 obj<<>>endobj",
+        "2 0 obj<< /Type /Page /Parent 3 0 R /Resources<< /Font<< /F1 4 0 R >> >> /MediaBox[0 0 612 792] /Contents 5 0 R>>endobj",
+        "3 0 obj<< /Type /Pages /Kids[2 0 R] /Count 1>>endobj",
+        "4 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica>>endobj",
+        f"5 0 obj<< /Length {len(content)}>>stream",
+        content,
+        "endstream endobj",
+        "6 0 obj<< /Type /Catalog /Pages 3 0 R>>endobj",
+        "xref",
+        "0 7",
+        "0000000000 65535 f ",
+        "0000000010 00000 n ",
+        "0000000053 00000 n ",
+        "0000000120 00000 n ",
+        "0000000174 00000 n ",
+        "0000000241 00000 n ",
+        "0000000350 00000 n ",
+        "trailer<< /Size 7 /Root 6 0 R>>",
+        "startxref",
+        "432",
+        "%%EOF",
+    ]
+    return ("\n".join(pdf_lines)).encode("latin-1")
 
 
 
@@ -220,3 +255,44 @@ def export_attendance(election_id: int, db: Session = Depends(get_db)):
             attendance.marked_at.isoformat() if attendance.marked_at else "",
         ])
     return Response(content=output.getvalue(), media_type="text/csv")
+
+
+@router.post(
+    "/report",
+    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])],
+)
+def send_attendance_report(
+    election_id: int,
+    payload: schemas.AttendanceReportRequest,
+    db: Session = Depends(get_db),
+):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="election not found")
+    rows = (
+        db.query(models.Attendance, models.Shareholder)
+        .join(models.Shareholder, models.Shareholder.id == models.Attendance.shareholder_id)
+        .filter(models.Attendance.election_id == election_id)
+        .all()
+    )
+    lines = ["Informe de asistencia - {0}".format(election.name)]
+    for attendance, shareholder in rows:
+        lines.append(f"{shareholder.code} {shareholder.name} {attendance.mode.value}")
+    pdf_bytes = _build_pdf("\\n".join(lines))
+    settings = _smtp_settings(db)
+    host = settings.get("smtp_host")
+    if host:
+        msg = EmailMessage()
+        msg["Subject"] = f"Informe de asistencia - {election.name}"
+        msg["From"] = settings.get("smtp_from", "")
+        msg["To"] = ", ".join(payload.recipients)
+        msg.set_content("Adjunto informe de asistencia")
+        msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename="attendance.pdf")
+        try:
+            with smtplib.SMTP(host, int(settings.get("smtp_port", 25))) as smtp:
+                if settings.get("smtp_user"):
+                    smtp.login(settings.get("smtp_user"), settings.get("smtp_password"))
+                smtp.send_message(msg)
+        except Exception:
+            raise HTTPException(status_code=500, detail="failed to send email")
+    return {"status": "sent"}

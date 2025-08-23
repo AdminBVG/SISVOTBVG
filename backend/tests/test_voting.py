@@ -37,6 +37,10 @@ def test_voting_flow():
         json={"status": "OPEN"},
         headers=headers,
     )
+    client.post(
+        f"/elections/{election_id}/start-voting",
+        headers=headers,
+    )
 
     # create attendees directly in db
     db = SessionLocal()
@@ -118,7 +122,7 @@ def test_voting_flow():
         for log in db.query(models.AuditLog).order_by(models.AuditLog.id).all()
     ]
     db.close()
-    assert actions == ["BALLOT_CLOSE", "BALLOT_REOPEN", "ELECTION_CLOSE"]
+    assert actions == ["VOTING_OPEN", "BALLOT_CLOSE", "BALLOT_REOPEN", "ELECTION_CLOSE"]
 
 
 def test_election_status_and_quorum():
@@ -178,6 +182,10 @@ def test_election_status_and_quorum():
     election.status = models.ElectionStatus.OPEN
     db.commit()
     db.close()
+    client.post(
+        f"/elections/{election_id}/start-voting",
+        headers=headers,
+    )
     fail_quorum = client.post(
         f"/ballots/{ballot['id']}/vote",
         json={"option_id": option['id'], "attendee_id": 1},
@@ -193,6 +201,10 @@ def test_election_status_and_quorum():
     attendance.mode = models.AttendanceMode.PRESENCIAL
     db.commit()
     db.close()
+    client.post(
+        f"/elections/{election_id}/start-voting",
+        headers=headers,
+    )
     ok = client.post(
         f"/ballots/{ballot['id']}/vote",
         json={"option_id": option['id'], "attendee_id": 1},

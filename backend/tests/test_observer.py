@@ -122,6 +122,15 @@ def test_observer_receives_ballot_progress():
     client.post(
         f"/ballots/{ballot['id']}/options", json={"text": "No"}, headers=admin_headers
     )
+    client.patch(
+        f"/elections/{election_id}/status",
+        json={"status": "OPEN"},
+        headers=admin_headers,
+    )
+    client.post(
+        f"/elections/{election_id}/start-voting",
+        headers=admin_headers,
+    )
     with client.websocket_connect(
         f"/elections/{election_id}/observer/ws?token={obs_token}"
     ) as ws:
@@ -134,4 +143,4 @@ def test_observer_receives_ballot_progress():
         msg = ws.receive_json()
         assert msg["ballot"]["id"] == ballot["id"]
         counts = {r["id"]: r["votes"] for r in msg["ballot"]["results"]}
-        assert counts[opt_yes["id"]] == 1
+        assert counts[opt_yes["id"]] == 10

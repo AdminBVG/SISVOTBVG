@@ -20,6 +20,110 @@ def get_db():
 
 
 @router.post(
+    "/elections/{election_id}/start-voting",
+    response_model=schemas.Election,
+)
+def start_voting(
+    election_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    if election.voting_open:
+        return election
+    if election.voting_closed_at is not None:
+        raise HTTPException(status_code=400, detail="voting already closed")
+    if election.min_quorum is not None:
+        summary = compute_summary(db, election_id)
+        if summary["porcentaje_quorum"] < election.min_quorum:
+            raise HTTPException(status_code=400, detail="quorum not met")
+    if current_user["role"] != "ADMIN_BVG":
+        user = (
+            db.query(models.User)
+            .filter_by(username=current_user["username"])
+            .first()
+        )
+        allowed = (
+            db.query(models.ElectionUserRole)
+            .filter_by(
+                election_id=election_id,
+                user_id=user.id,
+                role=models.ElectionRole.VOTE,
+            )
+            .first()
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No autorizado")
+    election.voting_open = True
+    election.voting_opened_by = current_user["username"]
+    election.voting_opened_at = datetime.now(timezone.utc)
+    log = models.AuditLog(
+        election_id=election_id,
+        username=current_user["username"],
+        action="VOTING_OPEN",
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(election)
+    return election
+
+
+@router.post(
+    "/elections/{election_id}/close-voting",
+    response_model=schemas.Election,
+)
+def close_voting(
+    election_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    if not election.voting_open:
+        raise HTTPException(status_code=400, detail="voting not open")
+    if election.voting_closed_at is not None:
+        raise HTTPException(status_code=400, detail="voting already closed")
+    if current_user["role"] != "ADMIN_BVG":
+        user = (
+            db.query(models.User)
+            .filter_by(username=current_user["username"])
+            .first()
+        )
+        allowed = (
+            db.query(models.ElectionUserRole)
+            .filter_by(
+                election_id=election_id,
+                user_id=user.id,
+                role=models.ElectionRole.VOTE,
+            )
+            .first()
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No autorizado")
+    election.voting_open = False
+    election.voting_closed_by = current_user["username"]
+    election.voting_closed_at = datetime.now(timezone.utc)
+    log = models.AuditLog(
+        election_id=election_id,
+        username=current_user["username"],
+        action="VOTING_CLOSE",
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(election)
+    return election
+
+
+@router.post(
     "/elections/{election_id}/ballots",
     response_model=schemas.Ballot,
     dependencies=[require_role(["ADMIN_BVG"])]
@@ -113,6 +217,8 @@ def cast_vote(
     election = db.query(models.Election).filter_by(id=ballot.election_id).first()
     if not election or election.status != models.ElectionStatus.OPEN:
         raise HTTPException(status_code=400, detail="Election closed")
+    if not election.voting_open:
+        raise HTTPException(status_code=400, detail="voting not open")
     if election.min_quorum is not None:
         summary = compute_summary(db, election.id)
         if summary["porcentaje_quorum"] < election.min_quorum:
@@ -197,6 +303,8 @@ def vote_all(
     election = db.query(models.Election).filter_by(id=ballot.election_id).first()
     if not election or election.status != models.ElectionStatus.OPEN:
         raise HTTPException(status_code=400, detail="Election closed")
+    if not election.voting_open:
+        raise HTTPException(status_code=400, detail="voting not open")
     if election.min_quorum is not None:
         summary = compute_summary(db, election.id)
         if summary["porcentaje_quorum"] < election.min_quorum:
