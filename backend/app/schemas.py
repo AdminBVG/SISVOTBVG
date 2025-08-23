@@ -224,12 +224,29 @@ class Election(ElectionBase):
     can_observe: bool = False
     created_at: datetime
     closed_at: Optional[datetime] = None
+    voting_open: bool = False
+    voting_opened_by: Optional[str] = None
+    voting_opened_at: Optional[datetime] = None
+    voting_closed_by: Optional[str] = None
+    voting_closed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ElectionStatusUpdate(BaseModel):
     status: ElectionStatus
+
+
+class Settings(BaseModel):
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from: Optional[EmailStr] = None
+
+
+class AttendanceReportRequest(BaseModel):
+    recipients: List[EmailStr]
 
 
 class AuditLog(BaseModel):

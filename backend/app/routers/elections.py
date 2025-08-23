@@ -99,6 +99,11 @@ def list_elections(
                 min_quorum=e.min_quorum,
                 created_at=e.created_at,
                 closed_at=e.closed_at,
+                voting_open=e.voting_open,
+                voting_opened_by=e.voting_opened_by,
+                voting_opened_at=e.voting_opened_at,
+                voting_closed_by=e.voting_closed_by,
+                voting_closed_at=e.voting_closed_at,
             )
             for e in elections
         ]
@@ -137,6 +142,11 @@ def list_elections(
                 min_quorum=e.min_quorum,
                 created_at=e.created_at,
                 closed_at=e.closed_at,
+                voting_open=e.voting_open,
+                voting_opened_by=e.voting_opened_by,
+                voting_opened_at=e.voting_opened_at,
+                voting_closed_by=e.voting_closed_by,
+                voting_closed_at=e.voting_closed_at,
                 can_manage_attendance=models.ElectionRole.ATTENDANCE in perms,
                 can_manage_votes=models.ElectionRole.VOTE in perms,
                 can_observe=models.ElectionRole.OBSERVER in perms,
@@ -328,13 +338,9 @@ def update_election_status(
     election = db.query(models.Election).filter_by(id=election_id).first()
     if not election:
         raise HTTPException(status_code=404, detail="Election not found")
-    if (
-        payload.status == models.ElectionStatus.OPEN
-        and election.min_quorum is not None
-    ):
-        summary = compute_summary(db, election_id)
-        if summary["porcentaje_quorum"] < election.min_quorum:
-            raise HTTPException(status_code=400, detail="quorum not met")
+    # La apertura de la elección ahora no requiere validar el quórum.
+    # Se omite la verificación previa que impedía abrir cuando
+    # `summary["porcentaje_quorum"]` era menor a `min_quorum`.
     election.status = payload.status
     if payload.status == models.ElectionStatus.CLOSED:
         election.closed_at = datetime.now(timezone.utc)

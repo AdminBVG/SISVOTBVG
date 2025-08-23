@@ -133,6 +133,12 @@ class Election(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     closed_at = Column(DateTime(timezone=True))
+    # Control manual para apertura del registro de votación
+    voting_open = Column(Boolean, default=False, nullable=False)
+    voting_opened_by = Column(String)
+    voting_opened_at = Column(DateTime(timezone=True))
+    voting_closed_by = Column(String)
+    voting_closed_at = Column(DateTime(timezone=True))
 
 
 class User(Base):
@@ -180,6 +186,14 @@ class AuditLog(Base):
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
+
+class Setting(Base):
+    """Simple tabla de configuración clave/valor"""
+
+    __tablename__ = "settings"
+    key = Column(String, primary_key=True)
+    value = Column(String)
 
 
 class Attendee(Base):

@@ -11,6 +11,8 @@ export interface Election {
   can_manage_attendance?: boolean;
   can_manage_votes?: boolean;
   min_quorum?: number;
+  voting_open?: boolean;
+  voting_opened_at?: string;
 }
 
 export const useElections = () => {

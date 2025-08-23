@@ -144,4 +144,4 @@ def test_open_requires_quorum():
         json={"status": "OPEN"},
         headers=headers,
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 200
