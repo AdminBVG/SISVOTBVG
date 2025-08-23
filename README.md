@@ -1,6 +1,6 @@
 # Sistema de asistentes y representación BVG
 
-Proyecto de referencia para gestionar el registro de asistencia y representación de la BVG.  El módulo de votación aún no está implementado y se añadirá en fases posteriores.
+Proyecto de referencia para gestionar el registro de asistencia, representación y votación de la BVG con cierre auditado y transmisión en tiempo real.
 
 ## 1. Prerrequisitos
 - Ubuntu 22.04+
@@ -171,6 +171,11 @@ El archivo `.env` se carga automáticamente; asegúrate de que `DATABASE_URL` ap
 
 ## 8. Usuarios y roles
 Este prototipo no implementa autenticación completa. Se esperan roles globales `ADMIN_BVG` y `FUNCIONAL_BVG`. Los usuarios funcionales reciben permisos específicos por votación (asistencia, votos u observador) para controlar el acceso.
+
+### Flujo de votación
+- El rol de **Registrador de Votación** recorre preguntas en una vista tipo diapositiva.
+- Puede asignar rápidamente "Todos Sí/No", ajustar votos individuales y cerrar cada pregunta.
+- Al finalizar las preguntas se cierra la votación; los resultados quedan bloqueados y se registran en el log de auditoría.
 
 Credenciales por defecto:
 

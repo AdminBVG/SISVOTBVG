@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 from .. import schemas, models, database
@@ -135,6 +135,7 @@ def list_elections(
 )
 def close_election(
     election_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -161,6 +162,14 @@ def close_election(
         if not allowed:
             raise HTTPException(status_code=403, detail="No autorizado")
     election.status = models.ElectionStatus.CLOSED
+    log = models.AuditLog(
+        election_id=election_id,
+        username=current_user["username"],
+        action="ELECTION_CLOSE",
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(log)
     db.commit()
     db.refresh(election)
     return election

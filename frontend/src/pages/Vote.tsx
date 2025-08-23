@@ -9,6 +9,7 @@ import {
   useCloseElection,
 } from '../hooks/useBallots';
 import { useAssistants } from '../hooks/useAssistants';
+import { useElection } from '../hooks/useElection';
 import Button from '../components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../components/ui/table';
 import { useToast } from '../components/ui/toast';
@@ -16,6 +17,7 @@ import { useToast } from '../components/ui/toast';
 const Vote: React.FC = () => {
   const { id } = useParams();
   const electionId = Number(id);
+  const { data: election } = useElection(electionId);
   const { data: ballots } = usePendingBallots(electionId);
   const { data: assistants } = useAssistants(electionId);
   const [index, setIndex] = useState(0);
@@ -48,6 +50,16 @@ const Vote: React.FC = () => {
   };
 
   const done = ballots && index >= ballots.length;
+  const closed = election?.status === 'CLOSED';
+
+  if (closed) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-xl font-semibold">Registrador de Votación</h1>
+        <p>Votación finalizada</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

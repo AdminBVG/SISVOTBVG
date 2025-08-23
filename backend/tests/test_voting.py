@@ -96,3 +96,12 @@ def test_voting_flow():
         headers=headers,
     )
     assert fail.status_code == 400
+
+    client.post(f"/elections/{election_id}/close", headers=headers)
+    db = SessionLocal()
+    actions = [
+        log.action
+        for log in db.query(models.AuditLog).order_by(models.AuditLog.id).all()
+    ]
+    db.close()
+    assert actions == ["BALLOT_CLOSE", "ELECTION_CLOSE"]

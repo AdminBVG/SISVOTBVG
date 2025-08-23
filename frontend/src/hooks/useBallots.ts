@@ -91,6 +91,7 @@ export const useCloseElection = (electionId: number, onSuccess?: () => void) => 
       apiFetch(`/elections/${electionId}/close`, { method: 'POST' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['elections'] });
+      qc.invalidateQueries({ queryKey: ['election', electionId] });
       onSuccess?.();
     },
   });

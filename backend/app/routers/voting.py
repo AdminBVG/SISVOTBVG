@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
@@ -248,6 +248,7 @@ def vote_all(
 )
 def close_ballot(
     ballot_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -274,6 +275,15 @@ def close_ballot(
         if not allowed:
             raise HTTPException(status_code=403, detail="No autorizado")
     ballot.status = models.BallotStatus.CLOSED
+    log = models.AuditLog(
+        election_id=ballot.election_id,
+        username=current_user["username"],
+        action="BALLOT_CLOSE",
+        details={"ballot_id": ballot.id},
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(log)
     db.commit()
     db.refresh(ballot)
     results = [r.model_dump() for r in _ballot_results(db, ballot_id)]
