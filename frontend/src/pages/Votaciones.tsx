@@ -154,13 +154,22 @@ const Votaciones: React.FC = () => {
                       {role === 'FUNCIONAL_BVG' && (
                         <>
                           {e.can_manage_attendance && (
-                            <Button
-                              variant="outline"
-                              disabled={!open}
-                              onClick={() => navigate(`/votaciones/${e.id}/attendance`)}
-                            >
-                              Gestionar asistentes
-                            </Button>
+                            open ? (
+                              <Button
+                                variant="outline"
+                                onClick={() => navigate(`/votaciones/${e.id}/attendance`)}
+                              >
+                                Gestionar asistentes
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                disabled
+                                title="Registro de asistencia no habilitado"
+                              >
+                                Gestionar asistentes
+                              </Button>
+                            )
                           )}
                           {e.can_manage_votes && (
                             <Button
@@ -171,12 +180,14 @@ const Votaciones: React.FC = () => {
                               Gestionar votos
                             </Button>
                           )}
-                          <Button
-                            variant="outline"
-                            onClick={() => navigate(`/votaciones/${e.id}/observer`)}
-                          >
-                            Observador
-                          </Button>
+                          {e.can_observe && (
+                            <Button
+                              variant="outline"
+                              onClick={() => navigate(`/votaciones/${e.id}/observer`)}
+                            >
+                              Observador
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             onClick={() => navigate(`/votaciones/${e.id}/ballots`)}

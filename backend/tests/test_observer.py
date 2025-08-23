@@ -1,4 +1,6 @@
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
+import pytest
 from app.main import app
 from app.database import Base, engine, SessionLocal
 from app import models
@@ -16,10 +18,12 @@ def setup_env():
         models.User(username="Admin", hashed_password=hash_password("pass"), role="ADMIN_BVG"),
         models.User(username="Reg", hashed_password=hash_password("pass"), role="FUNCIONAL_BVG"),
         models.User(username="Obs", hashed_password=hash_password("pass"), role="FUNCIONAL_BVG"),
+        models.User(username="Other", hashed_password=hash_password("pass"), role="GUEST"),
     ])
     db.commit()
     reg_id = db.query(models.User).filter_by(username="Reg").first().id
     obs_id = db.query(models.User).filter_by(username="Obs").first().id
+    other_token = client.post("/auth/login", json={"username": "Other", "password": "pass"}).json()["access_token"]
     db.close()
     admin_token = client.post("/auth/login", json={"username": "Admin", "password": "pass"}).json()["access_token"]
     reg_token = client.post("/auth/login", json={"username": "Reg", "password": "pass"}).json()["access_token"]
@@ -40,12 +44,43 @@ def setup_env():
     election_id = resp.json()["id"]
     data = [{"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10}]
     client.post(f"/elections/{election_id}/shareholders/import", json=data, headers=reg_headers)
-    return election_id, admin_headers, reg_headers, obs_headers, obs_token
+    return (
+        election_id,
+        admin_headers,
+        reg_headers,
+        obs_headers,
+        obs_token,
+        reg_token,
+        other_token,
+    )
 
 
 def test_observer_ws_and_permissions():
-    election_id, admin_headers, reg_headers, obs_headers, obs_token = setup_env()
-    with client.websocket_connect(f"/elections/{election_id}/observer/ws?token={obs_token}") as ws:
+    (
+        election_id,
+        admin_headers,
+        reg_headers,
+        obs_headers,
+        obs_token,
+        reg_token,
+        other_token,
+    ) = setup_env()
+
+    with client.websocket_connect(
+        f"/elections/{election_id}/observer/ws?token={reg_token}"
+    ) as ws_reg:
+        first = ws_reg.receive_json()
+        assert first["summary"]["presencial"] == 0
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(
+            f"/elections/{election_id}/observer/ws?token={other_token}"
+        ):
+            pass
+
+    with client.websocket_connect(
+        f"/elections/{election_id}/observer/ws?token={obs_token}"
+    ) as ws:
         first = ws.receive_json()
         assert first["summary"]["presencial"] == 0
         client.post(
@@ -57,6 +92,7 @@ def test_observer_ws_and_permissions():
         assert msg["summary"]["presencial"] == 1
         assert msg["row"]["code"] == "SH1"
         assert msg["row"]["estado"] == "PRESENCIAL"
+
     resp = client.post(
         f"/elections/{election_id}/attendance/SH1/mark",
         json={"mode": "AUSENTE"},
@@ -69,7 +105,7 @@ def test_observer_ws_and_permissions():
 
 
 def test_observer_table_shows_represented_actions():
-    election_id, admin_headers, reg_headers, obs_headers, obs_token = setup_env()
+    election_id, admin_headers, reg_headers, obs_headers, obs_token, _, _ = setup_env()
     db = SessionLocal()
     sh = db.query(models.Shareholder).filter_by(code="SH1").first()
     person = models.Person(type=models.PersonType.TERCERO, name="Proxy One", document="P1", email=None)
@@ -102,7 +138,7 @@ def test_observer_table_shows_represented_actions():
 
 
 def test_observer_receives_ballot_progress():
-    election_id, admin_headers, reg_headers, obs_headers, obs_token = setup_env()
+    election_id, admin_headers, reg_headers, obs_headers, obs_token, _, _ = setup_env()
     db = SessionLocal()
     db.add(
         models.Attendee(

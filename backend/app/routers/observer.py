@@ -40,10 +40,16 @@ async def observer_ws(websocket: WebSocket, election_id: int):
             user = db.query(models.User).filter_by(username=username).first()
             allowed = (
                 db.query(models.ElectionUserRole)
-                .filter_by(
-                    election_id=election_id,
-                    user_id=user.id,
-                    role=models.ElectionRole.OBSERVER,
+                .filter(
+                    models.ElectionUserRole.election_id == election_id,
+                    models.ElectionUserRole.user_id == user.id,
+                    models.ElectionUserRole.role.in_(
+                        [
+                            models.ElectionRole.ATTENDANCE,
+                            models.ElectionRole.VOTE,
+                            models.ElectionRole.OBSERVER,
+                        ]
+                    ),
                 )
                 .first()
             )
