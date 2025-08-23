@@ -4,7 +4,9 @@ import {
   useBallots,
   useBallotResults,
   useCastVote,
+  useReopenBallot,
 } from '../hooks/useBallots';
+import { useAssistants } from '../hooks/useAssistants';
 import {
   Table,
   TableHeader,
@@ -22,9 +24,13 @@ const Ballots: React.FC = () => {
   const { data: ballots, isLoading, error } = useBallots(electionId);
   const [selected, setSelected] = useState<number | null>(null);
   const { data: results } = useBallotResults(selected || 0, !!selected);
-  const [attendeeId, setAttendeeId] = useState<number>(1);
+  const { data: assistants } = useAssistants(electionId);
+  const [attendeeSearch, setAttendeeSearch] = useState('');
+  const attendee = assistants?.find((a) => a.accionista === attendeeSearch);
+  const attendeeId = attendee?.id;
   const toast = useToast();
   const castVote = useCastVote(selected || 0, () => toast('Voto registrado'));
+  const reopenBallot = useReopenBallot(selected || 0, () => toast('Boleta reabierta'));
 
   return (
     <div className="space-y-4">
@@ -63,7 +69,8 @@ const Ballots: React.FC = () => {
                 <TableCell>
                   <Button
                     variant="outline"
-                    onClick={() => castVote.mutate({ option_id: r.id, attendee_id: attendeeId })}
+                    disabled={!attendeeId}
+                    onClick={() => attendeeId && castVote.mutate({ option_id: r.id, attendee_id: attendeeId })}
                   >
                     Votar
                   </Button>
@@ -73,17 +80,27 @@ const Ballots: React.FC = () => {
           </TableBody>
         </Table>
       )}
-      {selected && (
+      {selected && assistants && (
         <div className="space-y-2">
-          <label htmlFor="attendee" className="block">ID asistente</label>
+          <label htmlFor="attendee" className="block">Asistente</label>
           <input
             id="attendee"
-            type="number"
-            value={attendeeId}
-            onChange={(e) => setAttendeeId(Number(e.target.value))}
+            list="assistants"
+            value={attendeeSearch}
+            onChange={(e) => setAttendeeSearch(e.target.value)}
             className="border p-1"
           />
+          <datalist id="assistants">
+            {assistants.map((a) => (
+              <option key={a.id} value={a.accionista} />
+            ))}
+          </datalist>
         </div>
+      )}
+      {selected && ballots && ballots.find((b) => b.id === selected)?.status === 'CLOSED' && (
+        <Button variant="outline" onClick={() => reopenBallot.mutate()}>
+          Reabrir boleta
+        </Button>
       )}
     </div>
   );

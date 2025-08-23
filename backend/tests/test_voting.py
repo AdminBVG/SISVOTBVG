@@ -102,6 +102,15 @@ def test_voting_flow():
     )
     assert fail.status_code == 400
 
+    reopen = client.post(f"/ballots/{ballot_id}/reopen", headers=headers)
+    assert reopen.status_code == 200
+    ok = client.post(
+        f"/ballots/{ballot_id}/vote",
+        json={"option_id": option1["id"], "attendee_id": 1},
+        headers=headers,
+    )
+    assert ok.status_code == 200
+
     client.post(f"/elections/{election_id}/close", headers=headers)
     db = SessionLocal()
     actions = [
@@ -109,7 +118,7 @@ def test_voting_flow():
         for log in db.query(models.AuditLog).order_by(models.AuditLog.id).all()
     ]
     db.close()
-    assert actions == ["BALLOT_CLOSE", "ELECTION_CLOSE"]
+    assert actions == ["BALLOT_CLOSE", "BALLOT_REOPEN", "ELECTION_CLOSE"]
 
 
 def test_election_status_and_quorum():

@@ -316,6 +316,53 @@ def close_ballot(
     return ballot
 
 
+@router.post(
+    "/ballots/{ballot_id}/reopen",
+    response_model=schemas.Ballot,
+)
+def reopen_ballot(
+    ballot_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    ballot = db.query(models.Ballot).filter_by(id=ballot_id).first()
+    if not ballot:
+        raise HTTPException(status_code=404, detail="Ballot not found")
+    if current_user["role"] != "ADMIN_BVG":
+        user = (
+            db.query(models.User)
+            .filter_by(username=current_user["username"])
+            .first()
+        )
+        allowed = (
+            db.query(models.ElectionUserRole)
+            .filter(
+                models.ElectionUserRole.election_id == ballot.election_id,
+                models.ElectionUserRole.user_id == user.id,
+                models.ElectionUserRole.role.in_(
+                    [models.ElectionRole.VOTE, models.ElectionRole.VOTER]
+                ),
+            )
+            .first()
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No autorizado")
+    ballot.status = models.BallotStatus.OPEN
+    log = models.AuditLog(
+        election_id=ballot.election_id,
+        username=current_user["username"],
+        action="BALLOT_REOPEN",
+        details={"ballot_id": ballot.id},
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(ballot)
+    return ballot
+
+
 @router.get(
     "/ballots/{ballot_id}/results",
     response_model=List[schemas.OptionResult],

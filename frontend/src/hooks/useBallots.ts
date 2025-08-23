@@ -84,6 +84,19 @@ export const useCloseBallot = (ballotId: number, onSuccess?: () => void) => {
   });
 };
 
+export const useReopenBallot = (ballotId: number, onSuccess?: () => void) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch(`/ballots/${ballotId}/reopen`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ballots'] });
+      qc.invalidateQueries({ queryKey: ['pending-ballots'] });
+      onSuccess?.();
+    },
+  });
+};
+
 export const useCloseElection = (electionId: number, onSuccess?: () => void) => {
   const qc = useQueryClient();
   return useMutation({
