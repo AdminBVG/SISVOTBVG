@@ -66,6 +66,15 @@ def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_
                     question_id=question.id, text=opt.text, value=opt.value
                 )
             )
+        ballot = models.Ballot(
+            election_id=db_election.id,
+            title=q.text,
+            order=q.order if q.order is not None else idx,
+        )
+        db.add(ballot)
+        db.flush()
+        for opt in q.options:
+            db.add(models.BallotOption(ballot_id=ballot.id, text=opt.text))
     db.commit()
     return db_election
 
@@ -249,6 +258,12 @@ def update_election(
                 )
             )
     if payload.questions is not None:
+        db.query(models.BallotOption).filter(
+            models.BallotOption.ballot_id.in_(
+                db.query(models.Ballot.id).filter_by(election_id=election_id)
+            )
+        ).delete(synchronize_session=False)
+        db.query(models.Ballot).filter_by(election_id=election_id).delete()
         db.query(models.QuestionOption).filter(
             models.QuestionOption.question_id.in_(
                 db.query(models.Question.id).filter_by(election_id=election_id)
@@ -271,6 +286,15 @@ def update_election(
                         question_id=question.id, text=opt.text, value=opt.value
                     )
                 )
+            ballot = models.Ballot(
+                election_id=election_id,
+                title=q.text,
+                order=q.order if q.order is not None else idx,
+            )
+            db.add(ballot)
+            db.flush()
+            for opt in q.options:
+                db.add(models.BallotOption(ballot_id=ballot.id, text=opt.text))
     db.commit()
     db.refresh(election)
     return election
