@@ -83,14 +83,22 @@ def upgrade():
         sa.Column('date', sa.Date(), nullable=False),
         sa.Column('status', sa.Enum('DRAFT', 'OPEN', 'CLOSED', name='electionstatus'), nullable=False, default='DRAFT'),
         sa.Column('registration_start', sa.DateTime(), nullable=True),
-        sa.Column('registration_end', sa.DateTime(), nullable=True)
+        sa.Column('registration_end', sa.DateTime(), nullable=True),
+        sa.Column('min_quorum', sa.Float(), nullable=True),
+        sa.Column('description', sa.String(), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+        sa.Column('closed_at', sa.DateTime(timezone=True), nullable=True)
     )
     op.create_table(
         'users',
         sa.Column('id', sa.Integer(), primary_key=True),
         sa.Column('username', sa.String(), nullable=False, unique=True),
         sa.Column('hashed_password', sa.String(), nullable=False),
-        sa.Column('role', sa.String(), nullable=False, default='FUNCIONAL_BVG')
+        sa.Column('role', sa.String(), nullable=False, default='FUNCIONAL_BVG'),
+        sa.Column('is_verified', sa.Boolean(), nullable=False),
+        sa.Column('verification_token', sa.String(), nullable=True),
+        sa.Column('reset_token', sa.String(), nullable=True),
+        sa.Column('reset_token_expires', sa.DateTime(timezone=True), nullable=True)
     )
     op.create_table(
         'audit_logs',
