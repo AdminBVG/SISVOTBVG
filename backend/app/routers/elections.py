@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime, timezone
 from .. import schemas, models, database
 from ..security import require_role, get_current_user
 from ..observer import compute_summary
@@ -81,11 +82,14 @@ def list_elections(
             schemas.Election(
                 id=e.id,
                 name=e.name,
+                description=e.description,
                 date=e.date,
                 status=e.status,
                 registration_start=e.registration_start,
                 registration_end=e.registration_end,
                 min_quorum=e.min_quorum,
+                created_at=e.created_at,
+                closed_at=e.closed_at,
             )
             for e in elections
         ]
@@ -116,11 +120,14 @@ def list_elections(
             schemas.Election(
                 id=e.id,
                 name=e.name,
+                description=e.description,
                 date=e.date,
                 status=e.status,
                 registration_start=e.registration_start,
                 registration_end=e.registration_end,
                 min_quorum=e.min_quorum,
+                created_at=e.created_at,
+                closed_at=e.closed_at,
                 can_manage_attendance=models.ElectionRole.ATTENDANCE in perms,
                 can_manage_votes=models.ElectionRole.VOTE in perms,
                 can_observe=models.ElectionRole.OBSERVER in perms,
@@ -162,6 +169,7 @@ def close_election(
         if not allowed:
             raise HTTPException(status_code=403, detail="No autorizado")
     election.status = models.ElectionStatus.CLOSED
+    election.closed_at = datetime.now(timezone.utc)
     log = models.AuditLog(
         election_id=election_id,
         username=current_user["username"],
@@ -304,6 +312,10 @@ def update_election_status(
         if summary["porcentaje_quorum"] < election.min_quorum:
             raise HTTPException(status_code=400, detail="quorum not met")
     election.status = payload.status
+    if payload.status == models.ElectionStatus.CLOSED:
+        election.closed_at = datetime.now(timezone.utc)
+    elif payload.status == models.ElectionStatus.OPEN:
+        election.closed_at = None
     db.commit()
     db.refresh(election)
     return election
