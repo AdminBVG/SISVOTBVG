@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
+import anyio
 from .. import models, schemas, database
 from ..security import require_role, get_current_user
+from ..observer import manager
 
 router = APIRouter(prefix="", tags=["voting"])
 
@@ -57,6 +59,19 @@ def list_pending_ballots(election_id: int, db: Session = Depends(get_db)):
         .order_by(models.Ballot.order)
         .all()
     )
+
+
+def _ballot_results(db: Session, ballot_id: int) -> List[schemas.OptionResult]:
+    options = db.query(models.BallotOption).filter_by(ballot_id=ballot_id).all()
+    results: List[schemas.OptionResult] = []
+    for opt in options:
+        count = db.query(models.Vote).filter_by(option_id=opt.id).count()
+        results.append(
+            schemas.OptionResult(
+                id=opt.id, ballot_id=opt.ballot_id, text=opt.text, votes=count
+            )
+        )
+    return results
 
 
 @router.post(
@@ -141,6 +156,11 @@ def cast_vote(
         db.add(db_vote)
     db.commit()
     db.refresh(db_vote)
+    results = [r.model_dump() for r in _ballot_results(db, ballot_id)]
+    anyio.from_thread.run(
+        manager.broadcast,
+        {"ballot": {"id": ballot_id, "title": ballot.title, "results": results}},
+    )
     return db_vote
 
 
@@ -214,6 +234,11 @@ def vote_all(
             )
         count += 1
     db.commit()
+    results = [r.model_dump() for r in _ballot_results(db, ballot_id)]
+    anyio.from_thread.run(
+        manager.broadcast,
+        {"ballot": {"id": ballot_id, "title": ballot.title, "results": results}},
+    )
     return {"count": count}
 
 
@@ -251,6 +276,11 @@ def close_ballot(
     ballot.status = models.BallotStatus.CLOSED
     db.commit()
     db.refresh(ballot)
+    results = [r.model_dump() for r in _ballot_results(db, ballot_id)]
+    anyio.from_thread.run(
+        manager.broadcast,
+        {"ballot": {"id": ballot_id, "title": ballot.title, "results": results}},
+    )
     return ballot
 
 
@@ -260,9 +290,4 @@ def close_ballot(
     dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])]
 )
 def ballot_results(ballot_id: int, db: Session = Depends(get_db)):
-    options = db.query(models.BallotOption).filter_by(ballot_id=ballot_id).all()
-    results = []
-    for opt in options:
-        count = db.query(models.Vote).filter_by(option_id=opt.id).count()
-        results.append(schemas.OptionResult(id=opt.id, ballot_id=opt.ballot_id, text=opt.text, votes=count))
-    return results
+    return _ballot_results(db, ballot_id)

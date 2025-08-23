@@ -78,6 +78,19 @@ export const useCloseBallot = (ballotId: number, onSuccess?: () => void) => {
       apiFetch(`/ballots/${ballotId}/close`, { method: 'POST' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ballots'] });
+      qc.invalidateQueries({ queryKey: ['pending-ballots'] });
+      onSuccess?.();
+    },
+  });
+};
+
+export const useCloseElection = (electionId: number, onSuccess?: () => void) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch(`/elections/${electionId}/close`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['elections'] });
       onSuccess?.();
     },
   });
