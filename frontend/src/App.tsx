@@ -22,6 +22,7 @@ import EditElection from './pages/EditElection';
 import CreateElectionWizard from './pages/CreateElectionWizard';
 import Observer from './pages/Observer';
 import Ballots from './pages/Ballots';
+import Vote from './pages/Vote';
 import Home from './pages/Home';
 import Configuracion from './pages/Configuracion';
 import { ToastProvider } from './components/ui/toast';
@@ -48,6 +49,7 @@ const App: React.FC = () => {
                     <Route path="/votaciones/:id/dashboard" element={<Dashboard />} />
                     <Route path="/votaciones/:id/observer" element={<Observer />} />
                     <Route path="/votaciones/:id/ballots" element={<Ballots />} />
+                    <Route path="/votaciones/:id/vote" element={<Vote />} />
                   </Route>
                 </Route>
                 <Route element={<ProtectedRoute roles={["ADMIN_BVG"]} />}> 

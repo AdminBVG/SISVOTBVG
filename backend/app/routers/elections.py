@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 from .. import schemas, models, database
@@ -127,6 +127,52 @@ def list_elections(
             )
         )
     return result
+
+
+@router.post(
+    "/{election_id}/close",
+    response_model=schemas.Election,
+)
+def close_election(
+    election_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    if election.status == models.ElectionStatus.CLOSED:
+        return election
+    if current_user["role"] != "ADMIN_BVG":
+        user = (
+            db.query(models.User)
+            .filter_by(username=current_user["username"])
+            .first()
+        )
+        allowed = (
+            db.query(models.ElectionUserRole)
+            .filter(
+                models.ElectionUserRole.election_id == election_id,
+                models.ElectionUserRole.user_id == user.id,
+                models.ElectionUserRole.role == models.ElectionRole.VOTE,
+            )
+            .first()
+        )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="No autorizado")
+    election.status = models.ElectionStatus.CLOSED
+    log = models.AuditLog(
+        election_id=election_id,
+        username=current_user["username"],
+        action="ELECTION_CLOSE",
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(election)
+    return election
 
 
 @router.get(

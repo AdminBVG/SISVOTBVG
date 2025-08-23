@@ -26,12 +26,31 @@ def auth_headers():
 
 def test_voting_flow():
     headers = auth_headers()
-    resp = client.post("/elections", json={"name": "Vote", "date": "2024-01-01"}, headers=headers)
+    resp = client.post(
+        "/elections",
+        json={"name": "Vote", "date": "2024-01-01"},
+        headers=headers,
+    )
     election_id = resp.json()["id"]
+
+    # create attendees directly in db
+    db = SessionLocal()
+    db.add(
+        models.Attendee(
+            election_id=election_id, identifier="1", accionista="A1", acciones=10
+        )
+    )
+    db.add(
+        models.Attendee(
+            election_id=election_id, identifier="2", accionista="A2", acciones=20
+        )
+    )
+    db.commit()
+    db.close()
 
     resp = client.post(
         f"/elections/{election_id}/ballots",
-        json={"title": "Presidente"},
+        json={"title": "Presidente", "order": 1},
         headers=headers,
     )
     ballot_id = resp.json()["id"]
@@ -41,15 +60,21 @@ def test_voting_flow():
         json={"text": "A"},
         headers=headers,
     ).json()
-    client.post(
+    option2 = client.post(
         f"/ballots/{ballot_id}/options",
         json={"text": "B"},
+        headers=headers,
+    ).json()
+
+    client.post(
+        f"/ballots/{ballot_id}/vote-all",
+        json={"option_id": option1["id"]},
         headers=headers,
     )
 
     client.post(
         f"/ballots/{ballot_id}/vote",
-        json={"option_id": option1["id"]},
+        json={"option_id": option2["id"], "attendee_id": 2},
         headers=headers,
     )
 
@@ -57,4 +82,26 @@ def test_voting_flow():
     assert resp.status_code == 200
     results = {r["text"]: r["votes"] for r in resp.json()}
     assert results["A"] == 1
-    assert results["B"] == 0
+    assert results["B"] == 1
+
+    client.post(f"/ballots/{ballot_id}/close", headers=headers)
+    pending = client.get(
+        f"/elections/{election_id}/ballots/pending", headers=headers
+    )
+    assert pending.json() == []
+
+    fail = client.post(
+        f"/ballots/{ballot_id}/vote",
+        json={"option_id": option1["id"], "attendee_id": 1},
+        headers=headers,
+    )
+    assert fail.status_code == 400
+
+    client.post(f"/elections/{election_id}/close", headers=headers)
+    db = SessionLocal()
+    actions = [
+        log.action
+        for log in db.query(models.AuditLog).order_by(models.AuditLog.id).all()
+    ]
+    db.close()
+    assert actions == ["BALLOT_CLOSE", "ELECTION_CLOSE"]

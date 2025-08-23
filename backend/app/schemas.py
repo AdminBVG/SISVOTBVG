@@ -8,6 +8,7 @@ from .models import (
     ElectionStatus,
     QuestionType,
     ElectionRole,
+    BallotStatus,
 )
 
 
@@ -304,6 +305,7 @@ class Attendee(AttendeeBase):
 
 class BallotBase(BaseModel):
     title: str
+    order: int | None = 0
 
 
 class BallotCreate(BallotBase):
@@ -313,6 +315,7 @@ class BallotCreate(BallotBase):
 class Ballot(BallotBase):
     id: int
     election_id: int
+    status: BallotStatus
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -334,15 +337,27 @@ class Option(OptionBase):
 
 class VoteBase(BaseModel):
     option_id: int
+    attendee_id: int
 
 
 class VoteCreate(VoteBase):
     pass
 
 
+class VoteAll(BaseModel):
+    option_id: int
+
+
+class BulkVoteResult(BaseModel):
+    count: int
+
+
 class Vote(VoteBase):
     id: int
     ballot_id: int
+    weight: float
+    created_by: str | None
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
