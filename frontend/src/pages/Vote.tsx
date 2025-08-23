@@ -66,8 +66,32 @@ const Vote: React.FC = () => {
       <h1 className="text-xl font-semibold">Registrador de Votación</h1>
       {current && options && (
         <div className="space-y-4">
-          <div>
-            Pregunta {index + 1} de {ballots?.length}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={index === 0}
+              onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+            >
+              Anterior
+            </Button>
+            <div className="flex-1">
+              <div>
+                Pregunta {index + 1} de {ballots?.length}
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div
+                  className="bg-blue-500 h-2 rounded-full"
+                  style={{ width: `${((index + 1) / (ballots?.length || 1)) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              disabled={!ballots || index >= ballots.length - 1}
+              onClick={() => setIndex((i) => i + 1)}
+            >
+              Siguiente
+            </Button>
           </div>
           <h2 className="text-lg font-medium">{current.title}</h2>
           <div className="flex gap-2">
