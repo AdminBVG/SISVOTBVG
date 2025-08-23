@@ -44,3 +44,8 @@ def test_create_election_with_questions():
     data = resp.json()
     assert len(data) == 1
     assert data[0]["text"] == "¿Asiste?"
+    resp = client.get(f"/elections/{election_id}/ballots", headers=headers)
+    assert resp.status_code == 200
+    ballots = resp.json()
+    assert len(ballots) == 1
+    assert ballots[0]["title"] == "¿Asiste?"
