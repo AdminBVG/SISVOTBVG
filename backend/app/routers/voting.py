@@ -71,7 +71,10 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
     election = db.query(models.Election).filter_by(id=election_id).first()
     attendees = (
         db.query(models.Attendee, models.Shareholder)
-        .join(models.Shareholder, models.Attendee.shareholder_id == models.Shareholder.id)
+        .join(
+            models.Shareholder,
+            models.Attendee.identifier == models.Shareholder.code,
+        )
         .filter(models.Attendee.election_id == election_id)
         .all()
     )
