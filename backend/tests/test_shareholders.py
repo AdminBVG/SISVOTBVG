@@ -158,3 +158,58 @@ def test_get_update_delete_shareholder():
     assert list_resp.status_code == 200
     assert list_resp.json() == []
 
+
+def test_vote_registrar_can_access_shareholders():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    admin = models.User(
+        username="admin", hashed_password=hash_password("pass"), role="ADMIN_BVG"
+    )
+    vote = models.User(
+        username="vote", hashed_password=hash_password("pass"), role="REGISTRADOR_VOTOS"
+    )
+    db.add_all([admin, vote])
+    db.commit()
+    vote_id = vote.id
+    db.close()
+
+    token = client.post(
+        "/auth/login", json={"username": "admin", "password": "pass"}
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.post(
+        "/elections",
+        json={"name": "A", "date": "2024-01-01", "vote_registrars": [vote_id]},
+        headers=headers,
+    )
+    election_id = resp.json()["id"]
+    payload = [
+        {
+            "code": "SH1",
+            "name": "Alice",
+            "document": "D1",
+            "email": "a@example.com",
+            "actions": 10,
+        }
+    ]
+    client.post(
+        f"/elections/{election_id}/shareholders/import", json=payload, headers=headers
+    )
+
+    token_vote = client.post(
+        "/auth/login", json={"username": "vote", "password": "pass"}
+    ).json()["access_token"]
+    vote_headers = {"Authorization": f"Bearer {token_vote}"}
+    list_resp = client.get(
+        f"/elections/{election_id}/shareholders", headers=vote_headers
+    )
+    assert list_resp.status_code == 200
+    assert len(list_resp.json()) == 1
+    sh_id = list_resp.json()[0]["id"]
+    get_resp = client.get(
+        f"/elections/{election_id}/shareholders/{sh_id}", headers=vote_headers
+    )
+    assert get_resp.status_code == 200
+    assert get_resp.json()["code"] == "SH1"
+

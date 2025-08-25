@@ -172,7 +172,11 @@ def import_shareholders_file(
 @router.get(
     "",
     response_model=List[schemas.ShareholderWithAttendance],
-    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
+    dependencies=[
+        require_election_role(
+            [models.ElectionRole.ATTENDANCE, models.ElectionRole.VOTE]
+        )
+    ],
 )
 def list_shareholders(
     election_id: int,
@@ -228,7 +232,11 @@ def list_shareholders(
 @router.get(
     "/{shareholder_id}",
     response_model=schemas.ShareholderWithAttendance,
-    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
+    dependencies=[
+        require_election_role(
+            [models.ElectionRole.ATTENDANCE, models.ElectionRole.VOTE]
+        )
+    ],
 )
 def get_shareholder(
     election_id: int,
