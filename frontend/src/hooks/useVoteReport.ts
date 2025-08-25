@@ -10,7 +10,7 @@ export const useVoteReport = (
     mutationFn: async () => {
       const base = import.meta.env.VITE_API_URL || '/api';
       const token = getItem('token');
-      const res = await fetch(`${base}/elections/${electionId}/vote-report`, {
+      const res = await fetch(`${base}/elections/${electionId}/vote-report/pdf`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error('download failed');
@@ -18,7 +18,7 @@ export const useVoteReport = (
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'vote_report.csv';
+      a.download = 'vote_report.pdf';
       a.click();
       window.URL.revokeObjectURL(url);
     },
