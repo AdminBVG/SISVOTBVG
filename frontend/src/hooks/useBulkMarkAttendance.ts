@@ -32,6 +32,7 @@ export const useBulkMarkAttendance = (
         );
       });
       queryClient.invalidateQueries({ queryKey: ['shareholders', electionId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', electionId] });
       onSuccess?.(data);
     },
     onError: (err) => {

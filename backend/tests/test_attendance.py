@@ -219,6 +219,44 @@ def test_cannot_mark_absent_with_active_proxy():
     assert resp.status_code == 400
 
 
+def test_vote_registrar_can_access_summary():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    admin = models.User(
+        username="admin", hashed_password=hash_password("pass"), role="ADMIN_BVG"
+    )
+    vote = models.User(
+        username="vote", hashed_password=hash_password("pass"), role="REGISTRADOR_VOTOS"
+    )
+    db.add_all([admin, vote])
+    db.commit()
+    vote_id = vote.id
+    db.close()
+
+    admin_token = client.post(
+        "/auth/login", json={"username": "admin", "password": "pass"}
+    ).json()["access_token"]
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    resp = client.post(
+        "/elections",
+        json={"name": "E", "date": "2024-01-01", "vote_registrars": [vote_id]},
+        headers=admin_headers,
+    )
+    election_id = resp.json()["id"]
+
+    vote_token = client.post(
+        "/auth/login", json={"username": "vote", "password": "pass"}
+    ).json()["access_token"]
+    vote_headers = {"Authorization": f"Bearer {vote_token}"}
+
+    resp = client.get(
+        f"/elections/{election_id}/attendance/summary", headers=vote_headers
+    )
+    assert resp.status_code == 200
+
+
 def test_registration_window_blocks_marking():
     # Reinicia y crea usuarios con roles distintos
     Base.metadata.drop_all(bind=engine)
