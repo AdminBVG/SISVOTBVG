@@ -15,6 +15,7 @@ let mockSuccess = true;
 
 let mockElection: any;
 let mockQuorum = 100;
+let mockBallots: any[];
 vi.mock('../hooks/useElection', () => ({
   useElection: () => ({ data: mockElection }),
 }));
@@ -22,7 +23,7 @@ vi.mock('../hooks/useDashboardStats', () => ({
   useDashboardStats: () => ({ data: { porcentaje_quorum: mockQuorum } }),
 }));
 vi.mock('../hooks/useBallots', () => ({
-  useBallots: () => ({ data: [{ id: 1, title: 'Q1', status: 'OPEN' }] }),
+  useBallots: () => ({ data: mockBallots }),
   useBallotResults: () => ({ data: [{ id: 10, text: 'Sí' }] }),
   useCastVote: (
     _id: number,
@@ -42,7 +43,9 @@ vi.mock('../hooks/useBallots', () => ({
       mockSuccess ? onSuccess?.() : onError?.(new Error('fail'));
     },
   }),
-  useCloseBallot: () => ({ mutate: vi.fn() }),
+  useCloseBallot: (_id: number, onSuccess?: () => void) => ({
+    mutate: () => onSuccess?.(),
+  }),
   useCloseElection: () => ({ mutate: vi.fn() }),
   useStartVoting: () => ({ mutate: vi.fn() }),
   useCloseVoting: () => ({ mutate: vi.fn() }),
@@ -74,6 +77,7 @@ describe('Vote page', () => {
     cleanup();
     mockElection = { status: 'OPEN', min_quorum: 0, voting_open: true };
     mockQuorum = 100;
+    mockBallots = [{ id: 1, title: 'Q1', status: 'OPEN' }];
   });
 
   it('muestra error cuando el voto individual falla', async () => {
@@ -124,5 +128,18 @@ describe('Vote page', () => {
       { name: 'Abrir registro de votación' },
     ) as HTMLButtonElement;
     expect(btn.disabled).toBe(false);
+  });
+
+  it('avanza a la siguiente pregunta después de cerrar', async () => {
+    mockBallots = [
+      { id: 1, title: 'Q1', status: 'OPEN' },
+      { id: 2, title: 'Q2', status: 'OPEN' },
+    ];
+    renderPage();
+    const radio = await screen.findByRole('radio');
+    fireEvent.click(radio);
+    const btn = screen.getByRole('button', { name: 'Siguiente pregunta' });
+    fireEvent.click(btn);
+    await screen.findByText('Q2');
   });
 });

@@ -7,6 +7,7 @@ import anyio
 import io
 import csv
 import smtplib
+import logging
 from email.message import EmailMessage
 from fastapi.responses import StreamingResponse
 from .. import models, schemas, database
@@ -16,11 +17,32 @@ from .attendance import send_attendance_report as send_attendance_report_fn
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
+    from reportlab.graphics.shapes import Drawing
+    from reportlab.graphics.charts.piecharts import Pie
+    from reportlab.graphics import renderPDF
+    from reportlab.lib import colors
 except Exception:  # pragma: no cover - reportlab optional
     letter = None  # type: ignore
     canvas = None  # type: ignore
+    Drawing = None  # type: ignore
+    Pie = None  # type: ignore
+    renderPDF = None  # type: ignore
+    colors = None  # type: ignore
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="", tags=["voting"])
+
+ETEC_COLORS = (
+    [
+        colors.HexColor("#005DAA"),
+        colors.HexColor("#00A3AD"),
+        colors.HexColor("#F2A516"),
+        colors.HexColor("#D90051"),
+    ]
+    if colors
+    else []
+)
 
 
 def get_db():
@@ -84,16 +106,25 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
         .order_by(models.Ballot.order)
         .all()
     )
+    summary = compute_summary(db, election_id)
     if canvas is None:
         lines = [f"Informe de votación - {election.name if election else ''}"]
         lines.append("Asistentes:")
         for _, sh in attendees:
             lines.append(f"- {sh.name}")
+        lines.append(
+            f"Acciones presentes: {summary['capital_presente_directo'] + summary['capital_presente_representado']}"
+        )
+        lines.append(
+            f"Porcentaje sobre capital suscrito: {summary['porcentaje_quorum'] * 100:.2f}%"
+        )
         for ballot in ballots:
             lines.append(f"Pregunta: {ballot.title}")
             results = _ballot_results(db, ballot.id)
+            total_votes = sum(r.votes for r in results)
             for r in results:
-                lines.append(f"  {r.text}: {r.votes}")
+                pct = (r.votes / total_votes * 100) if total_votes else 0
+                lines.append(f"  {r.text}: {r.votes} ({pct:.2f}%)")
         return "\n".join(lines).encode("utf-8")
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
@@ -105,12 +136,21 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
     c.setFont("Helvetica", 12)
     c.drawString(50, y, f"Fecha: {election.date.isoformat()}")
     y -= 30
+    # Resumen
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Resumen")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    total_acc = summary["capital_presente_directo"] + summary["capital_presente_representado"]
+    c.drawString(60, y, f"Acciones presentes: {total_acc} ({summary['porcentaje_quorum']*100:.2f}%)")
+    y -= 20
+    # Asistentes
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, y, "Asistentes")
     y -= 20
     c.setFont("Helvetica", 12)
     for _, sh in attendees:
-        if y < 50:
+        if y < 80:
             c.showPage()
             y = height - 50
             c.setFont("Helvetica", 12)
@@ -118,21 +158,46 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
         y -= 15
     y -= 10
     for ballot in ballots:
-        if y < 70:
+        if y < 200:
             c.showPage()
             y = height - 50
         c.setFont("Helvetica-Bold", 12)
         c.drawString(50, y, ballot.title)
         y -= 20
-        c.setFont("Helvetica", 12)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(60, y, "Opción")
+        c.drawString(260, y, "Votos")
+        c.drawString(320, y, "%")
+        y -= 15
+        c.setFont("Helvetica", 10)
         results = _ballot_results(db, ballot.id)
-        for r in results:
-            if y < 50:
+        total_votes = sum(r.votes for r in results)
+        for i, r in enumerate(results):
+            if y < 80:
                 c.showPage()
                 y = height - 50
-            c.drawString(60, y, f"{r.text}: {r.votes}")
+                c.setFont("Helvetica", 10)
+            pct = (r.votes / total_votes * 100) if total_votes else 0
+            c.drawString(60, y, r.text)
+            c.drawRightString(300, y, f"{r.votes}")
+            c.drawRightString(360, y, f"{pct:.2f}%")
             y -= 15
-        y -= 10
+        # Pie chart
+        if Pie and Drawing and renderPDF and results:
+            data = [r.votes for r in results]
+            labels = [r.text for r in results]
+            pie = Pie()
+            pie.data = data
+            pie.labels = labels
+            for idx, color in enumerate(ETEC_COLORS):
+                if idx < len(pie.slices):
+                    pie.slices[idx].fillColor = color
+            pie.width = 150
+            pie.height = 150
+            drawing = Drawing(200, 150)
+            drawing.add(pie)
+            renderPDF.draw(drawing, c, 380, y - 150)
+        y -= 40
     c.save()
     pdf = buffer.getvalue()
     buffer.close()
@@ -145,11 +210,14 @@ def _send_vote_report(db: Session, election_id: int, recipients: List[str]):
     election = db.query(models.Election).filter_by(id=election_id).first()
     if not election:
         return
-    csv_bytes = _build_vote_report(db, election_id)
     settings = _smtp_settings(db)
     host = settings.get("smtp_host")
-    if not host:
-        return
+    port = settings.get("smtp_port")
+    user = settings.get("smtp_user")
+    password = settings.get("smtp_password")
+    if not host or not port or (user and not password):
+        raise HTTPException(status_code=500, detail="SMTP settings not configured")
+    csv_bytes = _build_vote_report(db, election_id)
     msg = EmailMessage()
     msg["Subject"] = f"Informe de votación - {election.name}"
     msg["From"] = settings.get("smtp_from", "")
@@ -162,11 +230,12 @@ def _send_vote_report(db: Session, election_id: int, recipients: List[str]):
         filename="vote_report.csv",
     )
     try:
-        with smtplib.SMTP(host, int(settings.get("smtp_port", 25))) as smtp:
-            if settings.get("smtp_user"):
-                smtp.login(settings.get("smtp_user"), settings.get("smtp_password"))
+        with smtplib.SMTP(host, int(port)) as smtp:
+            if user:
+                smtp.login(user, password)
             smtp.send_message(msg)
-    except Exception:
+    except smtplib.SMTPException as e:
+        logger.exception("SMTP error sending vote report: %s", e)
         raise HTTPException(status_code=500, detail="failed to send email")
 
 
