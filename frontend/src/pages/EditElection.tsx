@@ -29,6 +29,7 @@ const EditElection: React.FC = () => {
         qs.map((q) => {
           const opts = q.options?.map((o: any) => o.text) || [];
           return {
+            id: String(q.id),
             text: q.text,
             type: q.type,
             required: q.required,

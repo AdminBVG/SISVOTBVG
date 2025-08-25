@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from .models import (
     AttendanceMode,
     PersonType,
@@ -150,7 +150,7 @@ class Proxy(BaseModel):
     present: bool = False
     marked_by: Optional[str] = None
     marked_at: Optional[datetime] = None
-    assignments: List[ProxyAssignment] = []
+    assignments: List[ProxyAssignment] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -182,7 +182,7 @@ class QuestionCreate(BaseModel):
     type: QuestionType
     required: bool = False
     order: int
-    options: List[QuestionOption] = []
+    options: List[QuestionOption] = Field(default_factory=list)
 
 
 class Question(QuestionCreate):
@@ -203,10 +203,10 @@ class ElectionBase(BaseModel):
 
 class ElectionCreate(ElectionBase):
     status: ElectionStatus = ElectionStatus.DRAFT
-    attendance_registrars: List[int] = []
-    vote_registrars: List[int] = []
-    observers: List[int] = []
-    questions: List["QuestionCreate"] = []
+    attendance_registrars: List[int] = Field(default_factory=list)
+    vote_registrars: List[int] = Field(default_factory=list)
+    observers: List[int] = Field(default_factory=list)
+    questions: List["QuestionCreate"] = Field(default_factory=list)
 
 
 class ElectionUpdate(BaseModel):
