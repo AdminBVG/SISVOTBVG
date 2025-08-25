@@ -11,3 +11,5 @@ PyJWT
 python-dotenv
 openpyxl
 reportlab
+Jinja2
+weasyprint

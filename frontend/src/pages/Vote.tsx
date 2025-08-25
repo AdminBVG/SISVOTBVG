@@ -43,8 +43,16 @@ const Vote: React.FC = () => {
 
   useEffect(() => {
     if (allBallots) {
+      const currentId = ballots[index]?.id;
       setBallots(allBallots);
-      advance(0, allBallots);
+      if (ballots.length === 0) {
+        advance(0, allBallots);
+      } else if (currentId) {
+        const idx = allBallots.findIndex((b) => b.id === currentId);
+        if (idx !== -1) {
+          advance(idx, allBallots);
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allBallots]);
