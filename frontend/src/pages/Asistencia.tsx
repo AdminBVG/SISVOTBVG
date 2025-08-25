@@ -26,7 +26,7 @@ const Asistencia: React.FC = () => {
     setBlocked(true);
   };
 
-  const { data: shareholders, isLoading, error, refetch } = useShareholders(
+  const { data: shareholders, isLoading, error } = useShareholders(
     electionId,
     search,
     (err) => {
@@ -39,7 +39,6 @@ const Asistencia: React.FC = () => {
     electionId,
     () => {
       toast('Asistencia registrada');
-      refetch();
     },
     (err) => {
       if (err.status === 403) {
@@ -51,9 +50,11 @@ const Asistencia: React.FC = () => {
   );
   const bulkMark = useBulkMarkAttendance(
     electionId,
-    () => {
+    (data) => {
       toast('Asistencia registrada');
-      refetch();
+      if (data.failed.length) {
+        toast(`No se pudieron registrar: ${data.failed.join(', ')}`);
+      }
       setSelected({});
     },
     (err) => {
@@ -305,7 +306,7 @@ const Asistencia: React.FC = () => {
                               <TableRow key={h.id}>
                                 <TableCell>{h.from_mode || '-'}</TableCell>
                                 <TableCell>{h.to_mode || '-'}</TableCell>
-                                <TableCell>{h.changed_by}</TableCell>
+                                <TableCell>{h.changed_by || '-'}</TableCell>
                                 <TableCell>
                                   {new Date(h.changed_at).toLocaleString()}
                                 </TableCell>

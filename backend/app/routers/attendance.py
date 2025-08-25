@@ -160,7 +160,7 @@ def mark_attendance(
 
 @router.post(
     "/bulk_mark",
-    response_model=List[schemas.Attendance],
+    response_model=schemas.AttendanceBulkMarkResponse,
     dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
 )
 def bulk_mark_attendance(
@@ -170,14 +170,17 @@ def bulk_mark_attendance(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
-    attendances: List[models.Attendance] = []
+    updated: List[models.Attendance] = []
+    failed: List[str] = []
     enforce_registration_window(db, election_id, current_user)
     for code in payload.codes:
         shareholder = db.query(models.Shareholder).filter_by(code=code).first()
         if not shareholder:
+            failed.append(code)
             continue
         if payload.mode == AttendanceMode.AUSENTE and _has_active_proxy(db, election_id, shareholder.id):
-            raise HTTPException(status_code=400, detail=f"shareholder {code} has active proxy")
+            failed.append(code)
+            continue
         attendance = (
             db.query(models.Attendance)
             .filter_by(election_id=election_id, shareholder_id=shareholder.id)
@@ -192,7 +195,8 @@ def bulk_mark_attendance(
             )
             db.add(attendance)
         elif attendance.mode == payload.mode and attendance.present == (payload.mode != AttendanceMode.AUSENTE):
-            raise HTTPException(status_code=400, detail=f"attendance already marked for {code}")
+            failed.append(code)
+            continue
         history = models.AttendanceHistory(
             attendance=attendance,
             from_mode=attendance.mode,
@@ -211,17 +215,17 @@ def bulk_mark_attendance(
         attendance.marked_at = datetime.now(timezone.utc)
         attendance.evidence_json = payload.evidence
         db.add(history)
-        attendances.append(attendance)
+        updated.append(attendance)
     db.commit()
     summary = compute_summary(db, election_id)
     rows = []
-    for att in attendances:
+    for att in updated:
         db.refresh(att)
         row = observer_row(db, election_id, att.shareholder_id)
         rows.append(row)
     for row in rows:
         anyio.from_thread.run(manager.broadcast, {"summary": summary, "row": row})
-    return attendances
+    return {"updated": updated, "failed": failed}
 
 
 @router.get(
