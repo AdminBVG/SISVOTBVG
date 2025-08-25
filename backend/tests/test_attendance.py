@@ -322,6 +322,86 @@ def test_registration_window_blocks_marking():
     )
 
 
+def test_registration_start_allows_marking():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    reg = models.User(
+        username="Reg", hashed_password=hash_password("pass"), role="FUNCIONAL_BVG"
+    )
+    admin = models.User(
+        username="Admin", hashed_password=hash_password("pass"), role="ADMIN_BVG"
+    )
+    db.add_all([reg, admin])
+    db.commit()
+    reg_id = reg.id
+    db.close()
+
+    reg_token = client.post(
+        "/auth/login", json={"username": "Reg", "password": "pass"}
+    ).json()["access_token"]
+    admin_token = client.post(
+        "/auth/login", json={"username": "Admin", "password": "pass"}
+    ).json()["access_token"]
+    headers_reg = {"Authorization": f"Bearer {reg_token}"}
+    headers_admin = {"Authorization": f"Bearer {admin_token}"}
+
+    now = datetime.now(timezone.utc)
+    resp = client.post(
+        "/elections",
+        json={
+            "name": "Future",
+            "date": "2024-01-01",
+            "registration_start": (now + timedelta(days=1)).isoformat(),
+            "registration_end": (now + timedelta(days=2)).isoformat(),
+        },
+        headers=headers_admin,
+    )
+    assert resp.status_code == 200
+    election_id = resp.json()["id"]
+
+    db = SessionLocal()
+    db.add(
+        models.ElectionUserRole(
+            election_id=election_id,
+            user_id=reg_id,
+            role=models.ElectionRole.ATTENDANCE,
+        )
+    )
+    db.commit()
+    db.close()
+
+    assert (
+        client.post(
+            f"/elections/{election_id}/attendance/S1/mark",
+            json={"mode": "PRESENCIAL"},
+            headers=headers_reg,
+        ).status_code
+        == 404
+    )
+    client.post(
+        f"/elections/{election_id}/shareholders/import",
+        json=[
+            {
+                "code": "S1",
+                "name": "A",
+                "document": "D",
+                "email": "a@a.com",
+                "actions": 1,
+            }
+        ],
+        headers=headers_admin,
+    )
+    assert (
+        client.post(
+            f"/elections/{election_id}/attendance/S1/mark",
+            json={"mode": "PRESENCIAL"},
+            headers=headers_reg,
+        ).status_code
+        == 200
+    )
+
+
 def test_attendance_export():
     headers, election_id = setup_env()
     data = [
