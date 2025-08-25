@@ -56,7 +56,11 @@ const Vote: React.FC = () => {
   );
   const closeBallot = useCloseBallot(current?.id || 0, () => setIndex((i) => i + 1));
   const closeElection = useCloseElection(electionId, () => toast('Votación cerrada'));
-  const startVoting = useStartVoting(electionId);
+  const startVoting = useStartVoting(
+    electionId,
+    () => toast('Registro de votación abierto'),
+    (err) => toast(err.message),
+  );
   const closeVoting = useCloseVoting(electionId, () => closeElection.mutate());
 
   const handleVote = (attId: number, optionId: number) => {
@@ -77,7 +81,12 @@ const Vote: React.FC = () => {
   const closed = election?.status === 'CLOSED';
   const quorum = stats?.porcentaje_quorum || 0;
   const min = election?.min_quorum || 0;
-  const canStart = !election?.voting_open && quorum >= min;
+  const start = election?.registration_start
+    ? new Date(election.registration_start)
+    : null;
+  const now = new Date();
+  const afterStart = !start || start <= now;
+  const canStart = !election?.voting_open && (election?.demo || (quorum >= min && afterStart));
 
   if (closed) {
     return (

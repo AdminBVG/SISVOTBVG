@@ -13,11 +13,13 @@ vi.mock('../components/ui/toast', () => ({
 
 let mockSuccess = true;
 
+let mockElection: any;
+let mockQuorum = 100;
 vi.mock('../hooks/useElection', () => ({
-  useElection: () => ({ data: { status: 'OPEN', min_quorum: 0, voting_open: true } }),
+  useElection: () => ({ data: mockElection }),
 }));
 vi.mock('../hooks/useDashboardStats', () => ({
-  useDashboardStats: () => ({ data: { porcentaje_quorum: 100 } }),
+  useDashboardStats: () => ({ data: { porcentaje_quorum: mockQuorum } }),
 }));
 vi.mock('../hooks/useBallots', () => ({
   usePendingBallots: () => ({ data: [{ id: 1, title: 'Q1' }] }),
@@ -60,8 +62,10 @@ const renderPage = () => {
 
 describe('Vote page', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     cleanup();
+    mockElection = { status: 'OPEN', min_quorum: 0, voting_open: true };
+    mockQuorum = 100;
   });
 
   it('muestra error cuando el voto individual falla', async () => {
@@ -79,5 +83,38 @@ describe('Vote page', () => {
     fireEvent.click(radio);
     expect(toastMock).toHaveBeenCalledWith('Voto registrado');
   });
-});
 
+  it('deshabilita abrir registro si es antes de la hora', () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    mockElection = {
+      status: 'OPEN',
+      min_quorum: 0,
+      voting_open: false,
+      registration_start: future,
+      demo: false,
+    };
+    renderPage();
+    const btn = screen.getByRole(
+      'button',
+      { name: 'Abrir registro de votación' },
+    ) as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+  });
+
+  it('permite abrir registro en modo demo', () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    mockElection = {
+      status: 'OPEN',
+      min_quorum: 0,
+      voting_open: false,
+      registration_start: future,
+      demo: true,
+    };
+    renderPage();
+    const btn = screen.getByRole(
+      'button',
+      { name: 'Abrir registro de votación' },
+    ) as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+  });
+});

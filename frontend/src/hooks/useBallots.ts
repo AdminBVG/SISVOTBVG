@@ -120,7 +120,11 @@ export const useCloseElection = (electionId: number, onSuccess?: () => void) => 
   });
 };
 
-export const useStartVoting = (electionId: number, onSuccess?: () => void) => {
+export const useStartVoting = (
+  electionId: number,
+  onSuccess?: () => void,
+  onError?: (err: any) => void,
+) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch(`/elections/${electionId}/start-voting`, { method: 'POST' }),
@@ -128,6 +132,7 @@ export const useStartVoting = (electionId: number, onSuccess?: () => void) => {
       qc.invalidateQueries({ queryKey: ['election', electionId] });
       onSuccess?.();
     },
+    onError,
   });
 };
 

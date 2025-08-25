@@ -18,6 +18,7 @@ interface Payload {
     options?: { text: string; value: string }[];
   }[];
   min_quorum?: number;
+  demo?: boolean;
 }
 
 export const useCreateElection = (

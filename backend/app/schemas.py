@@ -198,6 +198,7 @@ class ElectionBase(BaseModel):
     registration_start: Optional[datetime] = None
     registration_end: Optional[datetime] = None
     min_quorum: Optional[float] = None
+    demo: bool = False
 
 
 class ElectionCreate(ElectionBase):
@@ -216,6 +217,7 @@ class ElectionUpdate(BaseModel):
     registration_start: Optional[datetime] = None
     registration_end: Optional[datetime] = None
     min_quorum: Optional[float] = None
+    demo: Optional[bool] = None
     attendance_registrars: Optional[List[int]] = None
     vote_registrars: Optional[List[int]] = None
     questions: Optional[List["QuestionCreate"]] = None
