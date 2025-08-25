@@ -1,6 +1,7 @@
 import React from 'react';
 
 export interface QuestionDraft {
+  id: string;
   text: string;
   type: string;
   required: boolean;
@@ -23,56 +24,78 @@ const types = [
 
 const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
   const addQuestion = () =>
-    setQuestions([...questions, { text: '', type: 'short_text', required: false, options: [] }]);
+    setQuestions([
+      ...questions,
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        text: '',
+        type: 'short_text',
+        required: false,
+        options: [],
+      },
+    ]);
 
-  const updateQuestion = (i: number, data: Partial<QuestionDraft>) => {
-    const copy = [...questions];
-    copy[i] = { ...copy[i], ...data };
-    setQuestions(copy);
+  const updateQuestion = (id: string, data: Partial<QuestionDraft>) => {
+    setQuestions(questions.map((q) => (q.id === id ? { ...q, ...data } : q)));
   };
 
-  const removeQuestion = (i: number) => {
-    const copy = [...questions];
-    copy.splice(i, 1);
-    setQuestions(copy);
+  const removeQuestion = (id: string) => {
+    setQuestions(questions.filter((q) => q.id !== id));
   };
 
-  const addOption = (i: number) => {
-    const copy = [...questions];
-    copy[i].options.push('');
-    setQuestions(copy);
+  const addOption = (id: string) => {
+    setQuestions(
+      questions.map((q) =>
+        q.id === id ? { ...q, options: [...q.options, ''] } : q,
+      ),
+    );
   };
 
-  const moveOption = (qi: number, oi: number, dir: -1 | 1) => {
-    const copy = [...questions];
-    const opts = copy[qi].options;
-    const newIndex = oi + dir;
-    if (newIndex < 0 || newIndex >= opts.length) return;
-    [opts[oi], opts[newIndex]] = [opts[newIndex], opts[oi]];
-    setQuestions(copy);
+  const moveOption = (qid: string, oi: number, dir: -1 | 1) => {
+    setQuestions(
+      questions.map((q) => {
+        if (q.id !== qid) return q;
+        const opts = [...q.options];
+        const newIndex = oi + dir;
+        if (newIndex < 0 || newIndex >= opts.length) return q;
+        [opts[oi], opts[newIndex]] = [opts[newIndex], opts[oi]];
+        return { ...q, options: opts };
+      }),
+    );
   };
 
-  const updateOption = (qi: number, oi: number, value: string) => {
-    const copy = [...questions];
-    copy[qi].options[oi] = value;
-    setQuestions(copy);
+  const updateOption = (qid: string, oi: number, value: string) => {
+    setQuestions(
+      questions.map((q) =>
+        q.id === qid
+          ? {
+              ...q,
+              options: q.options.map((o, idx) => (idx === oi ? value : o)),
+            }
+          : q,
+      ),
+    );
   };
 
-  const removeOption = (qi: number, oi: number) => {
-    const copy = [...questions];
-    copy[qi].options.splice(oi, 1);
-    setQuestions(copy);
+  const removeOption = (qid: string, oi: number) => {
+    setQuestions(
+      questions.map((q) =>
+        q.id === qid
+          ? { ...q, options: q.options.filter((_, idx) => idx !== oi) }
+          : q,
+      ),
+    );
   };
 
   return (
     <div className="space-y-4">
-      {questions.map((q, i) => (
-        <div key={i} className="border rounded p-2 space-y-2">
+      {questions.map((q) => (
+        <div key={q.id} className="border rounded p-2 space-y-2">
           <input
             className="border rounded w-full p-1"
             placeholder="Pregunta"
             value={q.text}
-            onChange={(e) => updateQuestion(i, { text: e.target.value })}
+            onChange={(e) => updateQuestion(q.id, { text: e.target.value })}
           />
           <div className="flex space-x-2 items-center text-sm">
             <select
@@ -80,7 +103,7 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
               value={q.type}
               onChange={(e) => {
                 const type = e.target.value;
-                updateQuestion(i, {
+                updateQuestion(q.id, {
                   type,
                   options: type === 'boolean' ? ['Sí', 'No'] : [],
                 });
@@ -96,11 +119,11 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
               <input
                 type="checkbox"
                 checked={q.required}
-                onChange={(e) => updateQuestion(i, { required: e.target.checked })}
+                onChange={(e) => updateQuestion(q.id, { required: e.target.checked })}
               />
               <span>Requerida</span>
             </label>
-            <button type="button" className="text-red-600" onClick={() => removeQuestion(i)}>
+            <button type="button" className="text-red-600" onClick={() => removeQuestion(q.id)}>
               Eliminar
             </button>
           </div>
@@ -112,7 +135,7 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
                     className="border rounded p-1 flex-1"
                     placeholder={`Opción ${oi + 1}`}
                     value={o}
-                    onChange={(e) => updateOption(i, oi, e.target.value)}
+                    onChange={(e) => updateOption(q.id, oi, e.target.value)}
                     disabled={q.type === 'boolean'}
                   />
                   {q.type !== 'boolean' && (
@@ -120,21 +143,21 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
                       <button
                         type="button"
                         className="text-blue-600"
-                        onClick={() => moveOption(i, oi, -1)}
+                        onClick={() => moveOption(q.id, oi, -1)}
                       >
                         ↑
                       </button>
                       <button
                         type="button"
                         className="text-blue-600"
-                        onClick={() => moveOption(i, oi, 1)}
+                        onClick={() => moveOption(q.id, oi, 1)}
                       >
                         ↓
                       </button>
                       <button
                         type="button"
                         className="text-red-600"
-                        onClick={() => removeOption(i, oi)}
+                        onClick={() => removeOption(q.id, oi)}
                       >
                         X
                       </button>
@@ -146,7 +169,7 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
                 <button
                   type="button"
                   className="text-blue-600 text-sm"
-                  onClick={() => addOption(i)}
+                  onClick={() => addOption(q.id)}
                 >
                   Añadir opción
                 </button>

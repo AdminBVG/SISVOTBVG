@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   useBallots,
@@ -40,21 +40,25 @@ const Vote: React.FC = () => {
       .map((s) => ({ id: s.attendee_id!, accionista: s.name })) || [];
   const { data: stats } = useDashboardStats(electionId);
   const [index, setIndex] = useState(0);
+  const currentIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (allBallots) {
-      const currentId = ballots[index]?.id;
-      setBallots(allBallots);
-      if (ballots.length === 0) {
-        advance(0, allBallots);
-      } else if (currentId) {
-        const idx = allBallots.findIndex((b) => b.id === currentId);
-        if (idx !== -1) {
-          advance(idx, allBallots);
-        }
+    currentIdRef.current = ballots[index]?.id ?? null;
+  }, [ballots, index]);
+
+  useEffect(() => {
+    if (!allBallots) return;
+    setBallots(allBallots);
+    if (allBallots.length === 0) {
+      advance(0, allBallots);
+    } else if (currentIdRef.current) {
+      const idx = allBallots.findIndex((b) => b.id === currentIdRef.current);
+      if (idx !== -1) {
+        advance(idx, allBallots);
       }
+    } else {
+      advance(0, allBallots);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allBallots]);
 
   const advance = (i: number, list: Ballot[] = ballots) => {
