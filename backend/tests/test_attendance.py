@@ -48,7 +48,7 @@ def test_attendance_history_endpoint():
     assert history[0]["user_agent"]
 
 
-def test_bulk_mark_attendance():
+def test_bulk_mark_attendance_all_success():
     headers, election_id = setup_env()
     data = [
         {"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10},
@@ -67,8 +67,36 @@ def test_bulk_mark_attendance():
     )
     assert resp.status_code == 200
     result = resp.json()
-    assert len(result) == 2
-    assert all(r["mode"] == "PRESENCIAL" for r in result)
+    assert len(result["failed"]) == 0
+    assert len(result["updated"]) == 2
+    assert all(r["mode"] == "PRESENCIAL" for r in result["updated"])
+
+
+def test_bulk_mark_attendance_partial():
+    headers, election_id = setup_env()
+    data = [
+        {"code": "SH1", "name": "Alice", "document": "D1", "email": "a@example.com", "actions": 10},
+        {"code": "SH2", "name": "Bob", "document": "D2", "email": "b@example.com", "actions": 5},
+    ]
+    client.post(
+        f"/elections/{election_id}/shareholders/import", json=data, headers=headers
+    )
+    # mark SH1 individually so bulk marking will fail for duplicate
+    client.post(
+        f"/elections/{election_id}/attendance/SH1/mark",
+        json={"mode": "PRESENCIAL"},
+        headers=headers,
+    )
+    resp = client.post(
+        f"/elections/{election_id}/attendance/bulk_mark",
+        json={"codes": ["SH1", "SH2"], "mode": "PRESENCIAL"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    result = resp.json()
+    assert result["failed"] == ["SH1"]
+    assert len(result["updated"]) == 1
+    assert result["updated"][0]["shareholder_id"]
 
 
 def test_duplicate_mark_rejected():

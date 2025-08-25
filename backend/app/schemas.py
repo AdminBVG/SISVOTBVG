@@ -70,6 +70,11 @@ class AttendanceBulkMark(BaseModel):
     reason: Optional[str] = None
 
 
+class AttendanceBulkMarkResponse(BaseModel):
+    updated: List[Attendance]
+    failed: List[str]
+
+
 class AttendanceHistory(BaseModel):
     id: int
     attendance_id: int
