@@ -9,14 +9,9 @@ def enforce_registration_window(db: Session, election_id: int, user):
     if not election:
         raise HTTPException(status_code=404, detail="election not found")
     now = datetime.now(timezone.utc)
-    start = election.registration_start
     end = election.registration_end
-    if start and start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
     if end and end.tzinfo is None:
         end = end.replace(tzinfo=timezone.utc)
-    if start and now < start and user["role"] != "ADMIN_BVG":
-        raise HTTPException(status_code=403, detail="registration not started")
     if end and now > end and user["role"] != "ADMIN_BVG":
         raise HTTPException(status_code=403, detail="registration closed")
     return election

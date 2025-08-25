@@ -36,7 +36,13 @@ def start_voting(
         return election
     if election.voting_closed_at is not None:
         raise HTTPException(status_code=400, detail="voting already closed")
-    if election.min_quorum is not None:
+    now = datetime.now(timezone.utc)
+    start = election.registration_start
+    if start is not None and start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    if not election.demo and start is not None and start > now:
+        raise HTTPException(status_code=400, detail="voting not started")
+    if not election.demo and election.min_quorum is not None:
         summary = compute_summary(db, election_id)
         if summary["porcentaje_quorum"] < election.min_quorum:
             raise HTTPException(status_code=400, detail="quorum not met")

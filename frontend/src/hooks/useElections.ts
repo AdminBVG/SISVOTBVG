@@ -13,6 +13,7 @@ export interface Election {
   min_quorum?: number;
   voting_open?: boolean;
   voting_opened_at?: string;
+  demo?: boolean;
 }
 
 export const useElections = () => {

@@ -179,7 +179,12 @@ def import_attendees_excel(
     dependencies=[require_role(["FUNCIONAL_BVG", "ADMIN_BVG"])]
 )
 def list_attendees(election_id: int, db: Session = Depends(get_db)):
-    attendees = db.query(models.Attendee).filter_by(election_id=election_id).all()
+    attendees = (
+        db.query(models.Attendee)
+        .filter_by(election_id=election_id)
+        .order_by(models.Attendee.id)
+        .all()
+    )
     result: List[schemas.Attendee] = []
     for att in attendees:
         data = schemas.Attendee.model_validate(att).model_dump()

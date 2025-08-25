@@ -3,6 +3,7 @@ from app.main import app
 from app.database import Base, engine, SessionLocal
 from app import models
 from app.routers.auth import hash_password
+from datetime import datetime, timedelta, timezone
 
 client = TestClient(app)
 
@@ -210,4 +211,36 @@ def test_election_status_and_quorum():
         json={"option_id": option['id'], "attendee_id": 1},
         headers=headers,
     )
+    assert ok.status_code == 200
+
+
+def test_start_voting_requires_time_or_demo():
+    headers = auth_headers()
+    future = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    resp = client.post(
+        "/elections",
+        json={"name": "T", "date": "2024-01-01", "registration_start": future},
+        headers=headers,
+    )
+    eid = resp.json()["id"]
+    client.patch(
+        f"/elections/{eid}/status", json={"status": "OPEN"}, headers=headers
+    )
+    early = client.post(f"/elections/{eid}/start-voting", headers=headers)
+    assert early.status_code == 400
+    resp2 = client.post(
+        "/elections",
+        json={
+            "name": "D",
+            "date": "2024-01-01",
+            "registration_start": future,
+            "demo": True,
+        },
+        headers=headers,
+    )
+    eid2 = resp2.json()["id"]
+    client.patch(
+        f"/elections/{eid2}/status", json={"status": "OPEN"}, headers=headers
+    )
+    ok = client.post(f"/elections/{eid2}/start-voting", headers=headers)
     assert ok.status_code == 200

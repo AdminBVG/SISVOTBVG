@@ -85,6 +85,7 @@ def upgrade():
         sa.Column('registration_start', sa.DateTime(), nullable=True),
         sa.Column('registration_end', sa.DateTime(), nullable=True),
         sa.Column('min_quorum', sa.Float(), nullable=True),
+        sa.Column('demo', sa.Boolean(), nullable=False, server_default=sa.text('false')),
         sa.Column('description', sa.String(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('closed_at', sa.DateTime(timezone=True), nullable=True),

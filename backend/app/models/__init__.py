@@ -129,6 +129,7 @@ class Election(Base):
     registration_start = Column(DateTime(timezone=True))
     registration_end = Column(DateTime(timezone=True))
     min_quorum = Column(Float, nullable=True)
+    demo = Column(Boolean, default=False, nullable=False)
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

@@ -10,7 +10,7 @@ import {
   useStartVoting,
   useCloseVoting,
 } from '../hooks/useBallots';
-import { useAssistants } from '../hooks/useAssistants';
+import { useShareholders } from '../hooks/useShareholders';
 import { useElection } from '../hooks/useElection';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import Button from '../components/ui/button';
@@ -22,7 +22,17 @@ const Vote: React.FC = () => {
   const electionId = Number(id);
   const { data: election } = useElection(electionId);
   const { data: ballots } = usePendingBallots(electionId);
-  const { data: assistants } = useAssistants(electionId);
+  const { data: shareholders } = useShareholders(
+    electionId,
+    '',
+    (err) => toast(err.message),
+  );
+  const assistants =
+    shareholders
+      ?.filter(
+        (s) => s.attendee_id && s.attendance_mode && s.attendance_mode !== 'AUSENTE',
+      )
+      .map((s) => ({ id: s.attendee_id!, accionista: s.name })) || [];
   const { data: stats } = useDashboardStats(electionId);
   const [index, setIndex] = useState(0);
   const current = ballots?.[index];
@@ -34,11 +44,23 @@ const Vote: React.FC = () => {
     setVotes({});
   }, [current?.id]);
 
-  const castVote = useCastVote(current?.id || 0, () => toast('Voto registrado'));
-  const voteAll = useVoteAll(current?.id || 0, () => toast('Votos registrados'));
+  const castVote = useCastVote(
+    current?.id || 0,
+    () => toast('Voto registrado'),
+    (err) => toast(err.message),
+  );
+  const voteAll = useVoteAll(
+    current?.id || 0,
+    () => toast('Votos registrados'),
+    (err) => toast(err.message),
+  );
   const closeBallot = useCloseBallot(current?.id || 0, () => setIndex((i) => i + 1));
   const closeElection = useCloseElection(electionId, () => toast('Votación cerrada'));
-  const startVoting = useStartVoting(electionId);
+  const startVoting = useStartVoting(
+    electionId,
+    () => toast('Registro de votación abierto'),
+    (err) => toast(err.message),
+  );
   const closeVoting = useCloseVoting(electionId, () => closeElection.mutate());
 
   const handleVote = (attId: number, optionId: number) => {
@@ -48,7 +70,7 @@ const Vote: React.FC = () => {
 
   const handleVoteAll = (optionId: number) => {
     const map: Record<number, number> = {};
-    assistants?.forEach((a) => {
+    assistants.forEach((a) => {
       map[a.id] = optionId;
     });
     setVotes(map);
@@ -59,7 +81,12 @@ const Vote: React.FC = () => {
   const closed = election?.status === 'CLOSED';
   const quorum = stats?.porcentaje_quorum || 0;
   const min = election?.min_quorum || 0;
-  const canStart = !election?.voting_open && quorum >= min;
+  const start = election?.registration_start
+    ? new Date(election.registration_start)
+    : null;
+  const now = new Date();
+  const afterStart = !start || start <= now;
+  const canStart = !election?.voting_open && (election?.demo || (quorum >= min && afterStart));
 
   if (closed) {
     return (

@@ -23,6 +23,7 @@ const CreateElectionWizard: React.FC = () => {
   const [openDate, setOpenDate] = useState('');
   const [closeDate, setCloseDate] = useState('');
   const [quorum, setQuorum] = useState('');
+  const [demo, setDemo] = useState(false);
 
   // Step 2 - participants
   const { data: users } = useUsers(true);
@@ -106,6 +107,7 @@ const CreateElectionWizard: React.FC = () => {
         ...(openDate ? { registration_start: new Date(openDate).toISOString() } : {}),
         ...(closeDate ? { registration_end: new Date(closeDate).toISOString() } : {}),
         ...(quorum ? { min_quorum: Number(quorum) / 100 } : {}),
+        ...(demo ? { demo: true } : {}),
         attendance_registrars: attendanceRegs,
         vote_registrars: voteRegs,
         questions: questions.map((q, i) => ({
@@ -172,6 +174,16 @@ const CreateElectionWizard: React.FC = () => {
                 value={quorum}
                 onChange={(e) => setQuorum(e.target.value)}
               />
+            </div>
+            <div>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={demo}
+                  onChange={(e) => setDemo(e.target.checked)}
+                />
+                Votación de prueba
+              </label>
             </div>
           </div>
         )}
@@ -294,6 +306,7 @@ const CreateElectionWizard: React.FC = () => {
             {shImport.previewData.length > 0 && (
               <p><strong>Padrón:</strong> {shImport.previewData.length} registros</p>
             )}
+            {demo && <p><strong>Demo:</strong> Sí</p>}
           </div>
         )}
 
