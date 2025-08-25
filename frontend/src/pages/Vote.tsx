@@ -79,11 +79,16 @@ const Vote: React.FC = () => {
   );
   const closeBallot = useCloseBallot(current?.id || 0, () => {
     if (current) {
-      setBallots((prev) =>
-        prev.map((b) => (b.id === current.id ? { ...b, status: 'CLOSED' } : b)),
-      );
+      setBallots((prev) => {
+        const updated = prev.map((b) =>
+          b.id === current.id ? { ...b, status: 'CLOSED' } : b,
+        );
+        advance(index + 1, updated);
+        return updated;
+      });
+    } else {
+      advance(index + 1);
     }
-    advance(index + 1);
   });
   const closeElection = useCloseElection(electionId, () => toast('Votación cerrada'));
   const startVoting = useStartVoting(
