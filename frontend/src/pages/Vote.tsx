@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  usePendingBallots,
+  useBallots,
   useBallotResults,
   useCastVote,
   useVoteAll,
@@ -9,6 +9,7 @@ import {
   useCloseElection,
   useStartVoting,
   useCloseVoting,
+  type Ballot,
 } from '../hooks/useBallots';
 import { useShareholders } from '../hooks/useShareholders';
 import { useElection } from '../hooks/useElection';
@@ -24,7 +25,8 @@ const Vote: React.FC = () => {
   const { id } = useParams();
   const electionId = Number(id);
   const { data: election } = useElection(electionId);
-  const { data: ballots } = usePendingBallots(electionId);
+  const { data: allBallots } = useBallots(electionId);
+  const [ballots, setBallots] = useState<Ballot[]>([]);
   const { data: shareholders } = useShareholders(
     electionId,
     '',
@@ -38,7 +40,24 @@ const Vote: React.FC = () => {
       .map((s) => ({ id: s.attendee_id!, accionista: s.name })) || [];
   const { data: stats } = useDashboardStats(electionId);
   const [index, setIndex] = useState(0);
-  const current = ballots?.[index];
+
+  useEffect(() => {
+    if (allBallots) {
+      setBallots(allBallots);
+      advance(0, allBallots);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allBallots]);
+
+  const advance = (i: number, list: Ballot[] = ballots) => {
+    let next = i;
+    while (next < list.length && list[next].status !== 'OPEN') {
+      next++;
+    }
+    setIndex(next);
+  };
+
+  const current = ballots[index];
   const { data: options } = useBallotResults(current?.id || 0, !!current);
   const [votes, setVotes] = useState<Record<number, number>>({});
   const [alertMsg, setAlertMsg] = useState('');
@@ -58,7 +77,14 @@ const Vote: React.FC = () => {
     () => toast('Votos registrados'),
     (err) => toast(err.message),
   );
-  const closeBallot = useCloseBallot(current?.id || 0, () => setIndex((i) => i + 1));
+  const closeBallot = useCloseBallot(current?.id || 0, () => {
+    if (current) {
+      setBallots((prev) =>
+        prev.map((b) => (b.id === current.id ? { ...b, status: 'CLOSED' } : b)),
+      );
+    }
+    advance(index + 1);
+  });
   const closeElection = useCloseElection(electionId, () => toast('Votación cerrada'));
   const startVoting = useStartVoting(
     electionId,
@@ -96,7 +122,10 @@ const Vote: React.FC = () => {
     closeBallot.mutate();
   };
 
-  const done = ballots && index >= ballots.length;
+  const answered = ballots.filter((b) => b.status === 'CLOSED').length;
+  const total = ballots.length;
+  const progress = Math.min(answered + (current ? 1 : 0), total);
+  const done = index >= total;
   const closed = election?.status === 'CLOSED';
   const quorum = stats?.porcentaje_quorum || 0;
   const min = election?.min_quorum || 0;
@@ -148,22 +177,28 @@ const Vote: React.FC = () => {
               <Button
                 variant="outline"
                 disabled={index === 0}
-                onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+                onClick={() => {
+                  let prev = index - 1;
+                  while (prev >= 0 && ballots[prev].status !== 'OPEN') {
+                    prev--;
+                  }
+                  if (prev >= 0) setIndex(prev);
+                }}
               >
                 Anterior
               </Button>
               <div className="flex-1">
                 <div>
-                  Pregunta {index + 1} de {ballots?.length}
+                  Pregunta {progress} de {total}
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                   <div
                     className="bg-blue-500 h-2 rounded-full"
-                    style={{ width: `${((index + 1) / (ballots?.length || 1)) * 100}%` }}
+                    style={{ width: `${(total ? (progress / total) * 100 : 0)}%` }}
                   ></div>
                 </div>
               </div>
-              <Button variant="outline" disabled={!ballots} onClick={nextQuestion}>
+              <Button variant="outline" disabled={total === 0} onClick={nextQuestion}>
                 Siguiente pregunta
               </Button>
             </div>

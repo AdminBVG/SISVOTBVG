@@ -13,6 +13,12 @@ from .. import models, schemas, database
 from ..security import require_role, get_current_user
 from ..observer import manager, compute_summary
 from .attendance import send_attendance_report as send_attendance_report_fn
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+except Exception:  # pragma: no cover - reportlab optional
+    letter = None  # type: ignore
+    canvas = None  # type: ignore
 
 router = APIRouter(prefix="", tags=["voting"])
 
@@ -59,6 +65,75 @@ def _build_vote_report(db: Session, election_id: int) -> bytes:
         for r in results:
             writer.writerow([ballot.title, r.text, r.votes])
     return output.getvalue().encode("utf-8")
+
+
+def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    attendees = (
+        db.query(models.Attendee, models.Shareholder)
+        .join(models.Shareholder, models.Attendee.shareholder_id == models.Shareholder.id)
+        .filter(models.Attendee.election_id == election_id)
+        .all()
+    )
+    ballots = (
+        db.query(models.Ballot)
+        .filter_by(election_id=election_id)
+        .order_by(models.Ballot.order)
+        .all()
+    )
+    if canvas is None:
+        lines = [f"Informe de votación - {election.name if election else ''}"]
+        lines.append("Asistentes:")
+        for _, sh in attendees:
+            lines.append(f"- {sh.name}")
+        for ballot in ballots:
+            lines.append(f"Pregunta: {ballot.title}")
+            results = _ballot_results(db, ballot.id)
+            for r in results:
+                lines.append(f"  {r.text}: {r.votes}")
+        return "\n".join(lines).encode("utf-8")
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    y = height - 50
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, y, f"Informe de votación - {election.name}")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    c.drawString(50, y, f"Fecha: {election.date.isoformat()}")
+    y -= 30
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Asistentes")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    for _, sh in attendees:
+        if y < 50:
+            c.showPage()
+            y = height - 50
+            c.setFont("Helvetica", 12)
+        c.drawString(60, y, sh.name)
+        y -= 15
+    y -= 10
+    for ballot in ballots:
+        if y < 70:
+            c.showPage()
+            y = height - 50
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, ballot.title)
+        y -= 20
+        c.setFont("Helvetica", 12)
+        results = _ballot_results(db, ballot.id)
+        for r in results:
+            if y < 50:
+                c.showPage()
+                y = height - 50
+            c.drawString(60, y, f"{r.text}: {r.votes}")
+            y -= 15
+        y -= 10
+    c.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
 
 
 def _send_vote_report(db: Session, election_id: int, recipients: List[str]):
@@ -223,6 +298,22 @@ def vote_report(election_id: int, db: Session = Depends(get_db)):
         io.BytesIO(csv_bytes),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=vote_report.csv"},
+    )
+
+
+@router.get(
+    "/elections/{election_id}/vote-report/pdf",
+    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])],
+)
+def vote_report_pdf(election_id: int, db: Session = Depends(get_db)):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    pdf_bytes = _build_vote_report_pdf(db, election_id)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=vote_report.pdf"},
     )
 
 

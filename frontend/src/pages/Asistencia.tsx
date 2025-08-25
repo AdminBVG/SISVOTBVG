@@ -10,6 +10,7 @@ import { useMarkAttendance } from '../hooks/useMarkAttendance';
 import { useBulkMarkAttendance } from '../hooks/useBulkMarkAttendance';
 import { useAttendanceHistory } from '../hooks/useAttendanceHistory';
 import { useSendAttendanceReport } from '../hooks/useSendAttendanceReport';
+import { useElection } from '../hooks/useElection';
 import { getItem } from '../lib/storage';
 import { User } from '../lib/icons';
 import Alert from '../components/ui/alert';
@@ -38,6 +39,7 @@ const Asistencia: React.FC = () => {
       }
     },
   );
+  const { data: election } = useElection(electionId);
   const markAttendance = useMarkAttendance(
     electionId,
     () => {
@@ -152,8 +154,30 @@ const Asistencia: React.FC = () => {
       (sh) => sh.attendance_mode && sh.attendance_mode !== 'AUSENTE',
     ).reduce((acc, sh) => acc + (sh.actions || 0), 0) || 0;
   const quorum = capitalSuscrito
-    ? ((capitalPresente / capitalSuscrito) * 100).toFixed(2)
-    : '0';
+    ? (capitalPresente / capitalSuscrito) * 100
+    : 0;
+
+  const presencial =
+    shareholders?.filter((s) => s.attendance_mode === 'PRESENCIAL').length || 0;
+  const virtual =
+    shareholders?.filter((s) => s.attendance_mode === 'VIRTUAL').length || 0;
+  const ausente =
+    shareholders?.filter(
+      (s) => !s.attendance_mode || s.attendance_mode === 'AUSENTE',
+    ).length || 0;
+  const totalCount = presencial + virtual + ausente;
+  const presencialDeg = totalCount ? (presencial / totalCount) * 360 : 0;
+  const virtualDeg = totalCount ? (virtual / totalCount) * 360 : 0;
+  const pieStyle = {
+    background: `conic-gradient(#3b82f6 0 ${presencialDeg}deg, #10b981 ${presencialDeg}deg ${
+      presencialDeg + virtualDeg
+    }deg, #f87171 ${presencialDeg + virtualDeg}deg 360deg)`,
+    width: '150px',
+    height: '150px',
+    borderRadius: '50%',
+  } as React.CSSProperties;
+  const quorumClass =
+    quorum < (election?.min_quorum || 0) ? 'text-red-600' : 'text-green-600';
 
   return (
       <div className="flex flex-col md:flex-row gap-4">
@@ -324,7 +348,26 @@ const Asistencia: React.FC = () => {
         <h2 className="text-lg font-semibold">Resumen</h2>
         <p>Capital suscrito: {capitalSuscrito}</p>
         <p>Capital presente: {capitalPresente}</p>
-        <p>% de quórum: {quorum}%</p>
+        <p className={quorumClass}>% de quórum: {quorum.toFixed(2)}%</p>
+        {totalCount > 0 && (
+          <div className="flex flex-col items-center mt-4">
+            <div style={pieStyle} />
+            <div className="text-xs mt-2 space-y-1">
+              <p>
+                <span className="inline-block w-3 h-3 mr-1 bg-blue-500"></span>
+                Presencial: {presencial}
+              </p>
+              <p>
+                <span className="inline-block w-3 h-3 mr-1 bg-green-500"></span>
+                Virtual: {virtual}
+              </p>
+              <p>
+                <span className="inline-block w-3 h-3 mr-1 bg-red-500"></span>
+                Ausente: {ausente}
+              </p>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

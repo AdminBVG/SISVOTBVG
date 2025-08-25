@@ -22,14 +22,22 @@ vi.mock('../hooks/useDashboardStats', () => ({
   useDashboardStats: () => ({ data: { porcentaje_quorum: mockQuorum } }),
 }));
 vi.mock('../hooks/useBallots', () => ({
-  usePendingBallots: () => ({ data: [{ id: 1, title: 'Q1' }] }),
+  useBallots: () => ({ data: [{ id: 1, title: 'Q1', status: 'OPEN' }] }),
   useBallotResults: () => ({ data: [{ id: 10, text: 'Sí' }] }),
-  useCastVote: (_id: number, onSuccess?: () => void, onError?: (err: any) => void) => ({
+  useCastVote: (
+    _id: number,
+    onSuccess?: () => void,
+    onError?: (err: any) => void,
+  ) => ({
     mutate: (_: any) => {
       mockSuccess ? onSuccess?.() : onError?.(new Error('fail'));
     },
   }),
-  useVoteAll: (_id: number, onSuccess?: () => void, onError?: (err: any) => void) => ({
+  useVoteAll: (
+    _id: number,
+    onSuccess?: () => void,
+    onError?: (err: any) => void,
+  ) => ({
     mutate: (_: any) => {
       mockSuccess ? onSuccess?.() : onError?.(new Error('fail'));
     },
