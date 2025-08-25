@@ -43,6 +43,15 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
     setQuestions(copy);
   };
 
+  const moveOption = (qi: number, oi: number, dir: -1 | 1) => {
+    const copy = [...questions];
+    const opts = copy[qi].options;
+    const newIndex = oi + dir;
+    if (newIndex < 0 || newIndex >= opts.length) return;
+    [opts[oi], opts[newIndex]] = [opts[newIndex], opts[oi]];
+    setQuestions(copy);
+  };
+
   const updateOption = (qi: number, oi: number, value: string) => {
     const copy = [...questions];
     copy[qi].options[oi] = value;
@@ -69,7 +78,13 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
             <select
               className="border rounded p-1"
               value={q.type}
-              onChange={(e) => updateQuestion(i, { type: e.target.value, options: [] })}
+              onChange={(e) => {
+                const type = e.target.value;
+                updateQuestion(i, {
+                  type,
+                  options: type === 'boolean' ? ['Sí', 'No'] : [],
+                });
+              }}
             >
               {types.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -89,7 +104,7 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
               Eliminar
             </button>
           </div>
-          {(q.type === 'single_choice' || q.type === 'multiple_choice') && (
+          {(q.type === 'single_choice' || q.type === 'multiple_choice' || q.type === 'boolean') && (
             <div className="ml-4 space-y-1">
               {q.options.map((o, oi) => (
                 <div key={oi} className="flex space-x-2 items-center">
@@ -98,15 +113,44 @@ const QuestionBuilder: React.FC<Props> = ({ questions, setQuestions }) => {
                     placeholder={`Opción ${oi + 1}`}
                     value={o}
                     onChange={(e) => updateOption(i, oi, e.target.value)}
+                    disabled={q.type === 'boolean'}
                   />
-                  <button type="button" className="text-red-600" onClick={() => removeOption(i, oi)}>
-                    X
-                  </button>
+                  {q.type !== 'boolean' && (
+                    <>
+                      <button
+                        type="button"
+                        className="text-blue-600"
+                        onClick={() => moveOption(i, oi, -1)}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="text-blue-600"
+                        onClick={() => moveOption(i, oi, 1)}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        className="text-red-600"
+                        onClick={() => removeOption(i, oi)}
+                      >
+                        X
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
-              <button type="button" className="text-blue-600 text-sm" onClick={() => addOption(i)}>
-                Añadir opción
-              </button>
+              {q.type !== 'boolean' && (
+                <button
+                  type="button"
+                  className="text-blue-600 text-sm"
+                  onClick={() => addOption(i)}
+                >
+                  Añadir opción
+                </button>
+              )}
             </div>
           )}
         </div>

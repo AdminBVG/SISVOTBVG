@@ -51,6 +51,33 @@ def create_election(election: schemas.ElectionCreate, db: Session = Depends(get_
             )
         )
     for idx, q in enumerate(election.questions):
+        opts = list(q.options)
+        if q.type == models.QuestionType.BOOLEAN and len(opts) == 0:
+            opts = [
+                schemas.QuestionOption(text="Sí", value="1"),
+                schemas.QuestionOption(text="No", value="0"),
+            ]
+            q.options = opts
+        if (
+            q.type
+            in [
+                models.QuestionType.SINGLE_CHOICE,
+                models.QuestionType.MULTIPLE_CHOICE,
+                models.QuestionType.BOOLEAN,
+            ]
+            and len(opts) < 2
+        ):
+            raise HTTPException(status_code=400, detail="La pregunta debe tener al menos dos opciones")
+        if (
+            q.type
+            in [
+                models.QuestionType.SINGLE_CHOICE,
+                models.QuestionType.MULTIPLE_CHOICE,
+                models.QuestionType.BOOLEAN,
+            ]
+            and len({o.value for o in opts}) != len(opts)
+        ):
+            raise HTTPException(status_code=400, detail="Los valores de las opciones deben ser únicos")
         question = models.Question(
             election_id=db_election.id,
             text=q.text,

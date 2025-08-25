@@ -26,12 +26,16 @@ const EditElection: React.FC = () => {
     });
     apiFetch<any[]>(`/elections/${id}/questions`).then((qs) => {
       setQuestions(
-        qs.map((q) => ({
-          text: q.text,
-          type: q.type,
-          required: q.required,
-          options: q.options?.map((o: any) => o.text) || [],
-        }))
+        qs.map((q) => {
+          const opts = q.options?.map((o: any) => o.text) || [];
+          return {
+            text: q.text,
+            type: q.type,
+            required: q.required,
+            options:
+              q.type === 'boolean' && opts.length === 0 ? ['Sí', 'No'] : opts,
+          };
+        })
       );
     });
   }, [id]);
@@ -51,13 +55,19 @@ const EditElection: React.FC = () => {
       name,
       date,
       ...(quorum ? { min_quorum: Number(quorum) / 100 } : {}),
-      questions: questions.map((q, i) => ({
-        text: q.text,
-        type: q.type,
-        required: q.required,
-        order: i,
-        options: q.options.map((o, oi) => ({ text: o, value: String(oi) })),
-      })),
+      questions: questions.map((q, i) => {
+        const opts =
+          q.type === 'boolean' && q.options.length === 0
+            ? ['Sí', 'No']
+            : q.options;
+        return {
+          text: q.text,
+          type: q.type,
+          required: q.required,
+          order: i,
+          options: opts.map((o, oi) => ({ text: o, value: String(oi) })),
+        };
+      }),
     });
   };
 
