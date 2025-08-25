@@ -110,13 +110,19 @@ const CreateElectionWizard: React.FC = () => {
         ...(demo ? { demo: true } : {}),
         attendance_registrars: attendanceRegs,
         vote_registrars: voteRegs,
-        questions: questions.map((q, i) => ({
-          text: q.text,
-          type: q.type,
-          required: q.required,
-          order: i,
-          options: q.options.map((o, oi) => ({ text: o, value: String(oi) })),
-        })),
+        questions: questions.map((q, i) => {
+          const opts =
+            q.type === 'boolean' && q.options.length === 0
+              ? ['Sí', 'No']
+              : q.options;
+          return {
+            text: q.text,
+            type: q.type,
+            required: q.required,
+            order: i,
+            options: opts.map((o, oi) => ({ text: o, value: String(oi) })),
+          };
+        }),
       };
       const election = await mutateAsync(payload);
       if (shImport.file && shImport.previewData.length > 0) {

@@ -49,3 +49,70 @@ def test_create_election_with_questions():
     ballots = resp.json()
     assert len(ballots) == 1
     assert ballots[0]["title"] == "¿Asiste?"
+
+
+def test_single_choice_requires_two_options():
+    headers = auth_headers()
+    resp = client.post(
+        "/elections",
+        json={
+            "name": "Demo",
+            "date": "2024-01-01",
+            "questions": [
+                {
+                    "text": "Elija",
+                    "type": "single_choice",
+                    "order": 0,
+                    "options": [{"text": "A", "value": "1"}],
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_option_values_must_be_unique():
+    headers = auth_headers()
+    resp = client.post(
+        "/elections",
+        json={
+            "name": "Demo",
+            "date": "2024-01-01",
+            "questions": [
+                {
+                    "text": "Elija",
+                    "type": "single_choice",
+                    "order": 0,
+                    "options": [
+                        {"text": "A", "value": "1"},
+                        {"text": "B", "value": "1"},
+                    ],
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_boolean_defaults_yes_no():
+    headers = auth_headers()
+    resp = client.post(
+        "/elections",
+        json={
+            "name": "Demo",
+            "date": "2024-01-01",
+            "questions": [
+                {"text": "¿Aprueba?", "type": "boolean", "order": 0}
+            ],
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    election_id = resp.json()["id"]
+    resp = client.get(f"/elections/{election_id}/questions", headers=headers)
+    assert resp.status_code == 200
+    qs = resp.json()
+    assert qs[0]["options"][0]["text"] == "Sí"
+    assert qs[0]["options"][1]["text"] == "No"

@@ -109,76 +109,88 @@ const Vote: React.FC = () => {
         </div>
       )}
       {election?.voting_open && current && options && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              disabled={index === 0}
-              onClick={() => setIndex((i) => Math.max(i - 1, 0))}
-            >
-              Anterior
-            </Button>
-            <div className="flex-1">
-              <div>
-                Pregunta {index + 1} de {ballots?.length}
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                <div
-                  className="bg-blue-500 h-2 rounded-full"
-                  style={{ width: `${((index + 1) / (ballots?.length || 1)) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              disabled={!ballots || index >= ballots.length - 1}
-              onClick={() => setIndex((i) => i + 1)}
-            >
-              Siguiente
+        options.length === 0 ? (
+          <div className="space-y-4">
+            <h2 className="text-lg font-medium">{current.title}</h2>
+            <p>Esta pregunta no tiene respuestas configuradas</p>
+            <Button variant="destructive" onClick={() => closeBallot.mutate()}>
+              Cerrar pregunta
             </Button>
           </div>
-          <h2 className="text-lg font-medium">{current.title}</h2>
-          <div className="flex gap-2">
-            {options.map((o) => (
-              <Button key={o.id} onClick={() => handleVoteAll(o.id)}>
-                Todos {o.text}
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={index === 0}
+                onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+              >
+                Anterior
               </Button>
-            ))}
-            <Button variant="outline" onClick={() => setVotes({})}>
-              Limpiar
-            </Button>
-            <Button variant="destructive" onClick={() => closeBallot.mutate()}>Cerrar pregunta</Button>
-          </div>
-          {assistants && options && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Accionista</TableHead>
-                  {options.map((o) => (
-                    <TableHead key={o.id}>{o.text}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assistants.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>{a.accionista}</TableCell>
+              <div className="flex-1">
+                <div>
+                  Pregunta {index + 1} de {ballots?.length}
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full"
+                    style={{ width: `${((index + 1) / (ballots?.length || 1)) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                disabled={!ballots || index >= ballots.length - 1}
+                onClick={() => setIndex((i) => i + 1)}
+              >
+                Siguiente
+              </Button>
+            </div>
+            <h2 className="text-lg font-medium">{current.title}</h2>
+            <div className="flex gap-2">
+              {options.map((o) => (
+                <Button key={o.id} onClick={() => handleVoteAll(o.id)}>
+                  Todos {o.text}
+                </Button>
+              ))}
+              <Button variant="outline" onClick={() => setVotes({})}>
+                Limpiar
+              </Button>
+              <Button variant="destructive" onClick={() => closeBallot.mutate()}>
+                Cerrar pregunta
+              </Button>
+            </div>
+            {assistants && options && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Accionista</TableHead>
                     {options.map((o) => (
-                      <TableCell key={o.id}>
-                        <input
-                          type="radio"
-                          name={`att-${a.id}`}
-                          checked={votes[a.id] === o.id}
-                          onChange={() => handleVote(a.id, o.id)}
-                        />
-                      </TableCell>
+                      <TableHead key={o.id}>{o.text}</TableHead>
                     ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {assistants.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell>{a.accionista}</TableCell>
+                      {options.map((o) => (
+                        <TableCell key={o.id}>
+                          <input
+                            type="radio"
+                            name={`att-${a.id}`}
+                            checked={votes[a.id] === o.id}
+                            onChange={() => handleVote(a.id, o.id)}
+                          />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        )
       )}
       {election?.voting_open && done && (
         <Button onClick={() => closeVoting.mutate()}>Cerrar votación</Button>
