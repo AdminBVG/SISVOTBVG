@@ -42,7 +42,6 @@ const Votaciones: React.FC = () => {
   const isRegistrationOpen = (e: any) => {
     if (e.status !== 'OPEN') return false;
     const now = new Date();
-    if (e.registration_start && new Date(e.registration_start) > now) return false;
     if (e.registration_end && new Date(e.registration_end) < now) return false;
     return true;
   };

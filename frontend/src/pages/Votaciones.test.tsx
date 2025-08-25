@@ -65,6 +65,25 @@ describe('Votaciones', () => {
     expect(btn.getAttribute('title')).toBe('Registro de asistencia no habilitado');
   });
 
+  it('habilita gestionar antes del inicio del registro', async () => {
+    const future = new Date(Date.now() + 86400000).toISOString();
+    mockRole = 'FUNCIONAL_BVG';
+    vi.spyOn(api, 'apiFetch').mockResolvedValue([
+      {
+        id: 5,
+        name: 'Elec5',
+        date: '2024-01-01',
+        status: 'OPEN',
+        registration_start: future,
+        registration_end: new Date(Date.now() + 172800000).toISOString(),
+        can_manage_attendance: true,
+      },
+    ]);
+    renderPage();
+    const btn = await screen.findByRole('button', { name: /Gestionar asistentes/i });
+    expect((btn as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it('oculta observador cuando no tiene permiso', async () => {
     mockRole = 'FUNCIONAL_BVG';
     vi.spyOn(api, 'apiFetch').mockResolvedValue([

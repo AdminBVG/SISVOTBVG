@@ -39,7 +39,11 @@ export const useBallotResults = (ballotId: number, enabled = true) => {
   });
 };
 
-export const useCastVote = (ballotId: number, onSuccess?: () => void) => {
+export const useCastVote = (
+  ballotId: number,
+  onSuccess?: () => void,
+  onError?: (err: any) => void,
+) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { option_id: number; attendee_id: number }) =>
@@ -52,10 +56,15 @@ export const useCastVote = (ballotId: number, onSuccess?: () => void) => {
       qc.invalidateQueries({ queryKey: ['ballot-results', ballotId] });
       onSuccess?.();
     },
+    onError,
   });
 };
 
-export const useVoteAll = (ballotId: number, onSuccess?: () => void) => {
+export const useVoteAll = (
+  ballotId: number,
+  onSuccess?: () => void,
+  onError?: (err: any) => void,
+) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { option_id: number }) =>
@@ -68,6 +77,7 @@ export const useVoteAll = (ballotId: number, onSuccess?: () => void) => {
       qc.invalidateQueries({ queryKey: ['ballot-results', ballotId] });
       onSuccess?.();
     },
+    onError,
   });
 };
 
