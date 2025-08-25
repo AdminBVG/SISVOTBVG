@@ -118,4 +118,3 @@ describe('Vote page', () => {
     expect(btn.disabled).toBe(false);
   });
 });
-
