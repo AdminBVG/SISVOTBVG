@@ -17,9 +17,10 @@ export class QueryClient {
   }
 
   invalidateQueries(opts: { queryKey: any[] }) {
-    const prefix = JSON.stringify(opts.queryKey);
+    const prefix = opts.queryKey;
     for (const [key, subs] of this.listeners.entries()) {
-      if (key.startsWith(prefix)) {
+      const parsed = JSON.parse(key);
+      if (prefix.every((v, i) => parsed[i] === v)) {
         subs.forEach((l) => l.refetch());
       }
     }
@@ -37,9 +38,10 @@ export class QueryClient {
   }
 
   updateQueriesData(prefixKey: any[], updater: (old: any) => any) {
-    const prefix = JSON.stringify(prefixKey);
+    const prefix = prefixKey;
     for (const [key, value] of this.cache.entries()) {
-      if (key.startsWith(prefix)) {
+      const parsed = JSON.parse(key);
+      if (prefix.every((v, i) => parsed[i] === v)) {
         const newData = updater(value);
         this.cache.set(key, newData);
         const subs = this.listeners.get(key);

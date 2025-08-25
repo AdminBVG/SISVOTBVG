@@ -252,7 +252,15 @@ def attendance_history(election_id: int, code: str, db: Session = Depends(get_db
 
 @router.get(
     "/summary",
-    dependencies=[require_election_role([models.ElectionRole.ATTENDANCE])]
+    dependencies=[
+        require_election_role(
+            [
+                models.ElectionRole.ATTENDANCE,
+                models.ElectionRole.VOTE,
+                models.ElectionRole.OBSERVER,
+            ]
+        )
+    ]
 )
 def summary_attendance(election_id: int, db: Session = Depends(get_db)):
     return compute_summary(db, election_id)

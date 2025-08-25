@@ -29,6 +29,7 @@ export const useMarkAttendance = (
         );
       });
       queryClient.invalidateQueries({ queryKey: ['shareholders', electionId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', electionId] });
       onSuccess?.();
     },
     onError: (err) => {
