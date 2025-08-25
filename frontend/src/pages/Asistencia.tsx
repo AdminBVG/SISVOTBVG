@@ -12,6 +12,7 @@ import { useAttendanceHistory } from '../hooks/useAttendanceHistory';
 import { useSendAttendanceReport } from '../hooks/useSendAttendanceReport';
 import { getItem } from '../lib/storage';
 import { User } from '../lib/icons';
+import Alert from '../components/ui/alert';
 
 const Asistencia: React.FC = () => {
   const { id } = useParams();
@@ -20,9 +21,11 @@ const Asistencia: React.FC = () => {
   const [search, setSearch] = useState('');
   const [blocked, setBlocked] = useState(false);
   const [emails, setEmails] = useState('');
+  const [alertMsg, setAlertMsg] = useState('');
 
   const handleForbidden = (err: any) => {
     toast(err.message);
+    setAlertMsg('No autorizado para registrar asistencia');
     setBlocked(true);
   };
 
@@ -156,14 +159,7 @@ const Asistencia: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 space-y-4">
           <h1 className="text-xl font-semibold flex items-center"><User className="w-5 h-5 mr-2" />Registro de asistencia</h1>
-          {blocked && (
-            <p
-              role="alert"
-              className="p-2 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded"
-            >
-              Registro de asistencia no habilitado
-            </p>
-          )}
+          {alertMsg && <Alert message={alertMsg} />}
           <Input
             placeholder="Buscar por nombre o código"
             value={search}

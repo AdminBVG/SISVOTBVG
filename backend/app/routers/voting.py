@@ -4,9 +4,15 @@ from sqlalchemy import func
 from typing import List
 from datetime import datetime, timezone
 import anyio
+import io
+import csv
+import smtplib
+from email.message import EmailMessage
+from fastapi.responses import StreamingResponse
 from .. import models, schemas, database
 from ..security import require_role, get_current_user
 from ..observer import manager, compute_summary
+from .attendance import send_attendance_report as send_attendance_report_fn
 
 router = APIRouter(prefix="", tags=["voting"])
 
@@ -17,6 +23,73 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def _smtp_settings(db: Session) -> dict:
+    return {s.key: s.value for s in db.query(models.Setting).all()}
+
+
+def _report_recipients(db: Session, election_id: int) -> List[str]:
+    admins = [u.username for u in db.query(models.User).filter_by(role="ADMIN_BVG").all()]
+    obs_roles = (
+        db.query(models.ElectionUserRole)
+        .join(models.User)
+        .filter(
+            models.ElectionUserRole.election_id == election_id,
+            models.ElectionUserRole.role == models.ElectionRole.OBSERVER,
+        )
+        .all()
+    )
+    observers = [r.user.username for r in obs_roles]
+    return [email for email in admins + observers if "@" in email]
+
+
+def _build_vote_report(db: Session, election_id: int) -> bytes:
+    ballots = (
+        db.query(models.Ballot)
+        .filter_by(election_id=election_id)
+        .order_by(models.Ballot.order)
+        .all()
+    )
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Pregunta", "Opción", "Votos"])
+    for ballot in ballots:
+        results = _ballot_results(db, ballot.id)
+        for r in results:
+            writer.writerow([ballot.title, r.text, r.votes])
+    return output.getvalue().encode("utf-8")
+
+
+def _send_vote_report(db: Session, election_id: int, recipients: List[str]):
+    if not recipients:
+        return
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        return
+    csv_bytes = _build_vote_report(db, election_id)
+    settings = _smtp_settings(db)
+    host = settings.get("smtp_host")
+    if not host:
+        return
+    msg = EmailMessage()
+    msg["Subject"] = f"Informe de votación - {election.name}"
+    msg["From"] = settings.get("smtp_from", "")
+    msg["To"] = ", ".join(recipients)
+    msg.set_content("Adjunto informe de votación")
+    msg.add_attachment(
+        csv_bytes,
+        maintype="text",
+        subtype="csv",
+        filename="vote_report.csv",
+    )
+    try:
+        with smtplib.SMTP(host, int(settings.get("smtp_port", 25))) as smtp:
+            if settings.get("smtp_user"):
+                smtp.login(settings.get("smtp_user"), settings.get("smtp_password"))
+            smtp.send_message(msg)
+    except Exception:
+        raise HTTPException(status_code=500, detail="failed to send email")
 
 
 @router.post(
@@ -76,6 +149,12 @@ def start_voting(
     db.add(log)
     db.commit()
     db.refresh(election)
+    recipients = _report_recipients(db, election_id)
+    send_attendance_report_fn(
+        election_id,
+        schemas.AttendanceReportRequest(recipients=recipients),
+        db,
+    )
     return election
 
 
@@ -126,7 +205,35 @@ def close_voting(
     db.add(log)
     db.commit()
     db.refresh(election)
+    recipients = _report_recipients(db, election_id)
+    _send_vote_report(db, election_id, recipients)
     return election
+
+
+@router.get(
+    "/elections/{election_id}/vote-report",
+    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])],
+)
+def vote_report(election_id: int, db: Session = Depends(get_db)):
+    election = db.query(models.Election).filter_by(id=election_id).first()
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+    csv_bytes = _build_vote_report(db, election_id)
+    return StreamingResponse(
+        io.BytesIO(csv_bytes),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=vote_report.csv"},
+    )
+
+
+@router.post(
+    "/elections/{election_id}/vote-report/send",
+    dependencies=[require_role(["ADMIN_BVG", "FUNCIONAL_BVG"])],
+)
+def send_vote_report(election_id: int, db: Session = Depends(get_db)):
+    recipients = _report_recipients(db, election_id)
+    _send_vote_report(db, election_id, recipients)
+    return {"status": "sent"}
 
 
 @router.post(

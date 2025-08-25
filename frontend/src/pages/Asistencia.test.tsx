@@ -52,7 +52,7 @@ describe('Asistencia', () => {
   it('muestra aviso cuando el registro está bloqueado', async () => {
     apiFetchMock.mockRejectedValueOnce({ status: 403, message: 'Forbidden' });
     renderPage();
-    await screen.findByText('Registro de asistencia no habilitado');
+    await screen.findByText('No autorizado para registrar asistencia');
     expect(screen.queryByRole('checkbox')).toBeNull();
   });
 

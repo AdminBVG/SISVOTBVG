@@ -16,6 +16,9 @@ import { useDashboardStats } from '../hooks/useDashboardStats';
 import Button from '../components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../components/ui/table';
 import { useToast } from '../components/ui/toast';
+import Alert from '../components/ui/alert';
+import { useVoteReport } from '../hooks/useVoteReport';
+import { useSendVoteReport } from '../hooks/useSendVoteReport';
 
 const Vote: React.FC = () => {
   const { id } = useParams();
@@ -38,6 +41,7 @@ const Vote: React.FC = () => {
   const current = ballots?.[index];
   const { data: options } = useBallotResults(current?.id || 0, !!current);
   const [votes, setVotes] = useState<Record<number, number>>({});
+  const [alertMsg, setAlertMsg] = useState('');
   const toast = useToast();
 
   useEffect(() => {
@@ -62,6 +66,12 @@ const Vote: React.FC = () => {
     (err) => toast(err.message),
   );
   const closeVoting = useCloseVoting(electionId, () => closeElection.mutate());
+  const downloadReport = useVoteReport(electionId, () => toast('Descarga iniciada'));
+  const sendReport = useSendVoteReport(
+    electionId,
+    () => toast('Informe enviado'),
+    (err) => toast(err.message),
+  );
 
   const handleVote = (attId: number, optionId: number) => {
     setVotes((v) => ({ ...v, [attId]: optionId }));
@@ -75,6 +85,15 @@ const Vote: React.FC = () => {
     });
     setVotes(map);
     voteAll.mutate({ option_id: optionId });
+  };
+
+  const nextQuestion = () => {
+    if (assistants.some((a) => !votes[a.id])) {
+      setAlertMsg('Seleccione una opción');
+      return;
+    }
+    setAlertMsg('');
+    closeBallot.mutate();
   };
 
   const done = ballots && index >= ballots.length;
@@ -93,6 +112,12 @@ const Vote: React.FC = () => {
       <div className="space-y-4">
         <h1 className="text-xl font-semibold">Registrador de Votación</h1>
         <p>Votación finalizada</p>
+        <div className="flex gap-2">
+          <Button onClick={() => downloadReport.mutate()}>Descargar informe de votación</Button>
+          <Button variant="outline" onClick={() => sendReport.mutate()}>
+            Reenviar informe de votación
+          </Button>
+        </div>
       </div>
     );
   }
@@ -113,8 +138,8 @@ const Vote: React.FC = () => {
           <div className="space-y-4">
             <h2 className="text-lg font-medium">{current.title}</h2>
             <p>Esta pregunta no tiene respuestas configuradas</p>
-            <Button variant="destructive" onClick={() => closeBallot.mutate()}>
-              Cerrar pregunta
+            <Button variant="outline" onClick={nextQuestion}>
+              Siguiente pregunta
             </Button>
           </div>
         ) : (
@@ -138,14 +163,11 @@ const Vote: React.FC = () => {
                   ></div>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                disabled={!ballots || index >= ballots.length - 1}
-                onClick={() => setIndex((i) => i + 1)}
-              >
-                Siguiente
+              <Button variant="outline" disabled={!ballots} onClick={nextQuestion}>
+                Siguiente pregunta
               </Button>
             </div>
+            {alertMsg && <Alert message={alertMsg} />}
             <h2 className="text-lg font-medium">{current.title}</h2>
             <div className="flex gap-2">
               {options.map((o) => (
@@ -155,9 +177,6 @@ const Vote: React.FC = () => {
               ))}
               <Button variant="outline" onClick={() => setVotes({})}>
                 Limpiar
-              </Button>
-              <Button variant="destructive" onClick={() => closeBallot.mutate()}>
-                Cerrar pregunta
               </Button>
             </div>
             {assistants && options && (
@@ -172,7 +191,7 @@ const Vote: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {assistants.map((a) => (
-                    <TableRow key={a.id}>
+                    <TableRow key={a.id} className={votes[a.id] ? 'bg-green-50' : ''}>
                       <TableCell>{a.accionista}</TableCell>
                       {options.map((o) => (
                         <TableCell key={o.id}>
@@ -193,7 +212,10 @@ const Vote: React.FC = () => {
         )
       )}
       {election?.voting_open && done && (
-        <Button onClick={() => closeVoting.mutate()}>Cerrar votación</Button>
+        <div className="space-y-2">
+          <p>Ha respondido todas las preguntas.</p>
+          <Button onClick={() => closeVoting.mutate()}>Enviar definitivamente</Button>
+        </div>
       )}
     </div>
   );
