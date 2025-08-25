@@ -142,4 +142,23 @@ describe('Vote page', () => {
     fireEvent.click(btn);
     await screen.findByText('Q2');
   });
+
+  it('muestra preguntas distintas al recorrer boletas', async () => {
+    mockBallots = [
+      { id: 1, title: 'Q1', status: 'OPEN' },
+      { id: 2, title: 'Q2', status: 'OPEN' },
+      { id: 3, title: 'Q3', status: 'OPEN' },
+    ];
+    renderPage();
+    const seen: string[] = [];
+    for (const title of ['Q1', 'Q2', 'Q3']) {
+      await screen.findByText(title);
+      seen.push(title);
+      const radio = screen.getByRole('radio');
+      fireEvent.click(radio);
+      const btn = screen.getByRole('button', { name: 'Siguiente pregunta' });
+      fireEvent.click(btn);
+    }
+    expect(new Set(seen).size).toBe(seen.length);
+  });
 });

@@ -29,6 +29,17 @@ except Exception:  # pragma: no cover - reportlab optional
     renderPDF = None  # type: ignore
     colors = None  # type: ignore
 
+try:
+    from weasyprint import HTML
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    from pathlib import Path
+except Exception:  # pragma: no cover - optional
+    HTML = None  # type: ignore
+    Environment = None  # type: ignore
+    FileSystemLoader = None  # type: ignore
+    select_autoescape = None  # type: ignore
+    Path = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="", tags=["voting"])
@@ -107,101 +118,123 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
         .all()
     )
     summary = compute_summary(db, election_id)
-    if canvas is None:
-        lines = [f"Informe de votación - {election.name if election else ''}"]
-        lines.append("Asistentes:")
-        for _, sh in attendees:
-            lines.append(f"- {sh.name}")
-        lines.append(
-            f"Acciones presentes: {summary['capital_presente_directo'] + summary['capital_presente_representado']}"
-        )
-        lines.append(
-            f"Porcentaje sobre capital suscrito: {summary['porcentaje_quorum'] * 100:.2f}%"
-        )
-        for ballot in ballots:
-            lines.append(f"Pregunta: {ballot.title}")
-            results = _ballot_results(db, ballot.id)
-            total_votes = sum(r.votes for r in results)
-            for r in results:
-                pct = (r.votes / total_votes * 100) if total_votes else 0
-                lines.append(f"  {r.text}: {r.votes} ({pct:.2f}%)")
-        return "\n".join(lines).encode("utf-8")
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    y = height - 50
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, y, f"Informe de votación - {election.name}")
-    y -= 20
-    c.setFont("Helvetica", 12)
-    c.drawString(50, y, f"Fecha: {election.date.isoformat()}")
-    y -= 30
-    # Resumen
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Resumen")
-    y -= 20
-    c.setFont("Helvetica", 12)
-    total_acc = summary["capital_presente_directo"] + summary["capital_presente_representado"]
-    c.drawString(60, y, f"Acciones presentes: {total_acc} ({summary['porcentaje_quorum']*100:.2f}%)")
-    y -= 20
-    # Asistentes
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Asistentes")
-    y -= 20
-    c.setFont("Helvetica", 12)
-    for _, sh in attendees:
-        if y < 80:
-            c.showPage()
-            y = height - 50
-            c.setFont("Helvetica", 12)
-        c.drawString(60, y, sh.name)
-        y -= 15
-    y -= 10
-    for ballot in ballots:
-        if y < 200:
-            c.showPage()
-            y = height - 50
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y, ballot.title)
+
+    if HTML is None or Environment is None:
+        if canvas is None:
+            lines = [f"Informe de votación - {election.name if election else ''}"]
+            lines.append("Asistentes:")
+            for _, sh in attendees:
+                lines.append(f"- {sh.name}")
+            lines.append(
+                f"Acciones presentes: {summary['capital_presente_directo'] + summary['capital_presente_representado']}"
+            )
+            lines.append(
+                f"Porcentaje sobre capital suscrito: {summary['porcentaje_quorum'] * 100:.2f}%"
+            )
+            for ballot in ballots:
+                lines.append(f"Pregunta: {ballot.title}")
+                results = _ballot_results(db, ballot.id)
+                total_votes = sum(r.votes for r in results)
+                for r in results:
+                    pct = (r.votes / total_votes * 100) if total_votes else 0
+                    lines.append(f"  {r.text}: {r.votes} ({pct:.2f}%)")
+            return "\n".join(lines).encode("utf-8")
+
+        buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        y = height - 50
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, y, f"Informe de votación - {election.name}")
         y -= 20
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(60, y, "Opción")
-        c.drawString(260, y, "Votos")
-        c.drawString(320, y, "%")
-        y -= 15
-        c.setFont("Helvetica", 10)
-        results = _ballot_results(db, ballot.id)
-        total_votes = sum(r.votes for r in results)
-        for i, r in enumerate(results):
+        c.setFont("Helvetica", 12)
+        c.drawString(50, y, f"Fecha: {election.date.isoformat()}")
+        y -= 30
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, "Resumen")
+        y -= 20
+        c.setFont("Helvetica", 12)
+        total_acc = summary["capital_presente_directo"] + summary["capital_presente_representado"]
+        c.drawString(60, y, f"Acciones presentes: {total_acc} ({summary['porcentaje_quorum']*100:.2f}%)")
+        y -= 20
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, "Asistentes")
+        y -= 20
+        c.setFont("Helvetica", 12)
+        for _, sh in attendees:
             if y < 80:
                 c.showPage()
                 y = height - 50
-                c.setFont("Helvetica", 10)
-            pct = (r.votes / total_votes * 100) if total_votes else 0
-            c.drawString(60, y, r.text)
-            c.drawRightString(300, y, f"{r.votes}")
-            c.drawRightString(360, y, f"{pct:.2f}%")
+                c.setFont("Helvetica", 12)
+            c.drawString(60, y, sh.name)
             y -= 15
-        # Pie chart
-        if Pie and Drawing and renderPDF and results:
-            data = [r.votes for r in results]
-            labels = [r.text for r in results]
-            pie = Pie()
-            pie.data = data
-            pie.labels = labels
-            for idx, color in enumerate(ETEC_COLORS):
-                if idx < len(pie.slices):
-                    pie.slices[idx].fillColor = color
-            pie.width = 150
-            pie.height = 150
-            drawing = Drawing(200, 150)
-            drawing.add(pie)
-            renderPDF.draw(drawing, c, 380, y - 150)
-        y -= 40
-    c.save()
-    pdf = buffer.getvalue()
-    buffer.close()
-    return pdf
+        y -= 10
+        for ballot in ballots:
+            if y < 200:
+                c.showPage()
+                y = height - 50
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(50, y, ballot.title)
+            y -= 20
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(60, y, "Opción")
+            c.drawString(260, y, "Votos")
+            c.drawString(320, y, "%")
+            y -= 15
+            c.setFont("Helvetica", 10)
+            results = _ballot_results(db, ballot.id)
+            total_votes = sum(r.votes for r in results)
+            for i, r in enumerate(results):
+                if y < 80:
+                    c.showPage()
+                    y = height - 50
+                    c.setFont("Helvetica", 10)
+                pct = (r.votes / total_votes * 100) if total_votes else 0
+                c.drawString(60, y, r.text)
+                c.drawRightString(300, y, f"{r.votes}")
+                c.drawRightString(360, y, f"{pct:.2f}%")
+                y -= 15
+            if Pie and Drawing and renderPDF and results:
+                data = [r.votes for r in results]
+                labels = [r.text for r in results]
+                pie = Pie()
+                pie.data = data
+                pie.labels = labels
+                for idx, color in enumerate(ETEC_COLORS):
+                    if idx < len(pie.slices):
+                        pie.slices[idx].fillColor = color
+                pie.width = 150
+                pie.height = 150
+                drawing = Drawing(200, 150)
+                drawing.add(pie)
+                renderPDF.draw(drawing, c, 380, y - 150)
+            y -= 40
+        c.save()
+        pdf = buffer.getvalue()
+        buffer.close()
+        return pdf
+
+    ballots_data = []
+    for ballot in ballots:
+        results = _ballot_results(db, ballot.id)
+        total_votes = sum(r.votes for r in results)
+        res = []
+        for r in results:
+            pct = (r.votes / total_votes * 100) if total_votes else 0
+            res.append({"text": r.text, "votes": r.votes, "pct": pct})
+        ballots_data.append({"title": ballot.title, "results": res})
+
+    env = Environment(
+        loader=FileSystemLoader(Path(__file__).resolve().parent.parent / "templates"),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+    html_str = env.get_template("vote_report.html").render(
+        election=election,
+        attendees=[sh.name for _, sh in attendees],
+        summary=summary,
+        ballots=ballots_data,
+    )
+    return HTML(string=html_str).write_pdf()
 
 
 def _send_vote_report(db: Session, election_id: int, recipients: List[str]):

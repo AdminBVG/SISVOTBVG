@@ -67,6 +67,8 @@ def test_send_vote_report_smtp_error(monkeypatch):
 
 
 def test_build_vote_report_pdf_percentages():
+    pytest.importorskip("weasyprint")
+    pytest.importorskip("jinja2")
     db, election_id = setup_db()
     sh = models.Shareholder(code="S1", name="SH1", document="D1", actions=100)
     db.add(sh)
@@ -104,5 +106,7 @@ def test_build_vote_report_pdf_percentages():
     assert total == 100
     assert [r.votes / total for r in results] == [0.5, 0.5]
     pdf = _build_vote_report_pdf(db, election_id)
-    assert isinstance(pdf, bytes) and len(pdf) > 0
+    assert pdf.startswith(b"%PDF")
+    assert b"Informe de votaci" in pdf
+    assert b"005DAA" in pdf
     db.close()
