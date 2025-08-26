@@ -650,7 +650,24 @@ def vote_all(
         raise HTTPException(status_code=400, detail="Invalid option for ballot")
     attendees = (
         db.query(models.Attendee)
-        .filter_by(election_id=ballot.election_id)
+        .join(
+            models.Shareholder,
+            models.Attendee.identifier == models.Shareholder.code,
+        )
+        .join(
+            models.Attendance,
+            (
+                models.Attendance.shareholder_id == models.Shareholder.id
+            )
+            & (
+                models.Attendance.election_id == models.Attendee.election_id
+            ),
+        )
+        .filter(
+            models.Attendance.present.is_(True),
+            models.Attendee.acciones > 0,
+            models.Attendee.election_id == ballot.election_id,
+        )
         .all()
     )
     count = 0
