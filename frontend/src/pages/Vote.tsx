@@ -20,6 +20,7 @@ import { useToast } from '../components/ui/toast';
 import Alert from '../components/ui/alert';
 import { useVoteReport } from '../hooks/useVoteReport';
 import { useSendVoteReport } from '../hooks/useSendVoteReport';
+import QuestionWizard from '../components/QuestionWizard';
 
 const Vote: React.FC = () => {
   const { id } = useParams();
@@ -39,37 +40,28 @@ const Vote: React.FC = () => {
       )
       .map((s) => ({ id: s.attendee_id!, accionista: s.name })) || [];
   const { data: stats } = useDashboardStats(electionId);
-  const [index, setIndex] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
   const currentIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    currentIdRef.current = ballots[index]?.id ?? null;
-  }, [ballots, index]);
+    currentIdRef.current = ballots[currentStep]?.id ?? null;
+  }, [ballots, currentStep]);
 
   useEffect(() => {
-    if (!allBallots) return;
+    if (!allBallots || ballots.length) return;
     setBallots(allBallots);
-    if (allBallots.length === 0) {
-      advance(0, allBallots);
-    } else if (currentIdRef.current) {
-      const idx = allBallots.findIndex((b) => b.id === currentIdRef.current);
-      if (idx !== -1) {
-        advance(idx, allBallots);
-      }
-    } else {
-      advance(0, allBallots);
-    }
-  }, [allBallots]);
+    advance(0, allBallots);
+  }, [allBallots, ballots.length]);
 
   const advance = (i: number, list: Ballot[] = ballots) => {
     let next = i;
     while (next < list.length && list[next].status !== 'OPEN') {
       next++;
     }
-    setIndex(next);
+    setCurrentStep(next);
   };
 
-  const current = ballots[index];
+  const current = ballots[currentStep];
   const {
     data: options,
     isLoading: loadingOptions,
@@ -93,26 +85,19 @@ const Vote: React.FC = () => {
     () => toast('Votos registrados'),
     (err) => toast(err.message),
   );
-  const closeBallot = useCloseBallot(current?.id || 0, electionId, () => {
-    if (current) {
-      setBallots((prev) => {
-        const updated = prev.map((b) =>
-          b.id === current.id ? { ...b, status: 'CLOSED' } : b,
-        );
-        advance(index + 1, updated);
-        return updated;
-      });
-    } else {
-      advance(index + 1);
-    }
-  });
+  const closeBallot = useCloseBallot(current?.id || 0, electionId);
 
   useEffect(() => {
     if (current && options && options.length === 0) {
       toast('Esta pregunta no tiene respuestas configuradas, se omitirá');
+      const updated = ballots.map((b) =>
+        b.id === current.id ? { ...b, status: 'CLOSED' } : b,
+      );
+      setBallots(updated);
+      advance(currentStep + 1, updated);
       closeBallot.mutate();
     }
-  }, [current, options, closeBallot, toast]);
+  }, [current, options, closeBallot, toast, ballots, currentStep]);
   const closeElection = useCloseElection(electionId, () => toast('Votación cerrada'));
   const startVoting = useStartVoting(
     electionId,
@@ -147,13 +132,28 @@ const Vote: React.FC = () => {
       return;
     }
     setAlertMsg('');
+    if (current) {
+      const updated = ballots.map((b) =>
+        b.id === current.id ? { ...b, status: 'CLOSED' } : b,
+      );
+      setBallots(updated);
+      advance(currentStep + 1, updated);
+    } else {
+      advance(currentStep + 1);
+    }
     closeBallot.mutate();
   };
 
-  const answered = ballots.filter((b) => b.status === 'CLOSED').length;
+  const prevQuestion = () => {
+    let prev = currentStep - 1;
+    while (prev >= 0 && ballots[prev].status !== 'OPEN') {
+      prev--;
+    }
+    if (prev >= 0) setCurrentStep(prev);
+  };
+
   const total = ballots.length;
-  const progress = Math.min(answered + (current ? 1 : 0), total);
-  const done = index >= total;
+  const done = currentStep >= total;
   const closed = election?.status === 'CLOSED';
   const quorum = stats?.porcentaje_quorum || 0;
   const min = election?.min_quorum || 0;
@@ -194,36 +194,12 @@ const Vote: React.FC = () => {
         loadingOptions || fetchingOptions ? (
           <p>Cargando opciones...</p>
         ) : options && options.length > 0 ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                disabled={index === 0}
-                onClick={() => {
-                  let prev = index - 1;
-                  while (prev >= 0 && ballots[prev].status !== 'OPEN') {
-                    prev--;
-                  }
-                  if (prev >= 0) setIndex(prev);
-                }}
-              >
-                Anterior
-              </Button>
-              <div className="flex-1">
-                <div>
-                  Pregunta {progress} de {total}
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full"
-                    style={{ width: `${(total ? (progress / total) * 100 : 0)}%` }}
-                  ></div>
-                </div>
-              </div>
-              <Button variant="outline" disabled={total === 0} onClick={nextQuestion}>
-                Siguiente pregunta
-              </Button>
-            </div>
+          <QuestionWizard
+            ballots={ballots}
+            currentStep={currentStep}
+            onNext={nextQuestion}
+            onPrev={prevQuestion}
+          >
             {alertMsg && <Alert message={alertMsg} />}
             <h2 className="text-lg font-medium">{current.title}</h2>
             <div className="flex gap-2">
@@ -265,7 +241,7 @@ const Vote: React.FC = () => {
                 </TableBody>
               </Table>
             )}
-          </div>
+          </QuestionWizard>
         ) : (
           <div className="space-y-4">
             <h2 className="text-lg font-medium">{current.title}</h2>
