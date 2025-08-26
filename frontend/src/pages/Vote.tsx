@@ -36,7 +36,11 @@ const Vote: React.FC = () => {
   const assistants =
     shareholders
       ?.filter(
-        (s) => s.attendee_id && s.attendance_mode && s.attendance_mode !== 'AUSENTE',
+        (s) =>
+          s.attendee_id &&
+          s.attendance_mode &&
+          s.attendance_mode !== 'AUSENTE' &&
+          s.actions > 0,
       )
       .map((s) => ({ id: s.attendee_id!, accionista: s.name })) || [];
   const { data: stats } = useDashboardStats(electionId);
@@ -195,6 +199,7 @@ const Vote: React.FC = () => {
           <p>Cargando opciones...</p>
         ) : options && options.length > 0 ? (
           <QuestionWizard
+            key={current.id}
             ballots={ballots}
             currentStep={currentStep}
             onNext={nextQuestion}
