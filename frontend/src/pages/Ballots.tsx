@@ -30,7 +30,11 @@ const Ballots: React.FC = () => {
   const attendeeId = attendee?.id;
   const toast = useToast();
   const castVote = useCastVote(selected || 0, () => toast('Voto registrado'));
-  const reopenBallot = useReopenBallot(selected || 0, () => toast('Boleta reabierta'));
+  const reopenBallot = useReopenBallot(
+    selected || 0,
+    electionId,
+    () => toast('Boleta reabierta'),
+  );
 
   return (
     <div className="space-y-4">

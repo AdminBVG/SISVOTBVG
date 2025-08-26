@@ -82,27 +82,35 @@ export const useVoteAll = (
   });
 };
 
-export const useCloseBallot = (ballotId: number, onSuccess?: () => void) => {
+export const useCloseBallot = (
+  ballotId: number,
+  electionId: number,
+  onSuccess?: () => void,
+) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
       apiFetch(`/ballots/${ballotId}/close`, { method: 'POST' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['ballots'] });
-      qc.invalidateQueries({ queryKey: ['pending-ballots'] });
+      qc.invalidateQueries({ queryKey: ['ballots', electionId] });
+      qc.invalidateQueries({ queryKey: ['pending-ballots', electionId] });
       onSuccess?.();
     },
   });
 };
 
-export const useReopenBallot = (ballotId: number, onSuccess?: () => void) => {
+export const useReopenBallot = (
+  ballotId: number,
+  electionId: number,
+  onSuccess?: () => void,
+) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
       apiFetch(`/ballots/${ballotId}/reopen`, { method: 'POST' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['ballots'] });
-      qc.invalidateQueries({ queryKey: ['pending-ballots'] });
+      qc.invalidateQueries({ queryKey: ['ballots', electionId] });
+      qc.invalidateQueries({ queryKey: ['pending-ballots', electionId] });
       onSuccess?.();
     },
   });
