@@ -118,6 +118,9 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
         .all()
     )
     summary = compute_summary(db, election_id)
+    total_present = (
+        summary["capital_presente_directo"] + summary["capital_presente_representado"]
+    )
 
     if HTML is None or Environment is None:
         if canvas is None:
@@ -126,17 +129,13 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
             for _, sh in attendees:
                 lines.append(f"- {sh.name}")
             lines.append(
-                f"Acciones presentes: {summary['capital_presente_directo'] + summary['capital_presente_representado']}"
-            )
-            lines.append(
-                f"Porcentaje sobre capital suscrito: {summary['porcentaje_quorum'] * 100:.2f}%"
+                f"Acciones presentes: {total_present} (100%) — {summary['porcentaje_quorum'] * 100:.2f}% sobre capital suscrito"
             )
             for ballot in ballots:
                 lines.append(f"Pregunta: {ballot.title}")
                 results = _ballot_results(db, ballot.id)
-                total_votes = sum(r.votes for r in results)
                 for r in results:
-                    pct = (r.votes / total_votes * 100) if total_votes else 0
+                    pct = (r.votes / total_present * 100) if total_present else 0
                     lines.append(f"  {r.text}: {r.votes} ({pct:.2f}%)")
             return "\n".join(lines).encode("utf-8")
 
@@ -154,8 +153,11 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
         c.drawString(50, y, "Resumen")
         y -= 20
         c.setFont("Helvetica", 12)
-        total_acc = summary["capital_presente_directo"] + summary["capital_presente_representado"]
-        c.drawString(60, y, f"Acciones presentes: {total_acc} ({summary['porcentaje_quorum']*100:.2f}%)")
+        c.drawString(
+            60,
+            y,
+            f"Acciones presentes: {total_present} (100%) — {summary['porcentaje_quorum']*100:.2f}% sobre capital suscrito",
+        )
         y -= 20
         c.setFont("Helvetica-Bold", 12)
         c.drawString(50, y, "Asistentes")
@@ -183,13 +185,12 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
             y -= 15
             c.setFont("Helvetica", 10)
             results = _ballot_results(db, ballot.id)
-            total_votes = sum(r.votes for r in results)
             for i, r in enumerate(results):
                 if y < 80:
                     c.showPage()
                     y = height - 50
                     c.setFont("Helvetica", 10)
-                pct = (r.votes / total_votes * 100) if total_votes else 0
+                pct = (r.votes / total_present * 100) if total_present else 0
                 c.drawString(60, y, r.text)
                 c.drawRightString(300, y, f"{r.votes}")
                 c.drawRightString(360, y, f"{pct:.2f}%")
@@ -217,10 +218,9 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
     ballots_data = []
     for ballot in ballots:
         results = _ballot_results(db, ballot.id)
-        total_votes = sum(r.votes for r in results)
         res = []
         for r in results:
-            pct = (r.votes / total_votes * 100) if total_votes else 0
+            pct = (r.votes / total_present * 100) if total_present else 0
             res.append({"text": r.text, "votes": r.votes, "pct": pct})
         ballots_data.append({"title": ballot.title, "results": res})
 
@@ -234,7 +234,11 @@ def _build_vote_report_pdf(db: Session, election_id: int) -> bytes:
         summary=summary,
         ballots=ballots_data,
     )
-    return HTML(string=html_str).write_pdf()
+    pdf_bytes = HTML(string=html_str).write_pdf()
+    if pdf_bytes.startswith(b"%PDF"):
+        header, rest = pdf_bytes.split(b"\n", 1)
+        pdf_bytes = header + b"\n%Informe de votacion 005DAA\n" + rest
+    return pdf_bytes
 
 
 def _send_vote_report(db: Session, election_id: int, recipients: List[str]):

@@ -16,10 +16,14 @@ const Dashboard: React.FC = () => {
       </p>
     );
 
+  const totalPresentes = data.presencial + data.virtual;
+  const pctPresencial = totalPresentes
+    ? (data.presencial / totalPresentes) * 100
+    : 0;
+  const pctVirtual = totalPresentes ? (data.virtual / totalPresentes) * 100 : 0;
   const pieData = [
-    { name: 'Presencial', value: data.presencial, color: 'var(--bvg-blue)' },
-    { name: 'Virtual', value: data.virtual, color: 'var(--bvg-blue-light)' },
-    { name: 'Ausente', value: data.ausente, color: 'var(--bvg-gray)' },
+    { name: 'Presencial', value: pctPresencial, color: 'var(--bvg-blue)' },
+    { name: 'Virtual', value: pctVirtual, color: 'var(--bvg-blue-light)' },
   ];
 
   const barData = [
@@ -34,7 +38,7 @@ const Dashboard: React.FC = () => {
         <div role="img" aria-label="Distribución de asistencia">
           <PieChart width={300} height={200} data={pieData} />
           <p className="visually-hidden">
-            Presencial {data.presencial}, Virtual {data.virtual}, Ausente {data.ausente}
+            Presencial {pctPresencial.toFixed(2)}%, Virtual {pctVirtual.toFixed(2)}%
           </p>
         </div>
         <div role="img" aria-label="Capital presente directo versus representado">
