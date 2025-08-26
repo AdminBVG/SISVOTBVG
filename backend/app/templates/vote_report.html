@@ -18,9 +18,10 @@
   <h1>Informe de votación - {{ election.name }}</h1>
   <section class="summary">
     <h2>Resumen</h2>
-    <p>Acciones presentes:
+    <p>
+      Acciones presentes:
       {{ summary.capital_presente_directo + summary.capital_presente_representado }}
-      ({{ (summary.porcentaje_quorum*100)|round(2) }}%)
+      (100%) — {{ (summary.porcentaje_quorum*100)|round(2) }}% sobre capital suscrito
     </p>
   </section>
   <section class="attendees">

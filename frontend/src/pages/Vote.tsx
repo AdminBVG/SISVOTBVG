@@ -74,6 +74,7 @@ const Vote: React.FC = () => {
   const [votes, setVotes] = useState<Record<number, number>>({});
   const [alertMsg, setAlertMsg] = useState('');
   const toast = useToast();
+  const allVoted = assistants.every((a) => votes[a.id]);
 
   useEffect(() => {
     setVotes({});
@@ -204,6 +205,7 @@ const Vote: React.FC = () => {
             currentStep={currentStep}
             onNext={nextQuestion}
             onPrev={prevQuestion}
+            nextDisabled={!allVoted}
           >
             {alertMsg && <Alert message={alertMsg} />}
             <h2 className="text-lg font-medium">{current.title}</h2>

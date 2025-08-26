@@ -8,6 +8,7 @@ interface QuestionWizardProps {
   onNext: () => void;
   onPrev: () => void;
   children: React.ReactNode;
+  nextDisabled?: boolean;
 }
 
 const QuestionWizard: React.FC<QuestionWizardProps> = ({
@@ -16,6 +17,7 @@ const QuestionWizard: React.FC<QuestionWizardProps> = ({
   onNext,
   onPrev,
   children,
+  nextDisabled,
 }) => {
   const total = ballots.length;
   const progress = Math.min(currentStep + 1, total);
@@ -39,7 +41,7 @@ const QuestionWizard: React.FC<QuestionWizardProps> = ({
         <Button variant="outline" disabled={currentStep === 0} onClick={onPrev}>
           Anterior
         </Button>
-        <Button disabled={total === 0} onClick={onNext}>
+        <Button disabled={total === 0 || nextDisabled} onClick={onNext}>
           Siguiente
         </Button>
       </div>
