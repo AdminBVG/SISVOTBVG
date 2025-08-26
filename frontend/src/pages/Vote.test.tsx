@@ -57,7 +57,14 @@ vi.mock('../hooks/useBallots', () => ({
 }));
 vi.mock('../hooks/useShareholders', () => ({
   useShareholders: () => ({
-    data: [{ attendee_id: 5, name: 'Alice', attendance_mode: 'PRESENCIAL' }],
+    data: [
+      {
+        attendee_id: 5,
+        name: 'Alice',
+        attendance_mode: 'PRESENCIAL',
+        actions: 1,
+      },
+    ],
   }),
 }));
 
