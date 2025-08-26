@@ -140,6 +140,18 @@ def test_observer_table_shows_represented_actions():
 def test_observer_receives_ballot_progress():
     election_id, admin_headers, reg_headers, obs_headers, obs_token, _, _ = setup_env()
     db = SessionLocal()
+    sh = models.Shareholder(code="1", name="A1", document="D1", actions=10)
+    db.add(sh)
+    db.commit()
+    db.refresh(sh)
+    db.add(
+        models.Attendance(
+            election_id=election_id,
+            shareholder_id=sh.id,
+            mode=models.AttendanceMode.PRESENCIAL,
+            present=True,
+        )
+    )
     db.add(
         models.Attendee(
             election_id=election_id, identifier="1", accionista="A1", acciones=10

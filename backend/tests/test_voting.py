@@ -43,17 +43,41 @@ def test_voting_flow():
         headers=headers,
     )
 
-    # create attendees directly in db
+    # create shareholders, attendance, and attendees directly in db
     db = SessionLocal()
-    db.add(
-        models.Attendee(
-            election_id=election_id, identifier="1", accionista="A1", acciones=10
-        )
-    )
-    db.add(
-        models.Attendee(
-            election_id=election_id, identifier="2", accionista="A2", acciones=20
-        )
+    sh1 = models.Shareholder(code="1", name="A1", document="D1", actions=10)
+    sh2 = models.Shareholder(code="2", name="A2", document="D2", actions=20)
+    db.add_all([sh1, sh2])
+    db.commit()
+    db.refresh(sh1)
+    db.refresh(sh2)
+    db.add_all(
+        [
+            models.Attendance(
+                election_id=election_id,
+                shareholder_id=sh1.id,
+                mode=models.AttendanceMode.PRESENCIAL,
+                present=True,
+            ),
+            models.Attendance(
+                election_id=election_id,
+                shareholder_id=sh2.id,
+                mode=models.AttendanceMode.PRESENCIAL,
+                present=True,
+            ),
+            models.Attendee(
+                election_id=election_id,
+                identifier="1",
+                accionista="A1",
+                acciones=10,
+            ),
+            models.Attendee(
+                election_id=election_id,
+                identifier="2",
+                accionista="A2",
+                acciones=20,
+            ),
+        ]
     )
     db.commit()
     db.close()
@@ -124,6 +148,96 @@ def test_voting_flow():
     ]
     db.close()
     assert actions == ["VOTING_OPEN", "BALLOT_CLOSE", "BALLOT_REOPEN", "ELECTION_CLOSE"]
+
+
+def test_vote_all_skips_absent_attendees():
+    headers = auth_headers()
+    resp = client.post(
+        "/elections",
+        json={"name": "VA", "date": "2024-01-01"},
+        headers=headers,
+    )
+    election_id = resp.json()["id"]
+    client.patch(
+        f"/elections/{election_id}/status",
+        json={"status": "OPEN"},
+        headers=headers,
+    )
+    client.post(
+        f"/elections/{election_id}/start-voting",
+        headers=headers,
+    )
+
+    db = SessionLocal()
+    sh1 = models.Shareholder(code="S1", name="SH1", document="D1", actions=10)
+    sh2 = models.Shareholder(code="S2", name="SH2", document="D2", actions=20)
+    db.add_all([sh1, sh2])
+    db.commit()
+    db.refresh(sh1)
+    db.refresh(sh2)
+
+    att1 = models.Attendance(
+        election_id=election_id,
+        shareholder_id=sh1.id,
+        mode=models.AttendanceMode.PRESENCIAL,
+        present=True,
+    )
+    att2 = models.Attendance(
+        election_id=election_id,
+        shareholder_id=sh2.id,
+        mode=models.AttendanceMode.AUSENTE,
+        present=False,
+    )
+    a1 = models.Attendee(
+        election_id=election_id,
+        identifier=sh1.code,
+        accionista="SH1",
+        acciones=sh1.actions,
+    )
+    a2 = models.Attendee(
+        election_id=election_id,
+        identifier=sh2.code,
+        accionista="SH2",
+        acciones=sh2.actions,
+    )
+    db.add_all([att1, att2, a1, a2])
+    db.commit()
+    db.refresh(a1)
+    db.refresh(a2)
+    absent_attendee_id = a2.id
+    db.close()
+
+    ballot = client.post(
+        f"/elections/{election_id}/ballots",
+        json={"title": "B", "order": 1},
+        headers=headers,
+    ).json()
+    option = client.post(
+        f"/ballots/{ballot['id']}/options",
+        json={"text": "Yes"},
+        headers=headers,
+    ).json()
+
+    vote_all_resp = client.post(
+        f"/ballots/{ballot['id']}/vote-all",
+        json={"option_id": option["id"]},
+        headers=headers,
+    )
+    assert vote_all_resp.status_code == 200
+    assert vote_all_resp.json()["count"] == 1
+
+    res = client.get(f"/ballots/{ballot['id']}/results", headers=headers)
+    votes = {r["text"]: r["votes"] for r in res.json()}
+    assert votes["Yes"] == 10
+
+    db = SessionLocal()
+    absent_vote = (
+        db.query(models.Vote)
+        .filter_by(ballot_id=ballot["id"], attendee_id=absent_attendee_id)
+        .first()
+    )
+    db.close()
+    assert absent_vote is None
 
 
 def test_election_status_and_quorum():
