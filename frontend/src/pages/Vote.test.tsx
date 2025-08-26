@@ -43,7 +43,7 @@ vi.mock('../hooks/useBallots', () => ({
       mockSuccess ? onSuccess?.() : onError?.(new Error('fail'));
     },
   }),
-  useCloseBallot: (_id: number, onSuccess?: () => void) => ({
+  useCloseBallot: (_id: number, _eId: number, onSuccess?: () => void) => ({
     mutate: () => onSuccess?.(),
   }),
   useCloseElection: () => ({ mutate: vi.fn() }),

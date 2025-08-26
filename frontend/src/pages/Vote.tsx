@@ -89,7 +89,7 @@ const Vote: React.FC = () => {
     () => toast('Votos registrados'),
     (err) => toast(err.message),
   );
-  const closeBallot = useCloseBallot(current?.id || 0, () => {
+  const closeBallot = useCloseBallot(current?.id || 0, electionId, () => {
     if (current) {
       setBallots((prev) => {
         const updated = prev.map((b) =>
