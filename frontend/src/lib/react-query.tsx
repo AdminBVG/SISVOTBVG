@@ -99,9 +99,16 @@ interface QueryConfig<TData> {
   queryFn: () => Promise<TData>;
   enabled?: boolean;
   onError?: (err: any) => void;
+  refetchOnMount?: boolean;
 }
 
-export const useQuery = <TData = any>({ queryKey, queryFn, enabled = true, onError }: QueryConfig<TData>) => {
+export const useQuery = <TData = any>({
+  queryKey,
+  queryFn,
+  enabled = true,
+  onError,
+  refetchOnMount = false,
+}: QueryConfig<TData>) => {
   const queryClient = useQueryClient();
   const [data, setData] = useState<TData | undefined>(() =>
     queryClient.getQueryData<TData>(queryKey),
@@ -126,7 +133,7 @@ export const useQuery = <TData = any>({ queryKey, queryFn, enabled = true, onErr
   };
 
   useEffect(() => {
-    if (enabled && data === undefined) {
+    if (enabled && (refetchOnMount || data === undefined)) {
       fetchData();
     }
     const unsubscribe = queryClient.subscribe(queryKey, {
@@ -135,7 +142,7 @@ export const useQuery = <TData = any>({ queryKey, queryFn, enabled = true, onErr
     });
     return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...queryKey, enabled]);
+  }, [...queryKey, enabled, refetchOnMount]);
 
   return { data, error, isLoading, refetch: fetchData };
 };
