@@ -48,4 +48,3 @@ const QuestionWizard: React.FC<QuestionWizardProps> = ({
 };
 
 export default QuestionWizard;
-
