@@ -20,5 +20,6 @@ export const useElections = () => {
   return useQuery<Election[]>({
     queryKey: ['elections'],
     queryFn: () => apiFetch<Election[]>('/elections'),
+    refetchOnMount: true,
   });
 };

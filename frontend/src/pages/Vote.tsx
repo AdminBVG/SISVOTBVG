@@ -52,10 +52,10 @@ const Vote: React.FC = () => {
   }, [ballots, currentStep]);
 
   useEffect(() => {
-    if (!allBallots || ballots.length) return;
+    if (!allBallots) return;
     setBallots(allBallots);
     advance(0, allBallots);
-  }, [allBallots, ballots.length]);
+  }, [allBallots]);
 
   const advance = (i: number, list: Ballot[] = ballots) => {
     let next = i;

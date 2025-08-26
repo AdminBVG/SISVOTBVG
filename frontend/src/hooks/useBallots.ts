@@ -20,7 +20,7 @@ export const useBallots = (electionId: number) => {
   return useQuery<Ballot[]>({
     queryKey: ['ballots', electionId],
     queryFn: () => apiFetch<Ballot[]>(`/elections/${electionId}/ballots`),
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 };
 

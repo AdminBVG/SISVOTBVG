@@ -1,4 +1,4 @@
-import { useMutation } from '../lib/react-query';
+import { useMutation, useQueryClient } from '../lib/react-query';
 import { apiFetch } from '../lib/api';
 import { Election } from './useElections';
 
@@ -25,6 +25,7 @@ export const useCreateElection = (
   onSuccess?: () => void,
   onError?: (err: any) => void
 ) => {
+  const qc = useQueryClient();
   return useMutation<Election, Payload>({
     mutationFn: (payload) =>
       apiFetch('/elections', {
@@ -32,6 +33,7 @@ export const useCreateElection = (
         body: payload,
       }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['elections'] });
       onSuccess?.();
     },
     onError,
