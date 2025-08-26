@@ -23,29 +23,28 @@ const QuestionWizard: React.FC<QuestionWizardProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div>
+        <p className="text-sm text-gray-600">
+          Pregunta {progress} de {total}
+        </p>
+        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+          <div
+            className="bg-blue-500 h-2 rounded-full"
+            style={{ width: `${percentage}%` }}
+          ></div>
+        </div>
+      </div>
+      {children}
+      <div className="flex justify-between">
         <Button variant="outline" disabled={currentStep === 0} onClick={onPrev}>
           Anterior
         </Button>
-        <div className="flex-1">
-          <div>
-            Pregunta {progress} de {total}
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-            <div
-              className="bg-blue-500 h-2 rounded-full"
-              style={{ width: `${percentage}%` }}
-            ></div>
-          </div>
-        </div>
-        <Button variant="outline" disabled={total === 0} onClick={onNext}>
-          Siguiente pregunta
+        <Button disabled={total === 0} onClick={onNext}>
+          Siguiente
         </Button>
       </div>
-      {children}
     </div>
   );
 };
 
 export default QuestionWizard;
-

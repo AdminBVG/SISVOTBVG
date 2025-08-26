@@ -144,7 +144,7 @@ describe('Vote page', () => {
     renderPage();
     const radio = await screen.findByRole('radio');
     fireEvent.click(radio);
-    const btn = screen.getByRole('button', { name: 'Siguiente pregunta' });
+    const btn = screen.getByRole('button', { name: 'Siguiente' });
     fireEvent.click(btn);
     await screen.findByText('Q2');
   });
@@ -175,7 +175,7 @@ describe('Vote page', () => {
       seen.push(title);
       const radio = screen.getByRole('radio');
       fireEvent.click(radio);
-      const btn = screen.getByRole('button', { name: 'Siguiente pregunta' });
+      const btn = screen.getByRole('button', { name: 'Siguiente' });
       fireEvent.click(btn);
     }
     expect(new Set(seen).size).toBe(seen.length);
