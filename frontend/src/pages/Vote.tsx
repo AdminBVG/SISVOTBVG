@@ -70,7 +70,11 @@ const Vote: React.FC = () => {
   };
 
   const current = ballots[index];
-  const { data: options } = useBallotResults(current?.id || 0, !!current);
+  const {
+    data: options,
+    isLoading: loadingOptions,
+    isFetching: fetchingOptions,
+  } = useBallotResults(current?.id || 0, !!current);
   const [votes, setVotes] = useState<Record<number, number>>({});
   const [alertMsg, setAlertMsg] = useState('');
   const toast = useToast();
@@ -102,6 +106,13 @@ const Vote: React.FC = () => {
       advance(index + 1);
     }
   });
+
+  useEffect(() => {
+    if (current && options && options.length === 0) {
+      toast('Esta pregunta no tiene respuestas configuradas, se omitirá');
+      closeBallot.mutate();
+    }
+  }, [current, options, closeBallot, toast]);
   const closeElection = useCloseElection(electionId, () => toast('Votación cerrada'));
   const startVoting = useStartVoting(
     electionId,
@@ -179,16 +190,10 @@ const Vote: React.FC = () => {
           </Button>
         </div>
       )}
-      {election?.voting_open && current && options && (
-        options.length === 0 ? (
-          <div className="space-y-4">
-            <h2 className="text-lg font-medium">{current.title}</h2>
-            <p>Esta pregunta no tiene respuestas configuradas</p>
-            <Button variant="outline" onClick={nextQuestion}>
-              Siguiente pregunta
-            </Button>
-          </div>
-        ) : (
+      {election?.voting_open && current && (
+        loadingOptions || fetchingOptions ? (
+          <p>Cargando opciones...</p>
+        ) : options && options.length > 0 ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Button
@@ -260,6 +265,11 @@ const Vote: React.FC = () => {
                 </TableBody>
               </Table>
             )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <h2 className="text-lg font-medium">{current.title}</h2>
+            <p>Esta pregunta no tiene respuestas configuradas</p>
           </div>
         )
       )}

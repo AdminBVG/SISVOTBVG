@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 
 interface Toast {
-  id: number;
+  id: string;
   message: string;
 }
 
@@ -16,7 +16,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const add = (message: string) => {
-    const id = Date.now();
+    const id = crypto.randomUUID();
     setToasts((t) => [...t, { id, message }]);
     setTimeout(() => {
       setToasts((t) => t.filter((toast) => toast.id !== id));

@@ -16,6 +16,7 @@ let mockSuccess = true;
 let mockElection: any;
 let mockQuorum = 100;
 let mockBallots: any[];
+let mockOptionsByBallot: Record<number, any[]>;
 vi.mock('../hooks/useElection', () => ({
   useElection: () => ({ data: mockElection }),
 }));
@@ -24,7 +25,11 @@ vi.mock('../hooks/useDashboardStats', () => ({
 }));
 vi.mock('../hooks/useBallots', () => ({
   useBallots: () => ({ data: mockBallots }),
-  useBallotResults: () => ({ data: [{ id: 10, text: 'Sí' }] }),
+  useBallotResults: (id: number) => ({
+    data: mockOptionsByBallot[id] ?? [{ id: 10, text: 'Sí' }],
+    isLoading: false,
+    isFetching: false,
+  }),
   useCastVote: (
     _id: number,
     onSuccess?: () => void,
@@ -78,6 +83,7 @@ describe('Vote page', () => {
     mockElection = { status: 'OPEN', min_quorum: 0, voting_open: true };
     mockQuorum = 100;
     mockBallots = [{ id: 1, title: 'Q1', status: 'OPEN' }];
+    mockOptionsByBallot = {};
   });
 
   it('muestra error cuando el voto individual falla', async () => {
@@ -140,6 +146,19 @@ describe('Vote page', () => {
     fireEvent.click(radio);
     const btn = screen.getByRole('button', { name: 'Siguiente pregunta' });
     fireEvent.click(btn);
+    await screen.findByText('Q2');
+  });
+
+  it('omite boletas sin opciones', async () => {
+    mockBallots = [
+      { id: 1, title: 'Q1', status: 'OPEN' },
+      { id: 2, title: 'Q2', status: 'OPEN' },
+    ];
+    mockOptionsByBallot = {
+      1: [],
+      2: [{ id: 20, text: 'Sí' }],
+    };
+    renderPage();
     await screen.findByText('Q2');
   });
 
