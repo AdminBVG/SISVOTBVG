@@ -20,7 +20,7 @@ import { useToast } from '../components/ui/toast';
 import Alert from '../components/ui/alert';
 import { useVoteReport } from '../hooks/useVoteReport';
 import { useSendVoteReport } from '../hooks/useSendVoteReport';
-import QuestionWizard from '../components/QuestionWizard';
+import BallotStepper from '../components/BallotStepper';
 
 const Vote: React.FC = () => {
   const { id } = useParams();
@@ -28,6 +28,7 @@ const Vote: React.FC = () => {
   const { data: election } = useElection(electionId);
   const { data: allBallots } = useBallots(electionId);
   const [ballots, setBallots] = useState<Ballot[]>([]);
+  const [syncing, setSyncing] = useState(false);
   const { data: shareholders } = useShareholders(
     electionId,
     '',
@@ -49,7 +50,20 @@ const Vote: React.FC = () => {
 
   useEffect(() => {
     if (!allBallots) return;
-    setBallots(allBallots);
+    setBallots((prev) => {
+      if (prev.length === 0) return allBallots;
+      let mismatch = false;
+      const merged = allBallots.map((b) => {
+        const local = prev.find((p) => p.id === b.id);
+        if (local && local.status === 'CLOSED' && b.status !== 'CLOSED') {
+          mismatch = true;
+          return { ...b, status: 'CLOSED' };
+        }
+        return b;
+      });
+      setSyncing(mismatch);
+      return merged;
+    });
     const currentId = currentIdRef.current;
     if (currentId != null) {
       const index = allBallots.findIndex((b) => b.id === currentId);
@@ -207,14 +221,15 @@ const Vote: React.FC = () => {
           </Button>
         </div>
       )}
+      {syncing && <Alert message="Sincronizando..." />}
       {election?.voting_open && current && (
         loadingOptions || fetchingOptions ? (
           <p>Cargando opciones...</p>
         ) : options && options.length > 0 ? (
-          <QuestionWizard
+          <BallotStepper
             key={current.id}
             ballots={ballots}
-            currentStep={currentStep}
+            currentBallotId={current.id}
             onNext={nextQuestion}
             onPrev={prevQuestion}
             nextDisabled={!allVoted}
@@ -260,7 +275,7 @@ const Vote: React.FC = () => {
                 </TableBody>
               </Table>
             )}
-          </QuestionWizard>
+          </BallotStepper>
         ) : (
           <div className="space-y-4">
             <h2 className="text-lg font-medium">{current.title}</h2>
