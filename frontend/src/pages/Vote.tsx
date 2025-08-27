@@ -48,10 +48,6 @@ const Vote: React.FC = () => {
   const currentIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    currentIdRef.current = ballots[currentStep]?.id ?? null;
-  }, [ballots, currentStep]);
-
-  useEffect(() => {
     if (!allBallots) return;
     setBallots(allBallots);
     const currentId = currentIdRef.current;
@@ -59,7 +55,7 @@ const Vote: React.FC = () => {
       const index = allBallots.findIndex((b) => b.id === currentId);
       if (index >= 0) {
         if (allBallots[index].status === 'OPEN') {
-          setCurrentStep(index);
+          advance(index, allBallots);
           return;
         }
         advance(index + 1, allBallots);
@@ -74,6 +70,7 @@ const Vote: React.FC = () => {
     while (next < list.length && list[next].status !== 'OPEN') {
       next++;
     }
+    currentIdRef.current = list[next]?.id ?? null;
     setCurrentStep(next);
   };
 
@@ -166,7 +163,10 @@ const Vote: React.FC = () => {
     while (prev >= 0 && ballots[prev].status !== 'OPEN') {
       prev--;
     }
-    if (prev >= 0) setCurrentStep(prev);
+    if (prev >= 0) {
+      setCurrentStep(prev);
+      currentIdRef.current = ballots[prev]?.id ?? null;
+    }
   };
 
   const total = ballots.length;
