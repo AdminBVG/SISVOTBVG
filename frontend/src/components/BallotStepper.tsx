@@ -2,25 +2,26 @@ import React from 'react';
 import Button from './ui/button';
 import type { Ballot } from '../hooks/useBallots';
 
-interface QuestionWizardProps {
+interface BallotStepperProps {
   ballots: Ballot[];
-  currentStep: number;
+  currentBallotId: number | null;
   onNext: () => void;
   onPrev: () => void;
   children: React.ReactNode;
   nextDisabled?: boolean;
 }
 
-const QuestionWizard: React.FC<QuestionWizardProps> = ({
+const BallotStepper: React.FC<BallotStepperProps> = ({
   ballots,
-  currentStep,
+  currentBallotId,
   onNext,
   onPrev,
   children,
   nextDisabled,
 }) => {
+  const index = ballots.findIndex((b) => b.id === currentBallotId);
+  const progress = index >= 0 ? index + 1 : ballots.length;
   const total = ballots.length;
-  const progress = Math.min(currentStep + 1, total);
   const percentage = total ? (progress / total) * 100 : 0;
 
   return (
@@ -38,7 +39,7 @@ const QuestionWizard: React.FC<QuestionWizardProps> = ({
       </div>
       {children}
       <div className="flex justify-between">
-        <Button variant="outline" disabled={currentStep === 0} onClick={onPrev}>
+        <Button variant="outline" disabled={index <= 0} onClick={onPrev}>
           Anterior
         </Button>
         <Button disabled={total === 0 || nextDisabled} onClick={onNext}>
@@ -49,4 +50,4 @@ const QuestionWizard: React.FC<QuestionWizardProps> = ({
   );
 };
 
-export default QuestionWizard;
+export default BallotStepper;
