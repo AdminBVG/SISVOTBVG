@@ -84,8 +84,8 @@ const Vote: React.FC = () => {
     while (next < list.length && list[next].status !== 'OPEN') {
       next++;
     }
-    const id = list[next]?.id ?? null;
-    currentIdRef.current = id;
+    // keep the current ballot identifier in sync with navigation
+    currentIdRef.current = list[next]?.id ?? null;
     setCurrentStep(next);
   };
 
