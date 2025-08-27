@@ -54,6 +54,18 @@ const Vote: React.FC = () => {
   useEffect(() => {
     if (!allBallots) return;
     setBallots(allBallots);
+    const currentId = currentIdRef.current;
+    if (currentId != null) {
+      const index = allBallots.findIndex((b) => b.id === currentId);
+      if (index >= 0) {
+        if (allBallots[index].status === 'OPEN') {
+          setCurrentStep(index);
+          return;
+        }
+        advance(index + 1, allBallots);
+        return;
+      }
+    }
     advance(0, allBallots);
   }, [allBallots]);
 

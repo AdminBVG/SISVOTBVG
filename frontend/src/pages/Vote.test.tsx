@@ -70,7 +70,7 @@ vi.mock('../hooks/useShareholders', () => ({
 
 const renderPage = () => {
   const client = new QueryClient();
-  return render(
+  const utils = render(
     <MemoryRouter initialEntries={["/votaciones/1/vote"]}>
       <QueryClientProvider client={client}>
         <ToastProvider>
@@ -81,6 +81,7 @@ const renderPage = () => {
       </QueryClientProvider>
     </MemoryRouter>
   );
+  return { client, ...utils };
 };
 
 describe('Vote page', () => {
@@ -186,5 +187,36 @@ describe('Vote page', () => {
       fireEvent.click(btn);
     }
     expect(new Set(seen).size).toBe(seen.length);
+  });
+
+  it('permanece en la siguiente pregunta tras actualizar boletas', async () => {
+    mockBallots = [
+      { id: 1, title: 'Q1', status: 'OPEN' },
+      { id: 2, title: 'Q2', status: 'OPEN' },
+    ];
+    const { rerender, client } = renderPage();
+    const radio = await screen.findByRole('radio');
+    fireEvent.click(radio);
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await screen.findByText('Q2');
+
+    mockBallots = [
+      { id: 1, title: 'Q1', status: 'CLOSED' },
+      { id: 2, title: 'Q2', status: 'OPEN' },
+    ];
+    rerender(
+      <MemoryRouter initialEntries={["/votaciones/1/vote"]}>
+        <QueryClientProvider client={client}>
+          <ToastProvider>
+            <Routes>
+              <Route path="/votaciones/:id/vote" element={<Vote />} />
+            </Routes>
+          </ToastProvider>
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('Q2');
+    expect(screen.queryByText('Q1')).toBeNull();
   });
 });
