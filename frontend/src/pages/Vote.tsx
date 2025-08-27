@@ -84,7 +84,8 @@ const Vote: React.FC = () => {
     while (next < list.length && list[next].status !== 'OPEN') {
       next++;
     }
-    currentIdRef.current = list[next]?.id ?? null;
+    const id = list[next]?.id ?? null;
+    currentIdRef.current = id;
     setCurrentStep(next);
   };
 
