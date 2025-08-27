@@ -178,8 +178,7 @@ const Vote: React.FC = () => {
       prev--;
     }
     if (prev >= 0) {
-      setCurrentStep(prev);
-      currentIdRef.current = ballots[prev]?.id ?? null;
+      advance(prev);
     }
   };
 
