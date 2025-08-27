@@ -92,7 +92,11 @@ export const useCloseBallot = (
     mutationFn: () =>
       apiFetch(`/ballots/${ballotId}/close`, { method: 'POST' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['ballots', electionId] });
+      qc.setQueryData<Ballot[]>(['ballots', electionId], (prev) =>
+        prev?.map((b) =>
+          b.id === ballotId ? { ...b, status: 'CLOSED' } : b,
+        ),
+      );
       qc.invalidateQueries({ queryKey: ['pending-ballots', electionId] });
       onSuccess?.();
     },
