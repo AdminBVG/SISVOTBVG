@@ -20,7 +20,7 @@ import { useToast } from '../components/ui/toast';
 import Alert from '../components/ui/alert';
 import { useVoteReport } from '../hooks/useVoteReport';
 import { useSendVoteReport } from '../hooks/useSendVoteReport';
-import QuestionWizard from '../components/QuestionWizard';
+import BallotStepper from '../components/BallotStepper';
 
 const Vote: React.FC = () => {
   const { id } = useParams();
@@ -28,6 +28,7 @@ const Vote: React.FC = () => {
   const { data: election } = useElection(electionId);
   const { data: allBallots } = useBallots(electionId);
   const [ballots, setBallots] = useState<Ballot[]>([]);
+  const [syncing, setSyncing] = useState(false);
   const { data: shareholders } = useShareholders(
     electionId,
     '',
@@ -48,18 +49,27 @@ const Vote: React.FC = () => {
   const currentIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    currentIdRef.current = ballots[currentStep]?.id ?? null;
-  }, [ballots, currentStep]);
-
-  useEffect(() => {
     if (!allBallots) return;
-    setBallots(allBallots);
+    setBallots((prev) => {
+      if (prev.length === 0) return allBallots;
+      let mismatch = false;
+      const merged = allBallots.map((b) => {
+        const local = prev.find((p) => p.id === b.id);
+        if (local && local.status === 'CLOSED' && b.status !== 'CLOSED') {
+          mismatch = true;
+          return { ...b, status: 'CLOSED' };
+        }
+        return b;
+      });
+      setSyncing(mismatch);
+      return merged;
+    });
     const currentId = currentIdRef.current;
     if (currentId != null) {
       const index = allBallots.findIndex((b) => b.id === currentId);
       if (index >= 0) {
         if (allBallots[index].status === 'OPEN') {
-          setCurrentStep(index);
+          advance(index, allBallots);
           return;
         }
         advance(index + 1, allBallots);
@@ -74,6 +84,7 @@ const Vote: React.FC = () => {
     while (next < list.length && list[next].status !== 'OPEN') {
       next++;
     }
+    currentIdRef.current = list[next]?.id ?? null;
     setCurrentStep(next);
   };
 
@@ -166,7 +177,10 @@ const Vote: React.FC = () => {
     while (prev >= 0 && ballots[prev].status !== 'OPEN') {
       prev--;
     }
-    if (prev >= 0) setCurrentStep(prev);
+    if (prev >= 0) {
+      setCurrentStep(prev);
+      currentIdRef.current = ballots[prev]?.id ?? null;
+    }
   };
 
   const total = ballots.length;
@@ -207,14 +221,15 @@ const Vote: React.FC = () => {
           </Button>
         </div>
       )}
+      {syncing && <Alert message="Sincronizando..." />}
       {election?.voting_open && current && (
         loadingOptions || fetchingOptions ? (
           <p>Cargando opciones...</p>
         ) : options && options.length > 0 ? (
-          <QuestionWizard
+          <BallotStepper
             key={current.id}
             ballots={ballots}
-            currentStep={currentStep}
+            currentBallotId={current.id}
             onNext={nextQuestion}
             onPrev={prevQuestion}
             nextDisabled={!allVoted}
@@ -260,7 +275,7 @@ const Vote: React.FC = () => {
                 </TableBody>
               </Table>
             )}
-          </QuestionWizard>
+          </BallotStepper>
         ) : (
           <div className="space-y-4">
             <h2 className="text-lg font-medium">{current.title}</h2>
